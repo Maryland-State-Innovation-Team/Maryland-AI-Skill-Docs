@@ -8,7 +8,7 @@ This document provides technical details for an AI assistant on how to integrate
 
 ### **Primary Directive: Live API Integration**
 
-The primary goal is to generate code that performs a **live, real-time HTTP GET request** to the Maryland iMap ArcGIS FeatureServer endpoint. The final generated code **must not** contain simulated, mocked, or locally stored GeoJSON files. The data must be fetched dynamically from the live service at runtime.
+The primary goal is to generate code that performs a **live, real-time HTTP GET request** to the Maryland iMap ArcGIS endpoints. The final generated code **must not** contain simulated, mocked, or locally stored GeoJSON files. The data must be fetched dynamically from the live service at runtime.
 
 * **DO:** Write code that dynamically calls the `fetch` API (or a similar HTTP client) to retrieve GeoJSON data.
 * **DO NOT:** Create a static variable or constant (e.g., `const countyBoundaries = {...}`) to represent the API's response.
@@ -21,7 +21,7 @@ Using the live API is essential to ensure that the geospatial data is the most c
 
 When generating code, ensure the following criteria are met:
 
-* [ ] The code makes a `fetch` (or equivalent) `GET` request to a specified FeatureServer URL.
+* [ ] The code makes a `fetch` (or equivalent) `GET` request to the specified **MapServer** URL (preferred over FeatureServer for stability).
 * [ ] The request URL includes the `f=geojson` query parameter.
 * [ ] The JSON response from the live API is parsed and processed at runtime.
 * [ ] The code is prepared to join the fetched GeoJSON with a separate, non-geospatial dataset using a common key.
@@ -33,9 +33,9 @@ When generating code, ensure the following criteria are met:
 
 ### **Base URL and Query Structure**
 
-The endpoints in this guide are part of Maryland's ArcGIS REST Services. They follow a standard structure for querying vector data layers.
+The endpoints in this guide are part of Maryland's ArcGIS REST Services. We utilize `MapServer` endpoints rather than `FeatureServer` to ensure faster response times and reduce `504 Gateway Timeout` errors on complex geometries.
 
-* **Structure**: `https://mdgeodata.md.gov/imap/rest/services/{Service}/{LayerName}/FeatureServer/{LayerID}/query`
+* **Structure**: `https://mdgeodata.md.gov/imap/rest/services/{Service}/{LayerName}/MapServer/{LayerID}/query`
 * **Key Parameters**: To get usable map data, you must append two query parameters:
     * `where=1=1`: An SQL-like clause that selects all features in the layer.
     * `f=geojson`: Specifies the output format. This is the most important parameter.
@@ -58,42 +58,42 @@ No API key or authentication is required to access these public data layers.
 
 These endpoints provide the geometric shapes (polygons) needed to create choropleth maps (maps where areas are colored based on a data variable).
 
-### **2.1. Maryland County Boundaries**
+### **2.1. Maryland County Boundaries (Generalized)**
 
-Provides the 24 major political subdivisions of Maryland (23 counties and Baltimore City).
+Provides the 24 major political subdivisions of Maryland (23 counties and Baltimore City). This endpoint uses the "Generalized" layer (Layer 1) to reduce file size and improve load times.
 
-* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson`
+* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/MapServer/1/query?outFields=*&where=1%3D1&f=geojson`
 * **Method**: `GET`
-* **Key Property for Joining**: The `properties` object of each GeoJSON feature contains a `COUNTY` field. This is the field to use when joining this layer with other datasets.
+* **Key Property for Joining**: The `properties` object of each GeoJSON feature contains a `county` field. This is the field to use when joining this layer with other datasets.
 
 #### **Available Properties**
 
-Each feature's `properties` object will contain the following fields:
+**Note:** Property keys in this layer are **lowercase**.
 
 * `OBJECTID`: Unique integer identifier for the feature.
-* `COUNTY`: The full name of the county or Baltimore City.
-* `DISTRICT`: The district number.
-* `COUNTY_FIP`: The 3-digit FIPS code for the county.
-* `COUNTYNUM`: An internal numeric identifier for the county.
-* `CREATION_D`: The feature's creation date as a Unix timestamp.
-* `LAST_UPDAT`: The feature's last update date as a Unix timestamp.
-* `Shape__Area`: The area of the polygon in square meters (based on the native CRS).
-* `Shape__Length`: The length of the polygon's perimeter in meters (based on the native CRS).
+* `county`: The full name of the county or Baltimore City.
+* `district`: The district number.
+* `county_fip`: The county FIPS code (Number).
+* `countynum`: An internal numeric identifier for the county.
+* `creation_d`: The feature's creation date as a Unix timestamp.
+* `last_updat`: The feature's last update date as a Unix timestamp.
+* `shape.STArea()`: The area of the polygon. (**Note: lowercase 's'**)
+* `shape.STLength()`: The length of the polygon's perimeter. (**Note: lowercase 's'**)
 
 #### **County Names for Joining**
 
-The `COUNTY` field will contain one of the following 24 string values:
+The `county` field will contain one of the following 24 string values:
 `Allegany`, `Anne Arundel`, `Baltimore`, `Baltimore City`, `Calvert`, `Caroline`, `Carroll`, `Cecil`, `Charles`, `Dorchester`, `Frederick`, `Garrett`, `Harford`, `Howard`, `Kent`, `Montgomery`, `Prince George's`, `Queen Anne's`, `Somerset`, `St. Mary's`, `Talbot`, `Washington`, `Wicomico`, `Worcester`.
 
 * **Key Property for Joining**: The `properties` object of each GeoJSON feature contains two fields for joining:
-    1.  `COUNTY`: The full name (e.g., "Allegany").
-    2.  `COUNTY_FIP`: The county FIPS code.
+    1.  `county`: The full name (e.g., "Allegany").
+    2.  `county_fip`: The county FIPS code.
 
-**CRITICAL JOINING INFORMATION for `COUNTY_FIP`:**
+**CRITICAL JOINING INFORMATION for `county_fip`:**
 
 * **Data Type:** This field is a **Number** (e.g., `1`, `3`, `5`, `47`), not a string.
 * **Format:** It does *not* contain the state prefix (`24`) and does *not* have leading zeros.
-* **Example:** Allegany County's `COUNTY_FIP` is `1`, not `"001"` or `"24001"`.
+* **Example:** Allegany County's `county_fip` is `1`, not `"001"` or `"24001"`.
 
 **Action:** When joining this GeoJSON to a Socrata dataset that uses the 5-digit string FIPS (e.g., `"24001"`), you **must** normalize the keys to match.
 
@@ -102,8 +102,8 @@ The `COUNTY` field will contain one of the following 24 string values:
 // 1. Key from Socrata (e.g., "24001")
 const socrataKey = item.fips.slice(-3); // Result: "001"
 
-// 2. Key from iMap GeoJSON (e.g., 1)
-const geojsonKey = String(feature.properties.COUNTY_FIP).padStart(3, '0'); // Result: "001"
+// 2. Key from iMap GeoJSON (e.g., 1) - Note lowercase property
+const geojsonKey = String(feature.properties.county_fip).padStart(3, '0'); // Result: "001"
 ```
 // Now the keys ("001" === "001") will match.
 
@@ -111,7 +111,7 @@ const geojsonKey = String(feature.properties.COUNTY_FIP).padStart(3, '0'); // Re
 
 Provides the boundaries for incorporated cities and towns within Maryland.
 
-* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PoliticalBoundaries/FeatureServer/2/query?outFields=*&where=1%3D1&f=geojson`
+* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PoliticalBoundaries/MapServer/2/query?outFields=*&where=1%3D1&f=geojson`
 * **Method**: `GET`
 * **Key Properties for Joining**:
     * `MUN_NAME`: The name of the municipality (e.g., "ANNAPOLIS", "OCEAN CITY").
@@ -119,35 +119,35 @@ Provides the boundaries for incorporated cities and towns within Maryland.
 
 #### **Available Properties**
 
-Each feature's `properties` object will contain the following fields:
+**Note:** Property keys in this layer are **UPPERCASE**, except for the geometry methods which are mixed/camel case.
 
 * `OBJECTID`: Unique integer identifier for the feature.
 * `JURSCODE`: A four-letter jurisdictional code.
-* `Shape__Area`: The area of the polygon in square meters.
-* `Shape__Length`: The length of the polygon's perimeter in meters.
+* `Shape.STArea()`: The area of the polygon. (**Note: Uppercase 'S'**)
+* `Shape.STLength()`: The length of the polygon's perimeter. (**Note: Uppercase 'S'**)
 * `MUN_NAME`: The full name of the municipality in uppercase.
 
 #### **Municipality Names for Joining**
 
 The `MUN_NAME` field will contain one of the following string values:
-`ABERDEEN`, `ACCIDENT`, `ANNAPOLIS`, `BALTIMORE CITY`, `BARCLAY`, `BARNESVILLE`, `BARTON`, `BEL AIR`, `BERLIN`, `BERWYN HEIGHTS`, `BETTERTON`, `BLADENSBURG`, `BOONSBORO`, `BOWIE`, `BRENTWOOD`, `BROOKEVILLE`, `BROOKVIEW`, `BRUNSWICK`, `BURKITTSVILLE`, `CAMBRIDGE`, `CAPITOL HEIGHTS`, `CECILTON`, `CENTREVILLE`, `CHARLESTOWN`, `CHESAPEAKE BEACH`, `CHESAPEAKE CITY`, `CHESTERTOWN`, `CHEVERLY`, `CHEVY CHASE SECTION 3`, `CHEVY CHASE SECTION 5`, `CHEVY CHASE TOWN`, `CHEVY CHASE VIEW`, `CHEVY CHASE VILLAGE`, `CHURCH CREEK`, `CHURCH HILL`, `CLEAR SPRING`, `COLLEGE PARK`, `COLMAR MANOR`, `COTTAGE CITY`, `CRISFIELD`, `CUMBERLAND`, `DEER PARK`, `DELMAR`, `DENTON`, `DISTRICT HEIGHTS`, `EAGLE HARBOR`, `EAST NEW MARKET`, `EASTON`, `EDMONSTON`, `ELDORADO`, `ELKTON`, `EMMITSBURG`, `FAIRMOUNT HEIGHTS`, `FEDERALSBURG`, `FOREST HEIGHTS`, `FREDERICK`, `FRIENDSVILLE`, `FROSTBURG`, `FRUITLAND`, `FUNKSTOWN`, `GAITHERSBURG`, `GALENA`, `GALESTOWN`, `GARRETT PARK`, `GLEN ECHO`, `GLENARDEN`, `GOLDSBORO`, `GRANTSVILLE`, `GREENBELT`, `GREENSBORO`, `HAGERSTOWN`, `HAMPSTEAD`, `HANCOCK`, `HAVRE DE GRACE`, `HEBRON`, `HENDERSON`, `HIGHLAND BEACH`, `HILLSBORO`, `HURLOCK`, `HYATTSVILLE`, `INDIAN HEAD`, `KEEDYSVILLE`, `KENSINGTON`, `KITZMILLER`, `LA PLATA`, `LANDOVER HILLS`, `LAUREL`, `LAYTONSVILLE`, `LEONARDTOWN`, `LOCH LYNN HEIGHTS`, `LONACONING`, `LUKE`, `MANCHESTER`, `MARDELA SPRINGS`, `MARTINS ADDITIONS`, `MARYDEL`, `MIDDletown`, `MIDLAND`, `MILLINGTON`, `MORNINGSIDE`, `MOUNT AIRY`, `MOUNT RAINIER`, `MOUNTAIN LAKE PARK`, `MYERSVILLE`, `NEW CARROLLTON`, `NEW MARKET`, `NEW WINDSOR`, `NORTH BEACH`, `NORTH BRENTWOOD`, `NORTH CHEVY CHASE`, `NORTH EAST`, `OAKLAND`, `OCEAN CITY`, `OXFORD`, `PERRYVILLE`, `PITTSVILLE`, `POCOMOKE CITY`, `POOLESVILLE`, `PORT DEPOSIT`, `PORT TOBACCO`, `PRESTON`, `PRINCESS ANNE`, `QUEEN ANNE`, `QUEENSTOWN`, `RIDGELY`, `RISING SUN`, `RIVERDALE PARK`, `ROCK HALL`, `ROCKVILLE`, `ROSEMONT`, `SALISBURY`, `SEAT PLEASANT`, `SECRETARY`, `SHARPSBURG`, `SHARPTOWN`, `SMITHSBURG`, `SNOW HILL`, `SOMERSET`, `ST. MICHAELS`, `SUDLERSVILLE`, `SYKESVILLE`, `TAKOMA PARK`, `TANEYTOWN`, `TEMPLEVILLE`, `THURMONT`, `TRAPPE`, `UNION BRIDGE`, `UNIVERSITY PARK`, `UPPER MARLBORO`, `VIENNA`, `WALKERSVILLE`, `WASHINGTON GROVE`, `WESTERNPORT`, `WESTMINSTER`, `WILLARDS`, `WILLIAMSPORT`, `WOODSBORO`.
+`ABERDEEN`, `ACCIDENT`, `ANNAPOLIS`, `BALTIMORE CITY`, `BARCLAY`, `BARNESVILLE`, `BARTON`, `BEL AIR`, `BERLIN`, `BERWYN HEIGHTS`, `BETTERTON`, `BLADENSBURG`, `BOONSBORO`, `BOWIE`, `BRENTWOOD`, `BROOKEVILLE`, `BROOKVIEW`, `BRUNSWICK`, `BURKITTSVILLE`, `CAMBRIDGE`, `CAPITOL HEIGHTS`, `CECILTON`, `CENTREVILLE`, `CHARLESTOWN`, `CHESAPEAKE BEACH`, `CHESAPEAKE CITY`, `CHESTERTOWN`, `CHEVERLY`, `CHEVY CHASE SECTION 3`, `CHEVY CHASE SECTION 5`, `CHEVY CHASE TOWN`, `CHEVY CHASE VIEW`, `CHEVY CHASE VILLAGE`, `CHURCH CREEK`, `CHURCH HILL`, `CLEAR SPRING`, `COLLEGE PARK`, `COLMAR MANOR`, `COTTAGE CITY`, `CRISFIELD`, `CUMBERLAND`, `DEER PARK`, `DELMAR`, `DENTON`, `DISTRICT HEIGHTS`, `EAGLE HARBOR`, `EAST NEW MARKET`, `EASTON`, `EDMONSTON`, `ELDORADO`, `ELKTON`, `EMMITSBURG`, `FAIRMOUNT HEIGHTS`, `FEDERALSBURG`, `FOREST HEIGHTS`, `FREDERICK`, `FRIENDSVILLE`, `FROSTBURG`, `FRUITLAND`, `FUNKSTOWN`, `GAITHERSBURG`, `GALENA`, `GALESTOWN`, `GARRETT PARK`, `GLEN ECHO`, `GLENARDEN`, `GOLDSBORO`, `GRANTSVILLE`, `GREENBELT`, `GREENSBORO`, `HAGERSTOWN`, `HAMPSTEAD`, `HANCOCK`, `HAVRE DE GRACE`, `HEBRON`, `HENDERSON`, `HIGHLAND BEACH`, `HILLSBORO`, `HURLOCK`, `HYATTSVILLE`, `INDIAN HEAD`, `KEEDYSVILLE`, `KENSINGTON`, `KITZMILLER`, `LA PLATA`, `LANDOVER HILLS`, `LAUREL`, `LAYTONSVILLE`, `LEONARDTOWN`, `LOCH LYNN HEIGHTS`, `LONACONING`, `LUKE`, `MANCHESTER`, `MARDELA SPRINGS`, `MARTINS ADDITIONS`, `MARYDEL`, `MIDDLETOWN`, `MIDLAND`, `MILLINGTON`, `MORNINGSIDE`, `MOUNT AIRY`, `MOUNT RAINIER`, `MOUNTAIN LAKE PARK`, `MYERSVILLE`, `NEW CARROLLTON`, `NEW MARKET`, `NEW WINDSOR`, `NORTH BEACH`, `NORTH BRENTWOOD`, `NORTH CHEVY CHASE`, `NORTH EAST`, `OAKLAND`, `OCEAN CITY`, `OXFORD`, `PERRYVILLE`, `PITTSVILLE`, `POCOMOKE CITY`, `POOLESVILLE`, `PORT DEPOSIT`, `PORT TOBACCO`, `PRESTON`, `PRINCESS ANNE`, `QUEEN ANNE`, `QUEENSTOWN`, `RIDGELY`, `RISING SUN`, `RIVERDALE PARK`, `ROCK HALL`, `ROCKVILLE`, `ROSEMONT`, `SALISBURY`, `SEAT PLEASANT`, `SECRETARY`, `SHARPSBURG`, `SHARPTOWN`, `SMITHSBURG`, `SNOW HILL`, `SOMERSET`, `ST. MICHAELS`, `SUDLERSVILLE`, `SYKESVILLE`, `TAKOMA PARK`, `TANEYTOWN`, `TEMPLEVILLE`, `THURMONT`, `TRAPPE`, `UNION BRIDGE`, `UNIVERSITY PARK`, `UPPER MARLBORO`, `VIENNA`, `WALKERSVILLE`, `WASHINGTON GROVE`, `WESTERNPORT`, `WESTMINSTER`, `WILLARDS`, `WILLIAMSPORT`, `WOODSBORO`.
 
 ### **2.3. Maryland Legislative Districts (2022)**
 
 Provides the boundaries for Maryland's state legislative districts.
 
-* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_ElectionBoundaries/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson`
+* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_ElectionBoundaries/MapServer/1/query?outFields=*&where=1%3D1&f=geojson`
 * **Method**: `GET`
 * **Key Property for Joining**: The `DISTRICT` field.
 
 #### **Available Properties**
 
-Each feature's `properties` object will contain the following fields:
+**Note:** Property keys are mixed case. `Shape` uses Uppercase S.
 
 * `OBJECTID`: Unique integer identifier.
 * `DISTRICT`: The legislative district code (e.g., '10', '27A').
-* `Shape__Area`: The area of the polygon in square meters.
-* `Shape__Length`: The perimeter of the polygon in meters.
+* `Shape.STArea()`: The area of the polygon. (**Note: Uppercase 'S'**)
+* `Shape.STLength()`: The perimeter of the polygon. (**Note: Uppercase 'S'**)
 * `State_Senator`: Full name of the State Senator.
 * `State_Representative_1`: Full name of the first State Representative/Delegate.
 * `State_Representative_2`: Full name of the second State Representative/Delegate.
@@ -172,30 +172,30 @@ The `DISTRICT` field is a **string** and will be one of the following values:
 
 Provides generalized boundaries for USPS ZIP codes within Maryland.
 
-* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PoliticalBoundaries/FeatureServer/4/query?outFields=*&where=1%3D1&f=geojson`
+* **URL**: `https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PoliticalBoundaries/MapServer/4/query?outFields=*&where=1%3D1&f=geojson`
 * **Method**: `GET`
 * **Key Property for Joining**: The `ZIPCODE1` field.
 
 #### **Available Properties**
 
-Each feature's `properties` object will contain the following fields:
+**Note:** Property keys are uppercase. `Shape` uses Uppercase S.
 
 * `OBJECTID`: Unique integer identifier.
 * `ZIPCODE1`: The 5-digit ZIP code as a string.
 * `ZIPNAME`: The primary city/town name associated with the ZIP code.
-* `Shape__Area`: The area of the polygon in square meters.
-* `Shape__Length`: The perimeter of the polygon in meters.
+* `Shape.STArea()`: The area of the polygon. (**Note: Uppercase 'S'**)
+* `Shape.STLength()`: The perimeter of the polygon. (**Note: Uppercase 'S'**)
 * `EXISTING`: An internal data version identifier.
 
 ---
 
 ## **3. Implementation Example (JavaScript)**
 
-This example demonstrates the full flow for building a data visualization: fetching a GeoJSON layer (counties), fetching a separate dataset, and joining them together into a single GeoJSON object ready for mapping.
+This example demonstrates the full flow for building a data visualization: fetching a GeoJSON layer (generalized counties), fetching a separate dataset, and joining them together into a single GeoJSON object ready for mapping.
 
 ```javascript
-// 1. Define the endpoint for Maryland County boundaries
-const countyBoundariesUrl = '[https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson](https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson)';
+// 1. Define the endpoint for Maryland County boundaries (MapServer Layer 1 - Generalized)
+const countyBoundariesUrl = '[https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/MapServer/1/query?outFields=*&where=1%3D1&f=geojson](https://mdgeodata.md.gov/imap/rest/services/Boundaries/MD_PhysicalBoundaries/MapServer/1/query?outFields=*&where=1%3D1&f=geojson)';
 
 // 2. Example non-geospatial data (e.g., from a Socrata API or CSV)
 // This data needs to be joined TO the GeoJSON shapes.
@@ -222,8 +222,8 @@ async function createChoroplethData() {
         // 4. Join the external data with the GeoJSON
         // We iterate over each county feature from the API...
         mdCountiesGeoJSON.features.forEach(countyFeature => {
-            // The key property for counties is 'COUNTY'
-            const countyNameFromGeo = countyFeature.properties.COUNTY;
+            // The key property for this generalized layer is 'county' (lowercase)
+            const countyNameFromGeo = countyFeature.properties.county;
 
             // Find the matching county in our population data
             const populationRecord = countyPopulationData.find(
