@@ -36,6 +36,8 @@ When generating code, ensure the following criteria are met:
 * \[ \] The JSON response from the live API is parsed and processed at runtime.  
 * \[ \] An App Token is used when available, passed in the X-App-Token header.  
 * \[ \] There are no static variables or objects containing pre-fetched Socrata data.
+* \[ \] Always use `URLSearchParams` to build query strings. Do not use string concatenation.
+* \[ \] Always include `Accept: application/json`.
 
 ## **1\. Core Concepts**
 
@@ -122,108 +124,131 @@ This example fetches data from the CDC PLACES dataset, filters for Maryland, and
 ```python
 import requests
 import pandas as pd
-import os # For securely getting the app token
+import os
 
-# 1. Define the endpoint and parameters
+# 1. Define the endpoint and key variables
 base_url = "https://data.cdc.gov/resource/cwsq-ngmh.json"
 year = 2022
 measures = ['FOODINSECU', 'LACKTRPT']
 
-# 2. Construct the SoQL $where clause
-# Note: String values within the clause need single quotes
+# 2. Construct the SoQL $where clause securely
+# We join the measures with quotes to fit the SQL IN(...) syntax
 measures_str = ','.join([f"'{m}'" for m in measures])
 soql_where = f"stateabbr = 'MD' AND year = '{year}' AND measureid IN({measures_str})"
 
+# 3. Use a dictionary for params so 'requests' handles URL encoding automatically
+# This prevents errors with spaces or special characters in the query
 params = {
     "$where": soql_where,
     "$limit": 10000,
     "$select": "locationname, measureid, data_value"
 }
 
-# 3. Add the App Token to the header for authentication
-# It's best practice to store tokens as environment variables
-app_token = os.getenv("SOCRATA_APP_TOKEN")
+# 4. Set Headers
+# 'Accept: application/json' is crucial to ensure the server returns JSON
 headers = {
-    "X-App-Token": app_token
+    "Accept": "application/json"
 }
 
-# 4. Make the live API request
+# Add the App Token only if it exists in the environment
+# This allows the code to run (albeit with lower limits) even without a token
+app_token = os.getenv("SOCRATA_APP_TOKEN")
+if app_token:
+    headers["X-App-Token"] = app_token
+
 try:
+    # 5. Make the Request
     response = requests.get(base_url, headers=headers, params=params)
-    response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
-
-    # 5. Process the JSON response
-    data = response.json()
-    if not data:
-        raise ValueError("No data returned from the Socrata API.")
-
-    df = pd.DataFrame(data)
-    print("Successfully fetched and loaded data:")
-    print(df.head())
     
-    # Optional: Convert data types for analysis
-    df['data_value'] = pd.to_numeric(df['data_value'], errors='coerce')
+    # 6. Robust Error Handling
+    # If the status code indicates failure (4xx or 5xx), print the status AND the body.
+    # The body often contains the specific Socrata error message (e.g., "query.soql.parsingError").
+    if not response.ok:
+        print(f"Error Status: {response.status_code}")
+        try:
+            print(f"Error Details: {response.text}") 
+        except:
+            pass
+        response.raise_for_status() # Raise exception to stop execution
+
+    # 7. Parse Data
+    data = response.json()
+    
+    # Load into Pandas for analysis
+    df = pd.DataFrame(data)
+    print("Successfully fetched data:")
+    print(df.head())
 
 except requests.exceptions.RequestException as e:
     print(f"API request failed: {e}")
-except ValueError as e:
-    print(e)
+```
 
 ### **3.2. JavaScript Example (using fetch)**
 
 This example uses the browser/Node.js fetch API to get Maryland population data.
 
 ```javascript
-// 1. Define the endpoint and SoQL parameters
+// 1. Define the endpoint and token
 const endpoint = 'https://opendata.maryland.gov/resource/sk8g-4e43.json';
-const appToken = process.env.SOCRATA_APP_TOKEN; // Best practice: use env var
+const appToken = ''; // Or process.env.SOCRATA_APP_TOKEN for Node.js
 
-// SoQL parameters to find population since 2000
-const params = new URLSearchParams({
-    '$where': 'year >= 2000',
-    '$order': 'year DESC'
-});
-
-const fullUrl = `${endpoint}?${params.toString()}`;
-
-// 2. Define the async function to fetch data
 async function getMarylandPopulation() {
-    console.log(`Fetching data from: ${fullUrl}`);
+    // 2. Use URLSearchParams for safe URL construction
+    // This handles encoding of spaces, special characters, and query syntax automatically.
+    // Avoid string concatenation (e.g., endpoint + "?$where=" ...) as it is error-prone.
+    const url = new URL(endpoint);
+    const params = new URLSearchParams();
+    params.append('$where', 'year >= 2000');
+    params.append('$order', 'year DESC');
+    
+    // Attach the params to the URL object
+    url.search = params.toString();
+
+    console.log(`Fetching data from: ${url.toString()}`);
+
+    // 3. Configure Options & Headers
+    // Always specify 'Accept: application/json'
+    const options = {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    };
+
+    // Add authentication header only if we have a token
+    if (appToken) {
+        options.headers['X-App-Token'] = appToken;
+    }
 
     try {
-        const response = await fetch(fullUrl, {
-            method: 'GET',
-            headers: {
-                'X-App-Token': appToken
-            }
-        });
+        const response = await fetch(url.toString(), options);
 
+        // 4. Robust Error Handling
+        // Fetch does not throw on 4xx/5xx errors, so we must check response.ok.
+        // Crucially, we await response.text() to see the actual error message from Socrata.
         if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error ${response.status}: ${errorText || response.statusText}`);
         }
 
-        // 3. Parse the JSON response
+        // 5. Parse JSON
         const data = await response.json();
         
-        // 4. Process and use the data
+        // 6. Handle Empty Results
         if (data.length === 0) {
             console.log("No results found.");
             return;
         }
 
-        console.log("Successfully fetched population data:");
-        data.forEach(record => {
-            console.log(`- Year: ${record.year}, Population: ${record.total_residential_population}`);
-        });
-
+        console.log(`Successfully fetched ${data.length} records.`);
         return data;
 
     } catch (error) {
+        // 7. User-Friendly Error logging
         console.error("Failed to fetch Socrata data:", error);
-        return [];
+        // In a real UI, you would display 'error.message' to the user here
     }
 }
 
-// 5. Execute the function
 getMarylandPopulation();
 ```
