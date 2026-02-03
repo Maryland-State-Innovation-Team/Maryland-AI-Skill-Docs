@@ -384,8 +384,6 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
     3. **Document the FOUNDATION section:**
        - Click the arrow next to "FOUNDATION" to expand it
        - You will see: Block Spacing, Colors, Logo, Typography
-       - Some items have sub-items (e.g., Block Spacing has Full Width, Single Column, With Sidebar)
-       - Some items have a "Docs" page with documentation
        - For each item and sub-item:
          * Click to view it
          * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
@@ -397,7 +395,6 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - Many components have sub-items (e.g., Action Items has: Docs, Featured Actions, Action Spotlight, Action Group, Action Hero, Action Page Contents)
        - For EACH component and its sub-items:
          * Click to view it
-         * Read the "Docs" page if available
          * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
          * Call `Save Component` with all details including code
 
@@ -421,7 +418,7 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - Always look for and click "Show code" button when it exists to reveal HTML examples
        - Copy the complete HTML code shown
        - Note all CSS classes used
-       - Read any usage notes or guidelines on "Docs" pages
+       - Read any usage notes or guidelines
 
     8. When you have documented ALL sections and sub-sections completely, finish the task.
     """
