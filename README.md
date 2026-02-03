@@ -1,4 +1,4 @@
-# LLM-Context
+# Maryland-AI-Skill-Docs
 
 This repository provides context files designed for use with large language models (such as Gemini 2.5 Pro) and interactive tools like Canvas. The included context files help LLMs use geocoding, mapping, and open data tools more effectively.
 
