@@ -372,7 +372,7 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
     
     Your goal is to create a comprehensive skill document for LLMs on how to build pages with MDWDS using the CDN.
 
-    1. **Go to {STORYBOOK_URL}**
+    1. Go to {STORYBOOK_URL}
 
     2. **Read "Getting Started" page first:**
        - Click "Getting Started" in the sidebar
