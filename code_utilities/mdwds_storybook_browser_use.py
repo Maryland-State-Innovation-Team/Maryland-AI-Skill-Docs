@@ -388,7 +388,7 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - Some items have a "Docs" page with documentation
        - For each item and sub-item:
          * Click to view it
-         * Look for and click "Show code" button to reveal HTML
+         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
          * Call `Save Foundation Item` with all details
 
     4. **Document the MDWDS COMPONENTS section:**
@@ -398,7 +398,7 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - For EACH component and its sub-items:
          * Click to view it
          * Read the "Docs" page if available
-         * Click "Show code" buttons to get HTML examples
+         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
          * Call `Save Component` with all details including code
 
     5. **Document the TEMPLATES section:**
@@ -406,7 +406,7 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - Under "Page" you will find: Maryland Homepage, Action Page, Agency Homepage, Basic Page, Landing Page, Listing Page, Location Page, News Page, Search Page
        - For each template:
          * Click to view it
-         * Click "Show code" to get the full HTML structure
+         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
          * Call `Save Template` with all details
 
     6. **Document the UTILITIES section:**
@@ -414,11 +414,11 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
        - Under "Layout Grid" you will find: Docs, Three Columns, Numeric Width, Auto Fill, Responsive Mix, Offset, Gutters
        - For each utility:
          * Click to view it
-         * Click "Show code" to get examples
+         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
          * Call `Save Utility` with all details
 
     7. **For EVERY page you visit:**
-       - Always look for and click "Show code" button to reveal HTML examples
+       - Always look for and click "Show code" button when it exists to reveal HTML examples
        - Copy the complete HTML code shown
        - Note all CSS classes used
        - Read any usage notes or guidelines on "Docs" pages
