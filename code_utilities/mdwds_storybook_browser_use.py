@@ -368,63 +368,66 @@ async def scrape_mdwds_documentation(llm) -> MDWDSDocumentation:
         return f"Utility '{name}' saved. Continue documenting."
 
     task = f"""
-    You are a documentation extraction agent for the Maryland Web Design System (MDWDS).
-    
-    Your goal is to create a comprehensive skill document for LLMs on how to build pages with MDWDS using the CDN.
+You are a documentation extraction agent for the Maryland Web Design System (MDWDS).
 
-    1. Go to {STORYBOOK_URL}
+Your goal is to create a skill document for LLMs on how to build pages with MDWDS using the CDN.
 
-    2. **Read "Getting Started" page first:**
-       - Click "Getting Started" in the sidebar
-       - Find the current version number
-       - IMPORTANT: The page may show version tags with a 'v' prefix, but CDN URLs must NOT include it
-       - Correct CDN format: https://cdn.maryland.gov/mdwds/0.35.0/css/mdwds.min.css
-       - Call `Save Getting Started Info` with the version (without 'v'), correct CDN URLs, and setup instructions
+1. Go to {STORYBOOK_URL}
 
-    3. **Document the FOUNDATION section:**
-       - Click the arrow next to "FOUNDATION" to expand it
-       - You will see: Block Spacing, Colors, Logo, Typography
-       - Some items have sub-items (e.g., Block Spacing has Full Width, Single Column, With Sidebar)
-       - Some items have a "Docs" page with documentation
-       - For each item and sub-item:
-         * Click to view it
-         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
-         * Call `Save Foundation Item` with all details
+2. **Read "Getting Started" page first:**
+    - Click "Getting Started" in the sidebar
+    - Find the current version number
+    - IMPORTANT: The page may show version tags with a 'v' prefix, but CDN URLs must NOT include it
+    - Correct CDN format: https://cdn.maryland.gov/mdwds/0.35.0/css/mdwds.min.css
+    - Call `Save Getting Started Info` with the version (without 'v'), correct CDN URLs, and setup instructions
 
-    4. **Document the MDWDS COMPONENTS section:**
-       - Click the arrow next to "MDWDS COMPONENTS" to expand it
-       - Components include: Accordion, Action Items, Alert, Automatic List, Breadcrumb, Callout, Cards, Footer, Header, Hero, Highlight, LinkCollection, Links, Listing Page, Navigation, Promo, Search, Side Navigation, Statewide Banner, Statewide Footer, Summary Box, Table of Contents, Utility Nav, Video Promo, Visual Link Collection
-       - Many components have sub-items (e.g., Action Items has: Docs, Featured Actions, Action Spotlight, Action Group, Action Hero, Action Page Contents)
-       - For EACH component and its sub-items:
-         * Click to view it
-         * Read the "Docs" page if available
-         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
-         * Call `Save Component` with all details including code
+3. **General Traversal Protocol (Apply to all sections below):**
+    - You will iterate through specific sections of the sidebar.
+    - The main section headers (e.g., FOUNDATION, MDWDS COMPONENTS) are already expanded.
+    - You must dynamically process every item visible under these headers.
+    - **Folder Logic:** If an item has an arrow or expand icon, it is a folder. You must expand it to see its sub-pages.
+    - **Leaf Logic:** If an item has no arrow, it is a direct page. Click it immediately.
 
-    5. **Document the TEMPLATES section:**
-       - Click the arrow next to "TEMPLATES" to expand it
-       - Under "Page" you will find: Maryland Homepage, Action Page, Agency Homepage, Basic Page, Landing Page, Listing Page, Location Page, News Page, Search Page
-       - For each template:
-         * Click to view it
-         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
-         * Call `Save Template` with all details
+4. **Section 1: FOUNDATION:**
+    - Locate the **FOUNDATION** heading.
+    - Iterate through every item listed underneath it.
+    - **Logic:**
+        - If it is a direct page (e.g., Colors), click it, extract info, and move to the next.
+        - If it is a folder (e.g., Typography):
+            1. Expand the folder.
+            2. **Priority Check:** Does a sub-page named **"Docs"** exist?
+               - **YES:** Click *only* "Docs". Extract info. **SKIP** all other sub-pages in this folder (e.g., "Sample Page").
+               - **NO:** Click *only* the **first** available sub-page. Extract info. **SKIP** the rest.
+    - Call `Save Foundation Item` for each completed item.
 
-    6. **Document the UTILITIES section:**
-       - Click the arrow next to "UTILITIES" to expand it
-       - Under "Layout Grid" you will find: Docs, Three Columns, Numeric Width, Auto Fill, Responsive Mix, Offset, Gutters
-       - For each utility:
-         * Click to view it
-         * If the page has a "Show code" button, click it to reveal HTML. Otherwise read the documentation on the page
-         * Call `Save Utility` with all details
+5. **Section 2: MDWDS COMPONENTS:**
+    - Locate the **MDWDS COMPONENTS** heading.
+    - Iterate through every component listed (do not skip any).
+    - **Logic:** Apply the same Priority Check as above.
+        - Expand the component folder.
+        - **"Docs" Rule:** If "Docs" is present, visit that page ONLY. It contains the canonical documentation. Ignore sibling variations (e.g., "Default", "With Sidebar") to save steps.
+        - **Fallback:** If "Docs" is missing, visit the first available link to capture the pattern.
+    - Call `Save Component` with all details including code.
 
-    7. **For EVERY page you visit:**
-       - Always look for and click "Show code" button when it exists to reveal HTML examples
-       - Copy the complete HTML code shown
-       - Note all CSS classes used
-       - Read any usage notes or guidelines on "Docs" pages
-       - Ignore the "Read docs" link when it occurs in the "Interactive story playground" that is documentation for Storybook, not MDWDS
+6. **Section 3: TEMPLATES:**
+    - Locate the **TEMPLATES** heading.
+    - Iterate through every template listed.
+    - Click to view each template.
+    - Call `Save Template` with all details.
 
-    8. When you have documented ALL sections and sub-sections completely, finish the task.
+7. **Section 4: UTILITIES:**
+    - Locate the **UTILITIES** heading.
+    - Iterate through every item.
+    - If an item is a folder, apply the **"Docs" Rule** (Visit Docs if available, otherwise visit first child).
+    - Call `Save Utility` with all details.
+
+8. **Content Extraction Rules (CRITICAL for every page):**
+    - **"Show Code" is Mandatory:** On every page you visit, scan for a button labeled "Show code". If this button exists you MUST click this to reveal the source code.
+    - **Capture:** Capture the *structural* HTML that demonstrates how the component works (wrapper classes, required attributes, hierarchy). Extract enough code so a developer could reproduce the component, but trim unnecessary inner content if it bloats the output.
+    - **Documentation:** Read the text descriptions on the page (especially on "Docs" pages) for usage guidelines.
+    - **Ignore False Friends:** Do not click links inside the content area that say "Read docs" (these lead off-site). Your source of truth is the current Storybook page.
+
+9. When you have dynamically discovered and documented all items in these four sections, finish the task.
     """
 
     agent = Agent(
