@@ -15,7 +15,7 @@ The Maryland Web Design System (MDWDS) is a design system for building Maryland 
 Include the following in your HTML `<head>`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.maryland.gov/mdwds/0.37.0/css/mdwds.min.css">
+<link rel="stylesheet" href="https://cdn.maryland.gov/mdwds/0.36.0/css/mdwds.min.css">
 <script src="https://cdn.maryland.gov/mdwds/0.36.0/js/mdwds-init.js, https://cdn.maryland.gov/mdwds/0.36.0/js/mdwds-core.js" defer></script>
 ```
 
