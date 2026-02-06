@@ -475,7 +475,9 @@ async def run():
     markdown_content = generate_markdown(docs)
     
     # Save to file
-    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+    output_dir = os.path.dirname(OUTPUT_FILE)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         f.write(markdown_content)
     
