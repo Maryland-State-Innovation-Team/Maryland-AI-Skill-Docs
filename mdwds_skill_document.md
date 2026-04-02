@@ -4,77 +4,113 @@
 
 ---
 
-# Maryland Web Design System (MDWDS) — LLM Skill Introduction
+# Maryland Web Design System (MDWDS) — Introduction and Overview
 
 ## What MDWDS Is
 
-The Maryland Web Design System is the official component library and design standard for Maryland state government web properties, hosted at [designsystem.maryland.gov](https://designsystem.maryland.gov). It exists to ensure that every Maryland agency website shares a consistent visual identity, meets federal and state accessibility requirements (WCAG 2.1 AA), and delivers a coherent citizen experience.
+The Maryland Web Design System (MDWDS) is the official design system for Maryland state government digital services. It exists to help Maryland government teams build consistent, accessible, mobile-friendly web properties that meet state digital service standards.
 
-MDWDS is built on top of the **U.S. Web Design System (USWDS)**. This relationship is foundational: MDWDS adopts USWDS components wholesale, extends them with Maryland-specific components, and layers Maryland branding (colors, typography, the state seal) on top of the USWDS token system. In practice this means a page may simultaneously use `usa-` prefixed classes from USWDS and `maryland-` prefixed custom elements or CSS variables from MDWDS. Both are present and valid on the same page.
+MDWDS is built on top of the **U.S. Web Design System (USWDS)**. This means the system uses two class namespaces side by side: `usa-*` classes inherited from USWDS, and `maryland-*` classes that are MDWDS-specific. Some components are pure USWDS (buttons, forms, breadcrumbs), some are pure MDWDS extensions (header, footer, hero), and some are hybrids. You must use both class sets correctly — never substitute one for the other.
 
-MDWDS custom web components are prefixed with `maryland-` (e.g., `<maryland-accordion>`, `<maryland-hero>`). CSS custom properties follow the same convention (e.g., `--maryland-color-primary`). This namespace is mandatory and prevents collisions with USWDS classes, third-party libraries, and generic HTML attributes.
+The system is delivered as a CDN-hosted bundle. The current stable version is **0.44.0**.
 
 ---
 
 ## CDN Setup
 
-To use MDWDS on a page, include the stylesheet and the JavaScript bundle in `<head>`. Version numbers in CDN URLs use **no `v` prefix** — write `0.36.0`, never `v0.36.0`.
+Every Maryland state page must load the MDWDS CSS and JavaScript from the CDN. Place these tags in the `<head>`:
 
 ```html
-<head>
-  <!-- MDWDS styles — load before body content to prevent FOUC -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.maryland.gov/mdwds/0.36.0/css/mdwds.min.css"
-  />
-
-  <!-- MDWDS JavaScript bundle (web components and interactive behavior) -->
-  <script
-    type="module"
-    src="https://cdn.maryland.gov/mdwds/0.36.0/js/mdwds.min.js"
-  ></script>
-</head>
+<link rel="stylesheet" href="https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css">
+<script src="https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds.min.js" defer></script>
 ```
 
-**FOUC prevention:** The stylesheet link must appear before any `<body>` content. Because custom web components (`<maryland-*>`) upgrade asynchronously, pages that render components before the JS bundle executes may briefly show unstyled or empty shells. Mitigate this by loading the script as `type="module"` in `<head>` (not deferred at the bottom of `<body>`) and, if needed, adding `visibility: hidden` to the `<body>` with a CSS rule that restores visibility once the `:defined` pseudo-class resolves on your root component.
+**Important rules:**
+- The version string is `0.44.0` — never write `v0.44.0`.
+- To always get the latest build (not recommended for production), replace `0.44.0` with `latest`.
+- **Never write custom CSS to replicate MDWDS component styles.** All visual styling for every component — colors, spacing, typography, shadows, states — comes from the CDN stylesheet. Your job is to produce correct HTML structure with correct class names. The stylesheet does the rest.
+- To prevent a flash of unstyled content (FOUC) while the JavaScript bundle initializes, add `usa-js-loading` to the `<body>` element. USWDS JavaScript removes this class once it is ready, enabling JS-dependent transitions and states.
+
+```html
+<body class="usa-js-loading">
+```
 
 ---
 
 ## The Class Naming System
 
-MDWDS uses three parallel naming conventions that coexist on the same page. Understanding each lets you reason about unfamiliar class names without looking them up.
+MDWDS uses three distinct naming patterns. Mixing them up is the most common error.
 
-**USWDS classes (`.usa-` prefix):** All USWDS components use this prefix. The pattern is `usa-[component]` for the root element and `usa-[component]__[element]` for child parts. Modifiers append as `usa-[component]--[modifier]`. Examples: `.usa-button`, `.usa-button--secondary`, `.usa-card__header`. When you see `.usa-*` classes, you are working with a USWDS-origin component, even if MDWDS has restyled it.
+### 1. `maryland-*` — MDWDS Web Components and CSS Classes
 
-**MDWDS BEM classes:** Maryland-authored components follow BEM (Block, Element, Modifier). The block is the component name, elements use double underscores, and modifiers use double hyphens: `.card__body`, `.footer__section`, `.promo--dark`. Unlike USWDS classes, these do not carry a `usa-` prefix — they are plain BEM identifiers.
+Custom HTML elements and their associated CSS classes are all prefixed with `maryland-`. This includes both web components (which require the JS bundle) and regular CSS class names applied to standard HTML elements.
 
-**`maryland-` prefix (web components and CSS variables):** Interactive or encapsulated components are implemented as custom elements (`<maryland-accordion>`) with CSS variables (`--maryland-spacing-unit`). These use Shadow DOM in some cases, meaning external CSS will not pierce their internals without CSS custom properties passed through the host element.
+- Web components: `<maryland-statewide-banner>`, `<maryland-statewide-footer>`
+- CSS class patterns: `maryland-header`, `maryland-header__util-nav`, `maryland-card`, `maryland-card__container`, `maryland-hero`, `maryland-footer`, `maryland-alert`, `maryland-alert--info`
+- CSS custom properties: `--maryland-color-primary`, `--maryland-font-body`
 
-**Practical inference rule:** If a class starts with `usa-`, treat it as USWDS. If it is a custom HTML element starting with `maryland-`, treat it as an MDWDS web component. If it is a plain BEM string with no prefix, it is an MDWDS-authored utility or layout class.
+BEM structure applies: `maryland-{block}__element--modifier`.
+
+### 2. `usa-*` — USWDS-Inherited Classes
+
+Components sourced from USWDS use `usa-` prefixed classes. These follow BEM with modifiers separated by double hyphens.
+
+- `usa-button`, `usa-button--secondary`, `usa-button--accent-cool`
+- `usa-breadcrumb`, `usa-breadcrumb__list`, `usa-breadcrumb__list-item`, `usa-current`
+- `usa-accordion`, `usa-accordion__button`, `usa-accordion__content`
+- `usa-banner`, `usa-banner__header`, `usa-banner__inner`
+- `usa-form`, `usa-label`, `usa-input`, `usa-select`
+- `usa-sr-only` (screen-reader-only utility)
+- `usa-prose` (typography wrapper)
+- `grid-container`, `grid-row`, `grid-col-*` (layout utilities)
+
+### 3. Real Names Matter
+
+Use the exact class names documented in each component reference. Do not invent plausible-sounding alternatives. The page header is `maryland-header`, not `header` or `site-header`. The utility navigation inside it is `maryland-header__util-nav`, not `nav__utility`. The navigation bar is `maryland-search-form` (wrapping both search and nav links), not `maryland-nav` or `main-nav`. Look up the real names before writing markup.
 
 ---
 
-## How Components Compose
+## How Components Compose — The Page Shell
 
-MDWDS pages are assembled in layers. The **Foundation** layer (colors, typography, spacing tokens, logo) defines the visual language that all other layers consume. **Components** are discrete, reusable UI units — buttons, cards, accordions — that reference foundation tokens. **Templates** are full-page compositions that arrange components into complete, agency-ready page layouts.
+Every Maryland state page follows this top-to-bottom structural order:
 
-Every page should include the structural shell in this order: Statewide Banner → Header (with Logo and Navigation) → optional Utility Nav → main content area → Statewide Footer. Templates like the Maryland Homepage and Agency Homepage demonstrate this exact hierarchy and should be treated as authoritative examples of correct nesting.
+```
+usa-skipnav link (maryland-link maryland-link--skipnav → #main-content)
+  ↓
+usa-banner (Statewide Banner — REQUIRED)
+  └── usa-accordion (expandable "How you know" section)
+  ↓
+maryland-header
+  └── maryland-header__util-nav (utility links/buttons)
+  └── maryland-header__home (logo link)
+  ↓
+maryland-search-form (navigation + search)
+  ↓
+<main id="main-content"> (page-specific content)
+  └── Hero, Cards, Accordions, Alerts, etc.
+  ↓
+maryland-footer (agency footer, if present)
+  ↓
+<maryland-statewide-footer> (web component — zero config required)
+```
 
-Layout is handled by the **Layout Grid** utility, a 12-column flexbox grid using `.grid`, `.grid-row`, and `.grid-col-{n}` classes. Components are placed inside grid columns; they do not manage their own outer spacing. Foundation spacing tokens drive internal padding and margins within components.
+Templates in the component reference (Maryland Homepage, Agency Homepage, Basic Page, Landing Page, etc.) show the authoritative nesting and class structure for each page type. When composing a full page, follow a template — do not improvise the shell structure.
 
 ---
 
-## Key Things to Get Right
+## Key Rules — Get These Right
 
-**1. The Statewide Banner is required.** It must appear above every other element on Maryland state pages, including the agency header. Omitting it violates state web standards.
+**(a) Always load the CDN. Never write custom CSS.**
+Every visual property of every MDWDS component is defined in the CDN stylesheet. Writing custom CSS to reproduce a button color, card shadow, or alert style is always wrong. Structure the HTML correctly and the styles appear automatically.
 
-**2. Always pair form inputs with labels using matching `for`/`id` attributes.** MDWDS form components (Input, Select, Textarea, Checkbox, Radio) rely on this pairing for accessibility. Placeholder text is not a substitute for a visible label.
+**(b) The Statewide Banner is required on every Maryland state page.**
+The `usa-banner` section with `aria-label="Official website of the State of Maryland"` must appear at the top of every page before any other content. This is a non-negotiable state requirement, not an optional pattern.
 
-**3. ARIA attributes on interactive components are not optional.** Accordion toggle buttons need `aria-expanded`; modals need `role="dialog"` and `aria-modal="true"`; search containers need `role="search"`. These are specified in component documentation and required for WCAG compliance.
+**(c) Use real MDWDS class names from the component reference.**
+Every class name in this document is the actual class name used by the CDN stylesheet. Invented class names produce unstyled HTML. When in doubt, consult the per-component reference entry for the exact block, element, and modifier class names.
 
-**4. Do not mix USWDS and MDWDS structural wrappers for the same component.** A component is either the USWDS implementation (`.usa-*` classes) or the MDWDS web component (`<maryland-*>`), not both simultaneously. Wrapping `<maryland-accordion>` in `.usa-accordion` markup will produce duplicate behavior and broken accessibility trees.
-
-**5. Custom web component interactivity requires the JS bundle.** `<maryland-*>` elements render as empty shells without the JavaScript module. If a component appears visually broken or non-interactive, the most likely cause is that `mdwds.min.js` failed to load, loaded after the component was parsed, or was included as a non-module script that cannot register custom elements.
+**(d) `<maryland-*>` web components require the JS bundle.**
+`<maryland-statewide-banner>` and `<maryland-statewide-footer>` are Lit-based web components. They render their own shadow DOM and require the JavaScript bundle (`mdwds.min.js`) to function. Without the script tag, they appear blank. The noscript fallback for the statewide banner uses `maryland-alert maryland-alert--warning` classes on standard HTML. All other interactive behaviors — accordions, date pickers, combo boxes, modals — also depend on the JS bundle being loaded.
 
 ---
 
@@ -82,361 +118,161 @@ Layout is handled by the **Layout Grid** utility, a 12-column flexbox grid using
 
 # Getting Started
 
-## BEM Convention for CSS
+## Architecture Decision Records (ADR)
 
 *Getting Started*
 
-BEM (Block, Element, Modifier) is a CSS naming convention that provides a structured and scalable approach to organizing class names in the Maryland Web Design System. It solves the problem of CSS naming ambiguity and specificity conflicts by using a predictable, hierarchical naming pattern. Use BEM when writing CSS for MDWDS components to ensure consistency, maintainability, and clarity across the entire design system.
+Architecture Decision Records (ADRs) are lightweight, version-controlled documents that capture important architectural decisions along with their context and consequences. ADRs help teams document the "why" behind technical decisions so that future team members can understand the rationale. They are used for documenting decisions about tools, system architecture, security/compliance, and tradeoffs in scalability or performance.
 
 ### Key Information
 
-## BEM Convention Structure
 
-**Block**: A standalone component that is meaningful on its own (e.g., `card`, `button`, `navigation`)
-- Represents the highest level of an abstraction or component
-- All lowercase with hyphens for multi-word names
+**What ADRs Document:**
+- Single, important architectural decisions
+- Context and background leading to the decision
+- The decision itself and reasoning
+- Consequences and tradeoffs
+- Alternatives considered (optional)
 
-**Element**: A part of a block that has no standalone meaning and is always tied to its block (e.g., `card__header`, `button__icon`, `navigation__link`)
-- Preceded by double underscores (`__`)
-- Cannot exist independently outside the block
+**ADR Status Values:**
+- Accepted
+- Proposed
+- Deprecated
+- Superseded by ADR-X
 
-**Modifier**: A flag or state that modifies a block or element (e.g., `button--primary`, `card--featured`, `button__icon--disabled`)
-- Preceded by double hyphens (`--`)
-- Indicates a variation or state of the block or element
-- Never used alone—always paired with a block or element
+**When to Use ADRs:**
+- Selecting new tools, platforms, or approaches
+- System architecture or integration design
+- Security or compliance-related decisions
+- Tradeoffs in scalability, performance, or maintainability
 
-## Key Patterns
+**Benefits of ADRs:**
+- Transparency: Everyone understands the "why" behind technical decisions
+- History: Trace changes in direction over time
+- Consistency: Decisions documented in repeatable format
+- Collaboration: Encourages team discussion and review
 
-- **Block naming**: `block-name`
-- **Element naming**: `block-name__element-name`
-- **Modifier naming**: `block-name--modifier-name` or `block-name__element-name--modifier-name`
-- Use hyphens to separate multiple words within a single name part
-- Avoid deeply nested selectors; keep specificity low
-- Class names are descriptive and self-documenting
-- Modifiers should represent states, variants, or temporary changes
+**ADR Template Format:**
+- Title: ADR-N: Title of the Decision
+- Status: Accepted | Proposed | Deprecated | Superseded by ADR-X
+- Context: Background and situation
+- Decision: What was decided and why
+- Consequences: Tradeoffs and implications
+- Alternatives Considered: Other options and why not chosen
 
-## Benefits
-
-- Predictable and consistent naming across all components
-- Low CSS specificity, reducing cascade conflicts
-- Easy to scan and understand component structure
-- Simplified maintenance and refactoring
-- Better collaboration between developers
-- Reusable and scalable CSS patterns
 
 ### Implementation
+
+
+```
+# ADR-N: Title of the Decision
+
+## 👀 Status
+
+Accepted | Proposed | Deprecated | Superseded by ADR-X
+
+## 🚀 Context
+
+Explain the situation and background that led to this decision.
+
+## ✅ Decision
+
+State the decision made and the reasoning behind it.
+
+## ⚖️ Consequences
+
+What are the tradeoffs and implications of this decision?
+
+## 👨🏾‍💻 Alternatives Considered
+
+(Optional) Briefly mention other options and why they were not chosen.
+```
+
+**Storybook Meta Configuration:**
 
 ```html
-<!-- BEM Convention Examples -->
+import { Meta } from "@storybook/addon-docs/blocks";
 
-<!-- Block: Simple button component -->
-<button class="button">Click me</button>
-
-<!-- Block with modifier: Button with primary style -->
-<button class="button button--primary">Submit</button>
-
-<!-- Block with modifier: Button with secondary style -->
-<button class="button button--secondary">Cancel</button>
-
-<!-- Block with element and modifier: Button with icon -->
-<button class="button button--icon">
-  <span class="button__icon button__icon--left">
-    <!-- Icon SVG or content -->
-  </span>
-  Button Text
-</button>
-
-<!-- Block: Card component with multiple elements -->
-<div class="card">
-  <div class="card__header">
-    <h2 class="card__title">Card Title</h2>
-  </div>
-  <div class="card__body">
-    <p class="card__text">Card content goes here.</p>
-  </div>
-  <div class="card__footer">
-    <button class="card__action">Action</button>
-  </div>
-</div>
-
-<!-- Block with modifier: Featured card variant -->
-<div class="card card--featured">
-  <div class="card__header">
-    <h2 class="card__title">Featured Card</h2>
-  </div>
-  <div class="card__body">
-    <p class="card__text">This is a featured card variant.</p>
-  </div>
-</div>
-
-<!-- Complex component: Navigation with BEM -->
-<nav class="navigation">
-  <ul class="navigation__list">
-    <li class="navigation__item">
-      <a href="#" class="navigation__link navigation__link--active">Home</a>
-    </li>
-    <li class="navigation__item">
-      <a href="#" class="navigation__link">About</a>
-    </li>
-    <li class="navigation__item">
-      <a href="#" class="navigation__link navigation__link--disabled">Services</a>
-    </li>
-  </ul>
-</nav>
+<Meta title="Developers/Docs/ADR/[Title Goes Here]" />
 ```
 
-## CSS Examples with BEM
-
-```css
-/* Block: Button component */
-.button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-/* Modifier: Primary button variant */
-.button--primary {
-  background-color: #0066cc;
-  color: white;
-}
-
-/* Modifier: Secondary button variant */
-.button--secondary {
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
-}
-
-/* Element: Button icon */
-.button__icon {
-  display: inline-block;
-  margin-right: 8px;
-}
-
-/* Element modifier: Icon on the right */
-.button__icon--right {
-  margin-right: 0;
-  margin-left: 8px;
-}
-
-/* Block: Card component */
-.card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-/* Element: Card header */
-.card__header {
-  padding: 16px;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #ddd;
-}
-
-/* Element: Card title */
-.card__title {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-/* Element: Card body */
-.card__body {
-  padding: 16px;
-}
-
-/* Element: Card text */
-.card__text {
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* Element: Card footer */
-.card__footer {
-  padding: 16px;
-  background-color: #f9f9f9;
-  border-top: 1px solid #ddd;
-}
-
-/* Modifier: Featured card variant */
-.card--featured {
-  border: 2px solid #0066cc;
-  box-shadow: 0 4px 8px rgba(0, 102, 204, 0.2);
-}
-```
 
 ### Context
 
-BEM Convention is a foundational CSS architecture standard for the Maryland Web Design System that all component developers must follow. It ensures consistency, scalability, and maintainability across all MDWDS components, making it easier for developers to understand and extend the system while maintaining low specificity and avoiding cascade conflicts.
+ADRs are a foundational documentation practice within the MDWDS developer documentation that helps team members understand and review architectural decisions. They work in conjunction with the broader design system governance to maintain consistency and transparency in how the system evolves over time.
 
 ---
 
-## Choose Web Component Framework
+## Choose Web Component Framework (ADR)
 
 *Getting Started*
 
-This is an Architecture Decision Record (ADR) documenting the decision-making process for selecting a web component framework for the Maryland Web Design System. It provides developers with guidance on the technical approach and rationale behind framework choices to ensure consistency and best practices across Maryland state web projects.
+This is an Architecture Decision Record (ADR) documenting the decision to use Lit as the web component framework for MDWDS. It explains the context, rationale, consequences, and alternatives for building reusable, accessible web components that work across multiple applications and environments including CMS platforms, static sites, and micro frontends.
 
 ### Key Information
 
-This page serves as a technical documentation resource for developers implementing the MDWDS. Key aspects include:
+**Status:** Accepted  
+**Date:** 2025-06-17
 
-- **Purpose**: Architecture Decision Record (ADR) documenting framework selection rationale
-- **Audience**: Developers building with MDWDS components
-- **Content Type**: Technical decision documentation and guidelines
-- **Framework Guidance**: Documents the evaluated options and reasoning for web component framework choices
-- **Use Case**: Reference material for understanding the technical foundation of MDWDS component architecture
-- **Documentation Pattern**: Follows ADR format to provide historical context and decision justification
+**Framework Selected:** Lit
 
-### Implementation
+**Key Benefits:**
+- Lightweight footprint ideal for performance-sensitive and embedded use cases
+- Web Standards First approach building directly on the Web Components spec
+- Minimal abstraction layer over native Web Components
+- Reactive data-binding support
+- Scoped styles via Shadow DOM
+- Declarative rendering with simple template syntax
+- Reduces boilerplate without introducing unnecessary complexity
+- Minimizes lock-in and maximizes browser-native capabilities
+- Encourages small, focused, composable components
 
-This page is primarily documentation rather than a component with HTML implementation. It serves as a reference document explaining framework decisions:
+**Use Cases:**
+- Sharing components across micro frontends
+- CMS platform integration
+- Legacy and static environment compatibility
+- Standard-compliant custom element authoring
+- Multi-framework and framework-agnostic environments
 
-```
-<!-- ADR Page Structure -->
-<main>
-  <article class="adr-document">
-    <h1>Choose Web Component Framework</h1>
-    <!-- ADR content includes: -->
-    <!-- - Decision context and problem statement -->
-    <!-- - Options evaluated -->
-    <!-- - Rationale for selection -->
-    <!-- - Consequences and implications -->
-    <!-- - Implementation guidance -->
-  </article>
-</main>
-```
-
-The page is accessed as part of the Storybook documentation system and provides context for how components should be built and used throughout MDWDS projects.
-
-### Context
-
-This ADR is foundational documentation for the MDWDS and provides developers with the technical decision-making background needed to understand why MDWDS components are architected in a particular way. It serves as essential reference material for developers implementing, extending, or maintaining components within the design system.
-
----
-
-## Developers Documentation - ADR Readme
-
-*Getting Started*
-
-This is the Architecture Decision Records (ADR) documentation index for the Maryland Web Design System developers section. It provides guidance and context for developers implementing the design system and understanding key architectural decisions made during MDWDS development.
-
-### Key Information
-
-This page serves as an entry point to developer-focused documentation and architectural decision records. It typically contains links to various ADRs that document technical decisions, implementation patterns, and best practices for working with the Maryland Web Design System. ADRs are structured documents that explain the reasoning behind significant technical choices in the system.
+**Comparison to Alternatives:**
+- Chosen over plain JavaScript Web Components (which increase boilerplate and maintenance overhead)
+- Preferred over heavier component frameworks for better portability
 
 ### Implementation
 
-This is a documentation index page rather than a component with HTML implementation. Navigation is handled through the Storybook interface, with the sidebar providing access to individual ADR documents and developer resources.
+This is a documentation/decision page with no interactive component implementation. The page contains prose documentation and a table of contents with sections for Context, Decision, Consequences, and Alternatives Considered.
 
-### Context
-
-This documentation page is part of the MDWDS developer resources and helps developers understand the architectural foundations and decision-making process behind the design system. It connects developers to specific technical documentation and implementation guidance for building Maryland state web properties.
-
----
-
-## Docs - Table of Contents
-
-*Getting Started*
-
-This is the documentation index page for the Maryland Web Design System (MDWDS) Storybook. It serves as the central navigation hub providing access to all components, foundation guidelines, and resources available in the design system. Users navigate to this page to find and access specific documentation for building Maryland state web pages.
-
-### Key Information
-
-
-This page acts as the main table of contents for the MDWDS Storybook documentation. It provides:
-- Navigation to all component documentation pages
-- Organization of content into logical categories (Foundation, Components, Templates, Utilities, Getting Started, Other)
-- Access points to component specifications, implementation guides, and usage guidelines
-- Links to design tokens, accessibility patterns, and state web standards
-
-Key features:
-- Toolbar navigation for quick access
-- Skip to sidebar functionality for accessibility
-- Organized structure reflecting the design system architecture
-- Central entry point for all MDWDS documentation and resources
-
-
-### Implementation
-
+The HTML rendered includes Storybook documentation wrappers and semantic heading structure with anchor links:
 
 ```html
-<!-- Main Documentation Container -->
-<div class="docs-container">
-  <header>
-    <div class="toolbar">
-      <button class="skip-link">Skip to sidebar</button>
-    </div>
-  </header>
-  
-  <nav class="docs-sidebar" id="docs-sidebar">
-    <!-- Navigation structure would include links to categories:
-         - Getting Started
-         - Foundation
-         - Components
-         - Templates
-         - Utilities
-         - Other
-    -->
-  </nav>
-  
-  <main class="docs-content">
-    <!-- Table of Contents content displays here -->
-  </main>
-</div>
+<h1 id="choose-web-component-framework">
+  <a href="#choose-web-component-framework">Choose Web Component Framework</a>
+</h1>
+
+<h2 id="-context">
+  <a href="#-context">🚀 Context</a>
+</h2>
+<p>We need a consistent and scalable way to build web components...</p>
+
+<h2 id="-decision">
+  <a href="#-decision">✅ Decision</a>
+</h2>
+<p>We will use Lit as our framework of choice...</p>
+
+<h2 id="️-consequences">
+  <a href="#️-consequences">⚖️ Consequences</a>
+</h2>
+
+<h2 id="-alternatives-considered">
+  <a href="#-alternatives-considered">👨🏾‍💻 Alternatives Considered</a>
+</h2>
 ```
 
+Navigation structure uses table of contents with links to document sections.
 
 ### Context
 
-This is the foundational entry point and organizational hub of the Maryland Web Design System Storybook. It structures access to all design system resources and serves as the primary navigation mechanism for developers and designers building Maryland state web properties.
-
----
-
-## Exclude USWDS Styles from Core Web Components
-
-*Getting Started*
-
-This is an architectural decision record (ADR) documenting the approach to exclude U.S. Web Design System (USWDS) styles from Maryland's core web components. It outlines the technical strategy for maintaining component style independence and preventing style conflicts when integrating USWDS with the MDWDS component library.
-
-### Key Information
-
-This ADR addresses the need to isolate core web components from USWDS styling to ensure component autonomy and reduce style pollution. Key considerations include:
-
-- **Problem**: Direct inheritance of USWDS styles can cause unintended style cascading and conflicts within core components
-- **Solution Approach**: Encapsulation strategies to scope component styles independently
-- **CSS Isolation**: Components should maintain their own style definitions without reliance on USWDS cascade
-- **Integration Pattern**: Clear separation between component-level styles and framework-level utilities
-- **Best Practice**: Use CSS custom properties and component-level scoping to maintain style boundaries
-- **Relevance**: Critical for developers building custom components or extending existing MDWDS components
-
-### Implementation
-
-This is an architectural decision document rather than a code component. The implementation guidance focuses on:
-
-```html
-<!-- Strategy: Use CSS scoping and custom properties -->
-<!-- Avoid direct USWDS class inheritance in core components -->
-<div class="md-component md-component--isolated">
-  <!-- Component structure -->
-  <!-- Component styles defined independently -->
-  <!-- Custom properties for theming -->
-</div>
-```
-
-**Key Implementation Patterns:**
-- Use BEM (Block Element Modifier) naming to prevent style conflicts
-- Define component styles in isolated stylesheets
-- Leverage CSS custom properties for themeable values
-- Avoid cascading from parent USWDS utility classes
-- Use CSS modules or similar encapsulation if applicable
-
-### Context
-
-This ADR provides architectural guidance for developers building and extending MDWDS components. It establishes the principle that core components maintain style independence from USWDS, ensuring consistent component behavior across different implementation contexts and preventing unexpected style interactions when USWDS is present in the page.
+This ADR documents a foundational architectural decision for MDWDS that guides all web component development across the design system. The choice of Lit framework directly influences how developers build and maintain reusable components that compose together in the MDWDS library.
 
 ---
 
@@ -444,44 +280,103 @@ This ADR provides architectural guidance for developers building and extending M
 
 *Getting Started*
 
-This is the foundational guide for engineers implementing the Maryland Web Design System (MDWDS) on state web pages. It provides essential setup instructions, development workflow guidance, and integration patterns needed to build compliant Maryland state websites. Engineers should reference this when beginning a new project or integrating MDWDS components into existing applications.
+This is an onboarding documentation page for engineers implementing the Maryland Web Design System (MDWDS) in their projects. It provides quick-start instructions for both adopters who want to use MDWDS via CDN and developers who want to contribute to the system. The page covers CDN setup, initialization scripts, and local development commands.
 
 ### Key Information
 
-This page serves as the entry point for developers joining an MDWDS implementation project. Key topics typically covered include:
+## CDN Setup (Current Version 0.44.0)
 
-- **Installation & Setup**: How to install MDWDS packages, dependencies, and build tools
-- **Environment Configuration**: Steps to configure local development environments
-- **Component Usage**: Patterns for importing and implementing MDWDS components in code
-- **Development Workflow**: Standard practices for development, testing, and builds
-- **Build Process**: Information about bundling, transpilation, and asset handling
-- **Browser Support**: Target browsers and compatibility requirements
-- **Accessibility Requirements**: WCAG conformance standards and testing procedures
-- **Version Management**: How to track and update MDWDS versions
-- **Code Standards**: Linting, formatting, and code quality expectations
-- **Documentation References**: Links to component documentation and design guidelines
+**Adopter Quick Start:**
+- Current stable version: `0.44.0`
+- Two CDN URL strategies:
+  - **Versioned URL (recommended)**: Pin to a specific release (e.g., `https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css`) for stable, reproducible deployments
+  - **Latest**: Use `https://cdn.maryland.gov/mdwds/latest/css/mdwds.min.css` to always get the newest build
+
+**Required Resources:**
+- CSS stylesheet: `https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css`
+- Init script: `https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-init.js`
+- Core module: `https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-core.js` (loaded as type="module")
+
+**MDWDS Init Script:**
+- The `mdwds-init.js` prevents flashes of unstyled content (FOUC) during initial page load
+- Adds `usa-js-loading` class to `<html>` element during load
+- Removes class once components are initialized (8-second fallback)
+- Can be loaded from CDN or inlined in document head for better performance
+- Sets `window.uswdsPresent = true` when mdwds-core finishes initializing
+
+**Developer Quickstart:**
+- Requires PNPM (enable with `corepack enable`)
+- Install: `pnpm install`
+- Development: `pnpm dev`
+- Storybook runs at `http://localhost:7777/`
 
 ### Implementation
 
-Getting Started guides typically don't have code implementations themselves, but this page would link to:
+## Adopter Implementation
 
 ```html
-<!-- Example: Installation via npm -->
-npm install @maryland/design-system
-
-<!-- Example: Component import -->
-import { Accordion, Button, Modal } from '@maryland/design-system';
-
-<!-- Example: CSS inclusion -->
-<link rel="stylesheet" href="path/to/mdwds.css">
-<script src="path/to/mdwds.js"></script>
+<!-- Add to your <head> -->
+<link
+  rel="stylesheet"
+  href="https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css"
+/>
+<script src="https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-init.js"></script>
+<script type="module" src="https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-core.js"></script>
 ```
 
-Specific implementation details would be found in individual component documentation pages linked from this guide.
+## Alternative: Inline Init Script (Recommended for Performance)
+
+```html
+<head>
+  <link
+    rel="stylesheet"
+    href="https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css"
+  />
+  <script>
+    "use strict";
+
+    const loadingClass = "usa-js-loading";
+
+    document.documentElement.classList.add(loadingClass);
+    function revertClass() {
+      document.documentElement.classList.remove(loadingClass);
+    }
+
+    const fallback = setTimeout(revertClass, 8000);
+
+    function verifyLoaded() {
+      // @ts-expect-error uswdsPresent is set to TRUE at the end of mdwds-core initializing components.
+      if (window.uswdsPresent) {
+        clearTimeout(fallback);
+        revertClass();
+        window.removeEventListener("load", verifyLoaded, true);
+      }
+    }
+
+    window.addEventListener("load", verifyLoaded, true);
+  </script>
+  <script type="module" src="https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-core.js"></script>
+</head>
+```
+
+## Developer Setup
+
+```bash
+# Enable use of PNPM.
+corepack enable
+
+# Install dependencies.
+pnpm install
+
+# Start development
+pnpm dev
+```
+
+Then visit Storybook at http://localhost:7777/
 
 ### Context
 
-This Getting Started guide is the primary onboarding resource for the MDWDS and establishes the foundational knowledge required to work with all components, templates, and utilities within the system. It bridges the gap between designers and engineers by providing the technical setup needed to implement design system components correctly.
+This is the entry point documentation for the Maryland Web Design System and serves as the primary onboarding resource for both end-users adopting MDWDS and developers contributing to the system. It bridges the gap between discovering MDWDS and implementing it or extending it.
 
 ---
 
@@ -489,75 +384,60 @@ This Getting Started guide is the primary onboarding resource for the MDWDS and 
 
 *Getting Started*
 
-This is a guide page that explains how developers and designers can contribute to the Maryland Web Design System. It provides instructions, processes, and best practices for participating in the system's development and improvement. Use this when you need to understand contribution workflows, submission processes, or how to participate in MDWDS evolution.
+This is a developer-focused documentation page that explains how to contribute to the Maryland Web Design System. It provides guidance on reporting bugs, proposing features, and submitting code contributions, covering the entire contribution workflow and best practices for collaborating with the MDWDS core team. Contributors of any skill level can use this guide to understand the process and standards for improving the Design System.
 
 ### Key Information
 
-This page serves as documentation for the contribution process to MDWDS. Key sections typically include:
+This documentation page is structured as a guidance document rather than a reusable component. Key sections include:
 
-- **Contribution Types**: Guidelines for different contribution methods (bug reports, feature requests, component submissions, documentation improvements)
-- **Submission Process**: Step-by-step instructions for how to propose changes, create pull requests, or submit new components
-- **Code Standards**: Requirements for code style, naming conventions, accessibility compliance (WCAG), and testing
-- **Review Process**: Information about how contributions are reviewed, approved, and merged
-- **Component Guidelines**: Requirements for new component submissions including structure, documentation, examples, and accessibility
-- **Documentation Requirements**: Standards for documenting components, variants, and usage patterns
-- **Getting Started with Development**: Setup instructions for local development environment
-- **Communication Channels**: Information about how to ask questions, get feedback, or discuss proposed changes
+- **Welcome section**: Introduction encouraging contributions
+- **How you can contribute**: Overview with subsections on:
+  - Getting Started: Create a GitHub account requirement
+  - Reporting bugs and issues: Step-by-step bug reporting process
+  - Proposing feature requests or enhancements: Feature proposal workflow
+  - Proposing something else: General proposal guidance
+- **Code contributions**: Technical guidelines including:
+  - Commit Message Guidelines: Standards for commit messages
+  - Code Standards: Code quality requirements
+  - Code Review Process: How reviews are conducted
+  - Development Workflow: Setup and contribution process
+  - Testing: Testing requirements and procedures
+  - License: Licensing information for contributions
+  - Questions or Help: Support resources
 
-Important attributes and practices:
-- All components must meet WCAG 2.1 AA accessibility standards
-- Components should include ARIA roles and attributes where applicable
-- Documentation should include usage examples and variant demonstrations
-- Code should follow established patterns and conventions within the design system
+The page uses semantic HTML with heading levels (H2, H3) and links to specific sections via anchor IDs for easy navigation. No component-specific CSS classes or ARIA attributes are required for implementation.
 
 ### Implementation
 
-Contribution pages typically don't have interactive implementations but rather provide documentation. The structure is informational:
+This is a documentation/prose page that does not render interactive components. The page structure uses standard HTML heading and paragraph elements:
 
 ```html
-<!-- Contribution Guide Structure -->
-<main class="mdwds-contribution-guide">
-  <section class="contribution-section">
-    <h2>Getting Started with Contributions</h2>
-    <p>Instructions for setting up a local development environment and understanding the repository structure.</p>
-  </section>
+<h2 id="welcome">Welcome!</h2>
+<p>We're glad you're thinking about contributing to the Maryland Web Design System (MDWDS)!</p>
+<p>Your contribution helps make the Design System better for the next team that uses it.</p>
 
-  <section class="contribution-section">
-    <h2>Submission Process</h2>
-    <ol>
-      <li>Fork the repository</li>
-      <li>Create a feature branch</li>
-      <li>Make your changes</li>
-      <li>Submit a pull request with documentation</li>
-      <li>Address review feedback</li>
-    </ol>
-  </section>
+<h2 id="how-you-can-contribute">How you can contribute</h2>
+<h3 id="getting-started">Getting Started</h3>
+<p>Anyone can contribute to MDWDS. Whether it's submitting a bug or proposing a new component, we welcome your ideas on how to improve the Design System.</p>
 
-  <section class="contribution-section">
-    <h2>Component Submission Requirements</h2>
-    <ul>
-      <li>Complete HTML/CSS/JS implementation</li>
-      <li>Accessibility compliance (WCAG 2.1 AA)</li>
-      <li>Storybook documentation with examples</li>
-      <li>Usage guidelines and best practices</li>
-    </ul>
-  </section>
+<h3 id="reporting-bugs-and-issues">Reporting bugs and issues</h3>
+<p>If something isn't working the way it's supposed to, here's how you can let us know:</p>
 
-  <section class="contribution-section">
-    <h2>Code Standards</h2>
-    <pre><code class="language-markup">
-&lt;!-- Follow established component patterns --&gt;
-&lt;div class="mdwds-component" role="region" aria-label="Component description"&gt;
-  &lt;!-- Semantic HTML structure --&gt;
-&lt;/div&gt;
-    </code></pre>
-  </section>
-</main>
+<h2 id="code-contributions">Code contributions</h2>
+<h3 id="-commit-message-guidelines">✅ Commit Message Guidelines</h3>
+<h3 id="-code-standards">🧹 Code Standards</h3>
+<h3 id="-code-review-process">🔍 Code Review Process</h3>
+<h3 id="-development-workflow">🛠 Development Workflow</h3>
+<h3 id="-testing">🧪 Testing</h3>
+<h3 id="-license">📄 License</h3>
+<h3 id="-questions-or-help">💬 Questions or Help?</h3>
 ```
+
+The page includes a table of contents navigation (rendered with `class="toc-list"`) that links to anchor IDs.
 
 ### Context
 
-This guide page is part of the MDWDS developer documentation and helps contributors understand how to participate in the design system's development. It serves as the gateway for developers and designers who want to add components, fix bugs, or improve documentation, ensuring all contributions meet the system's standards and are properly integrated.
+This documentation page serves as the primary entry point for developers wanting to contribute to MDWDS. It complements the foundation and component documentation by providing workflow guidance, standards, and best practices that contributors must follow when proposing changes or improvements to the Design System.
 
 ---
 
@@ -565,114 +445,295 @@ This guide page is part of the MDWDS developer documentation and helps contribut
 
 *Getting Started*
 
-This guide provides instructions for developers to set up a local development environment for working with the Maryland Web Design System. It covers the prerequisites, installation steps, and configuration needed to run MDWDS components and documentation locally. This is essential for developers who want to contribute to or customize MDWDS for Maryland state web projects.
+This is a step-by-step documentation guide for setting up the Maryland Web Design System (MDWDS) on a local development machine. It covers cloning the repository, installing system dependencies, configuring Node.js and package managers, and running Storybook locally. Developers use this guide to establish their initial development environment before working with MDWDS components.
 
 ### Key Information
 
-This documentation page covers:
-- Prerequisites and system requirements for local development
-- Installation and setup instructions
-- Environment configuration
-- How to run the development server
-- How to build and test components locally
-- Common setup issues and troubleshooting
+The guide covers six main setup steps:
 
-Key aspects include:
-- Node.js version requirements
-- Package manager setup (npm or yarn)
-- Repository cloning and dependency installation
-- Development server commands
-- Build processes for production-ready components
-- Testing and validation procedures
+1. **Clone the Repository** — Uses `git clone git@github.com:maryland-gov/toolkit.git` and navigate to the project directory.
 
-### Implementation
+2. **Install System Dependencies** — Run `brew bundle` to install all dependencies listed in the Brewfile.
 
-The setup process typically involves:
+3. **Set Up Node.js** — Install fnm (Fast Node Manager) via Homebrew, follow shell setup instructions, reload terminal, return to project directory, confirm Node.js version from .node-version file.
 
-```bash
-# Clone the MDWDS repository
-git clone https://github.com/maryland/web-design-system.git
-cd web-design-system
+4. **Install Dependencies** — Enable pnpm via `corepack enable pnpm` and install packages with `pnpm install`.
 
-# Install dependencies
-npm install
-# or
-yarn install
+5. **VS Code Setup** — Optional step to copy recommended settings from `.vscode/example.settings.json` to `.vscode/settings.json`.
 
-# Start the local development server
-npm run dev
-# or
-yarn dev
+6. **Run Storybook** — Start local dev server with `pnpm dev` and visit `localhost:6006` in browser.
 
-# Build for production
-npm run build
-# or
-yarn build
+**Success Criteria**: MDWDS component library should run in browser with no build errors.
 
-# Run tests
-npm test
-# or
-yarn test
-```
+**Troubleshooting Tips**:
+- Re-run `pnpm install` if dependencies fail
+- Verify shell is configured for fnm
+- Check for typos or shell setup issues
+- Verify `node -v` matches `.node-version` file
 
-Developers should follow the step-by-step instructions provided in the documentation to configure their environment, including setting environment variables if needed and ensuring all dependencies are properly installed before starting development work.
-
-### Context
-
-This Getting Started guide is the foundational resource that enables developers to begin working with all other MDWDS components, templates, and utilities. It establishes the development environment necessary for understanding and implementing the design system across Maryland state web projects.
-
----
-
-## How to Use MDWDS - Readme
-
-*Getting Started*
-
-This is the introductory documentation page for the Maryland Web Design System (MDWDS) that provides guidance on how to get started and navigate the design system. It serves as the entry point for developers and designers beginning to work with MDWDS components and patterns.
-
-### Key Information
-
-This page is part of the developers documentation section and acts as the primary "How To" guide for the design system. Key topics typically covered in such readme pages include:
-
-- **Purpose**: Overview of MDWDS and its goals for creating consistent Maryland state web experiences
-- **Getting Started**: Instructions for installation and initial setup
-- **Navigation**: How to browse and find components in the Storybook
-- **Usage Patterns**: Common patterns for implementing components
-- **Resources**: Links to additional documentation, design files, and support
-- **Version Information**: Current version and changelog details
-- **Contribution Guidelines**: How to contribute to the design system
-
-The page serves as a central reference document that directs users to appropriate sections of the design system based on their needs (designers, developers, implementers).
+**Key Prerequisites**: Homebrew, fnm, pnpm, Node.js version manager, and VS Code (optional).
 
 ### Implementation
+
+This is a documentation/prose guide page without interactive components. The page structure includes:
 
 ```html
-<!-- This is typically a documentation page rendered by Storybook's MDX format -->
-<!-- It may contain narrative content, embedded code examples, and links -->
-
-<!-- Example of typical Readme structure in Storybook: -->
-<div class="storybook-container">
-  <h1>How to Use the Maryland Web Design System</h1>
-  
-  <section>
-    <h2>Getting Started</h2>
-    <p>Instructions and links to begin using MDWDS...</p>
-  </section>
-  
-  <section>
-    <h2>Component Library</h2>
-    <p>Overview of available components and where to find them...</p>
-  </section>
-  
-  <section>
-    <h2>Documentation</h2>
-    <p>Links to detailed component documentation, patterns, and best practices...</p>
-  </section>
+<div class="sbdocs sbdocs-wrapper css-3rewwu">
+  <aside class="sbdocs sbdocs-toc--custom css-1wizkyk">
+    <nav aria-labelledby="_r_0_" class="css-q7khkg">
+      <h2 id="_r_0_" class="css-ghy3je">Table of Contents</h2>
+      <div class="toc-wrapper">
+        <ul class="toc-list">
+          <li class="toc-list-item is-active-li">
+            <a href="#-success-criteria" class="toc-link node-name--H2 is-active-link">✅ Success Criteria</a>
+          </li>
+          <li class="toc-list-item">
+            <a href="#-troubleshooting" class="toc-link node-name--H2">🛠 Troubleshooting</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  <div class="sbdocs sbdocs-content css-x28zkw">
+    <h1 id="-how-to-set-up-local-development" class="css-wzniqs">🚀 How to Set Up Local Development?</h1>
+    <p>This guide walks you through setting up MDWDS on your machine.</p>
+    <hr>
+    <div class="usa-process-list usa-process-list--vertical">
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">1. Clone the Repository</h4>
+        <p>Open your terminal and clone the project:</p>
+        <pre><code class="language-bash">git clone git@github.com:maryland-gov/toolkit.git
+cd toolkit</code></pre>
+      </div>
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">2. Install System Dependencies</h4>
+        <p>Install everything listed in the <code>Brewfile</code>:</p>
+        <pre><code class="language-bash">brew bundle</code></pre>
+      </div>
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">3. Set Up Node.js (via fnm)</h4>
+        <pre><code class="language-bash">brew install fnm
+cd toolkit
+node -v</code></pre>
+      </div>
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">4. Install Dependencies (via pnpm)</h4>
+        <pre><code class="language-bash">corepack enable pnpm
+pnpm install</code></pre>
+      </div>
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">5. Optional: VS Code Setup</h4>
+        <pre><code class="language-bash">cp .vscode/example.settings.json .vscode/settings.json</code></pre>
+      </div>
+      <div class="usa-process-list__item">
+        <h4 class="usa-process-list__heading">6. Run Storybook Locally</h4>
+        <pre><code class="language-bash">pnpm dev</code></pre>
+        <p>Then visit localhost:6006 in your browser.</p>
+      </div>
+    </div>
+    <h2 id="-success-criteria" class="css-wzniqs">✅ Success Criteria</h2>
+    <p>You should see MDWDS component library running in your browser with no build errors.</p>
+    <h2 id="-troubleshooting" class="css-wzniqs">🛠 Troubleshooting</h2>
+    <ul>
+      <li>Run pnpm install again if dependencies fail.</li>
+      <li>Confirm your shell is configured for fnm.</li>
+      <li>Check for typos or shell setup issues.</li>
+      <li>If node -v doesn't match, recheck your .node-version and fnm install.</li>
+    </ul>
+  </div>
 </div>
 ```
 
+**Key Classes and Elements**:
+- `sbdocs sbdocs-wrapper` — Main documentation wrapper
+- `sbdocs sbdocs-toc--custom` — Table of contents sidebar
+- `sbdocs sbdocs-content` — Main content area
+- `toc-link`, `node-name--H2`, `is-active-link` — Navigation link states
+- `usa-process-list usa-process-list--vertical` — Vertical process list (USWDS component)
+- `usa-process-list__item` — Individual process step
+- `usa-process-list__heading` — Step heading
+
 ### Context
 
-This Readme page is the foundational entry point to the MDWDS and establishes how users should approach the design system. It provides context and direction for all other components, patterns, and utilities documented throughout the Storybook.
+This Getting Started guide is foundational documentation for the MDWDS system. It provides new developers with the prerequisite steps needed before working with any MDWDS components, establishing the development environment and confirming proper setup through running Storybook locally at localhost:6006.
+
+---
+
+## How-To Guides
+
+*Getting Started*
+
+The How-To Guides section provides practical, step-by-step instructions for common tasks and workflows with the Maryland Web Design System (MDWDS). These task-oriented guides are designed to help developers accomplish specific goals quickly and consistently, complementing reference documentation and design decisions with prescriptive, reusable instructions.
+
+### Key Information
+
+This is a documentation index and guide framework rather than a component. Key characteristics include:
+
+**Purpose**: Task-oriented documentation focused on *doing*, not *deciding*
+
+**Guide Attributes**:
+- Task-oriented: Solve specific problems or accomplish goals
+- Prescriptive: Provide exact steps and guidance on what to avoid
+- Collaborative: Enable teams and future maintainers to move faster with consistent patterns
+- Reusable: Can be linked from internal docs, wikis, onboarding checklists, and Storybook
+
+**Suggested Format Structure**:
+- Heading: "How to [do a thing]"
+- Overview section with context and relevance
+- Prerequisites listing requirements
+- Steps section with numbered, clear instructions
+- Success Criteria for validation
+- Troubleshooting section for common gotchas
+- Related Resources with links
+
+**Included How-To Guides**:
+- how-to-use-toolkit.mdx: Load the design system via CDN or NPM
+- how-to-contribute.mdx: Best practices for contributing new components
+- how-to-start-locally.mdx: Getting MDWDS running on your machine
+
+### Implementation
+
+This is a documentation organizational section without rendered component HTML. The page content shows Storybook loading states and placeholder elements:
+
+```html
+<div class="sbdocs sbdocs-wrapper">
+  <aside class="sbdocs sbdocs-toc--custom">
+    <nav aria-labelledby="_r_0_" class="css-q7khkg">
+      <h2 id="_r_0_" class="css-ghy3je">Table of Contents</h2>
+      <div class="toc-wrapper">
+        <ul class="toc-list">
+          <li class="toc-list-item is-active-li">
+            <a href="#-why-we-use-how-to-guides" class="toc-link node-name--H2 is-active-link">
+              🫡 Why We Use How-To Guides
+            </a>
+          </li>
+          <li class="toc-list-item">
+            <a href="#️-writing-a-good-how-to-guide" class="toc-link node-name--H2">
+              ✍️ Writing a Good How-To Guide
+            </a>
+            <ul class="toc-list is-collapsible is-collapsed">
+              <li class="toc-list-item">
+                <a href="#-suggested-format" class="toc-link node-name--H3">
+                  💡 Suggested Format
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li class="toc-list-item">
+            <a href="#-examples-of-how-to-guides" class="toc-link node-name--H2">
+              ✨ Examples of How-To Guides
+            </a>
+          </li>
+          <li class="toc-list-item">
+            <a href="#-need-help" class="toc-link node-name--H2">
+              💬 Need Help?
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  <div class="sbdocs sbdocs-content">
+    <h1>📘 How-To Guides</h1>
+    <!-- Guide content sections follow -->
+  </div>
+</div>
+```
+
+The page is a Storybook documentation page (MDX) rendered with:
+- `.sbdocs` wrapper class for Storybook docs styling
+- `.sbdocs-toc--custom` for custom table of contents
+- `.toc-list` and `.toc-list-item` for navigation items
+- `.toc-link` with modifier classes like `.node-name--H2` and `.is-active-link` for active states
+
+### Context
+
+This documentation index is part of the MDWDS Getting Started / Developers Docs section, serving as an organizational guide for task-oriented how-to guides. It establishes the standard format and philosophy for creating prescriptive documentation that helps developers integrate with and contribute to the Maryland Web Design System consistently.
+
+---
+
+## maryland- Prefix for Web Components and CSS Variables
+
+*Getting Started*
+
+This is an Architectural Decision Record (ADR) documenting the MDWDS decision to use the `maryland-` prefix for all custom elements, CSS variables, and classes. It solves the problem of namespace collisions in consuming applications that may integrate multiple design systems or frameworks. Use this to understand the naming conventions and standards for all MDWDS components.
+
+### Key Information
+
+## Naming Convention Standards
+
+All MDWDS artifacts follow the `maryland-` prefix pattern:
+
+### Web Components
+- Pattern: `<maryland-button>`, `<maryland-header>`, etc.
+- Examples: `maryland-accordion`, `maryland-card`, `maryland-modal`
+
+### CSS Custom Properties (CSS Variables)
+- Pattern: `--maryland-color-primary`, `--maryland-font-body`, etc.
+- Examples: `--maryland-color-secondary`, `--maryland-spacing-unit`
+
+### Sass Variables
+- Pattern: `$maryland-color-primary`, etc.
+- Direct correspondence with CSS custom property names
+
+### CSS Classes
+- Pattern: `maryland-[component-name]`, `maryland-[modifier]`
+- Example: `class="maryland-link"`, `class="maryland-button maryland-button--primary"`
+
+## Key Facts
+- **Status**: Accepted (Date: 2025-01-01)
+- **Rationale**: Prevents collisions with other libraries (uswds, bootstrap, material) and improves clarity
+- **Community Feedback**: Majority of MDWDS community members polled in late 2024 strongly preferred `maryland-` over alternatives like `md-` or `toolkit-`
+- **Applies Globally**: Convention applies across all MDWDS components, utilities, and design tokens
+
+## Alternatives Rejected
+- `md-`: Ambiguous (confused with "Markdown" or "Medical Doctor")
+- `toolkit-`: Too technical and didn't resonate with users
+
+### Implementation
+
+## Implementation Guidance
+
+All MDWDS components and utilities must follow this pattern:
+
+### Web Component Example
+```html
+<maryland-button>Click Me</maryland-button>
+<maryland-header></maryland-header>
+```
+
+### CSS Variable Usage
+```css
+/* Define custom properties */
+--maryland-color-primary: #0066cc;
+--maryland-font-body: 'Segoe UI', sans-serif;
+
+/* Use in component styles */
+background-color: var(--maryland-color-primary);
+font-family: var(--maryland-font-body);
+```
+
+### CSS Class Pattern
+```html
+<a href="#" class="maryland-link">Hello World</a>
+<button class="maryland-button maryland-button--primary">Submit</button>
+<div class="maryland-card maryland-card--elevated">Content</div>
+```
+
+### Sass Variable Pattern
+```scss
+$maryland-color-primary: #0066cc;
+$maryland-spacing-unit: 1rem;
+
+.maryland-component {
+  color: $maryland-color-primary;
+  padding: $maryland-spacing-unit;
+}
+```
+
+### Context
+
+This architectural decision establishes the foundational naming standards for the entire MDWDS system. All components, utilities, CSS variables, and design tokens reference this decision to maintain consistency across the design system and prevent namespace collisions when MDWDS is integrated alongside other frameworks or design systems in consuming applications.
 
 ---
 
@@ -680,39 +741,63 @@ This Readme page is the foundational entry point to the MDWDS and establishes ho
 
 *Getting Started*
 
-This is a support and guidance page that provides users with resources, documentation, and contact information for getting help with the Maryland Web Design System. It serves as a central hub for troubleshooting, accessing documentation, and connecting with support resources when building or maintaining Maryland state web pages.
+This is a documentation page that provides guidance and resources for developers and designers using the Maryland Web Design System. It directs users to design assets, CDN resources, and support channels when they need assistance with implementation or have questions about the system.
 
 ### Key Information
 
-This page appears to be a support/help documentation page rather than a component. It likely contains:
 
-- Links to documentation and guides
-- Frequently asked questions or common issues
-- Contact information for support
-- Resources for getting started with MDWDS
-- Links to component documentation and examples
+This page includes:
 
-As a Getting Started resource, it should be referenced as the primary entry point for new users or developers who need assistance with the design system.
+- **Design Resources**: Links to Maryland Brand Pillars, Design Principles, Digital Services Playbook, and Figma Design Kit
+- **Development Resources**: CDN asset links organized by environment:
+  - Production Assets: Versioned CDN URLs (current stable version 0.44.0)
+  - Development Assets: Assets from the main branch
+  - PR Previews: Assets built from pull requests with "preview" label
+  - Additional Resources: Links to Storybook, GitHub Repository, and How-To Guides
+
+- **CDN URL patterns**:
+  - Production: `https://cdn.maryland.gov/mdwds/{version}/css/mdwds.min.css`
+  - Production JS: `https://cdn.maryland.gov/mdwds/{version}/js/mdwds-core.js`
+  - Development: `https://designsystem.dev.maryland.dev/css/mdwds.min.css`
+  - Development JS: `https://designsystem.dev.maryland.dev/js/mdwds-core.js`
+  - PR Preview: `https://pr-XX-maryland-gov-mdwds-core-designsystem.preview.maryland.dev/css/mdwds.min.css`
+
+- **Support Channels**:
+  - GitHub issues and discussions
+  - MDWDS Contributors Google Chat channel
+  - How-To Guides and Architecture Decision Records (ADRs)
+
 
 ### Implementation
 
-This page is primarily informational and navigational. Standard HTML structure for a help/documentation page:
 
 ```html
-<div class="help-page-container">
-  <h1>Need Help?</h1>
-  <!-- Support sections with links to resources -->
-  <!-- Links to documentation -->
-  <!-- Contact information -->
-  <!-- FAQ or common troubleshooting guides -->
-</div>
+<!-- Production Assets (Stable Release v0.44.0) -->
+<link
+  rel="stylesheet"
+  href="https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css"
+/>
+<script type="module" src="https://cdn.maryland.gov/mdwds/0.44.0/js/mdwds-core.js"></script>
+
+<!-- Development Assets (Current Main Branch) -->
+<link
+  rel="stylesheet"
+  href="https://designsystem.dev.maryland.dev/css/mdwds.min.css"
+/>
+<script type="module" src="https://designsystem.dev.maryland.dev/js/mdwds-core.js"></script>
+
+<!-- PR Preview Assets (Replace XX with PR ID) -->
+<link
+  rel="stylesheet"
+  href="https://pr-XX-maryland-gov-mdwds-core-designsystem.preview.maryland.dev/css/mdwds.min.css"
+/>
+<script type="module" src="https://pr-XX-maryland-gov-mdwds-core-designsystem.preview.maryland.dev/js/mdwds-core.js"></script>
 ```
 
-The page may not require specific component implementation as it is a documentation/support page.
 
 ### Context
 
-This "Need Help?" page serves as a Getting Started resource within the MDWDS Storybook, directing users to relevant documentation, components, and support channels. It acts as a navigation hub that helps developers and content creators find answers and resources when working with other MDWDS components and patterns.
+This is the primary Getting Started documentation page for MDWDS, serving as a centralized hub for accessing all system resources including design files, CDN assets, and support information. It bridges the gap between designers (pointing to Figma) and developers (providing CDN URLs and GitHub resources).
 
 ---
 
@@ -720,173 +805,135 @@ This "Need Help?" page serves as a Getting Started resource within the MDWDS Sto
 
 *Getting Started*
 
-Playwright Testing is a testing framework and approach for validating Maryland Web Design System components and page implementations. It provides developers with tools and guidance for writing automated tests to ensure components function correctly and meet accessibility standards. This is essential for maintaining quality, consistency, and compliance across Maryland state web projects.
+Playwright Testing is an end-to-end visual regression testing setup used by the Maryland Web Design System to ensure components render consistently across different viewports and browsers. It tests components via Storybook stories, captures visual snapshots across mobile, tablet, and desktop sizes, and runs in Docker containers for cross-platform consistency. Use this guide to run tests, update snapshots when components change intentionally, and generate test reports.
 
 ### Key Information
 
+## Key Information
 
-Playwright Testing provides a structured testing methodology for the MDWDS:
+### What It Tests
+- Components via Storybook stories
+- Visual snapshots across multiple viewport sizes (mobile, tablet, desktop)
+- Accessibility with @axe-core/playwright
+- Cross-browser consistency
 
-- **Purpose**: Automated testing framework for validating component behavior, functionality, and accessibility compliance
-- **Scope**: Tests UI interactions, visual regression, accessibility (ARIA), responsive design, and cross-browser compatibility
-- **Testing Approaches**: 
-  - Unit tests for individual component logic
-  - Integration tests for component interactions
-  - Visual regression tests for UI consistency
-  - Accessibility/ARIA attribute validation
-  - Cross-browser testing across multiple browsers
+### Running Tests
 
-- **Key Practices**:
-  - Test component states (default, hover, active, disabled, error states)
-  - Verify ARIA roles and attributes are correct
-  - Validate keyboard navigation and focus management
-  - Test responsive breakpoints
-  - Confirm CSS classes apply correctly
-  - Validate data attributes and custom properties
+**Run all tests:**
+```
+pnpm test:e2e
+```
 
-- **Test Coverage Areas**:
-  - Component initialization and rendering
-  - User interactions (click, keyboard, form submission)
-  - State changes and prop variations
-  - Error states and validation messaging
-  - Mobile/tablet/desktop responsive behavior
-  - Screen reader compatibility
+**Run specific tests** (use --tests flag with pattern):
+```
+pnpm test:e2e --tests accordion
+pnpm test:e2e --tests hero
+```
 
+**Update snapshots** (when component visuals change intentionally):
+```
+# Update all snapshots
+pnpm test:e2e:update-snapshots
+
+# Update specific component snapshots
+pnpm test:e2e:update-snapshots --tests accordion
+```
+
+### Important Prerequisites
+- Prior to running tests, a static Storybook build must exist
+- Run `pnpm build` to compile static assets
+- Run `pnpm storybook:build` to create static Storybook build
+
+### Test Reports
+- **Local runs:** Test report generated in `/playwright-report`
+- **CI runs:** Report available as downloadable .zip file on GitHub Actions summary page
+- View report by opening the enclosed `index.html` in a browser
+
+### Project Structure
+```
+e2e/
+├── playwright.config.ts        # Playwright configuration
+├── src/
+│   ├── fixtures/
+│   │   └── test.ts            # Custom Storybook fixtures
+│   ├── helpers/
+│   │   ├── storybook.ts       # Storybook navigation helpers
+│   │   ├── images.ts
+```
+
+### Testing Features
+- Tests executed via bash script running Playwright in Docker container
+- Custom fixtures for streamlined Storybook integration
+- Ensures consistent results across different development environments
 
 ### Implementation
 
-
-```html
-<!-- Playwright Testing Configuration Example -->
-<!-- Tests should verify component structure, functionality, and accessibility -->
-
-<!-- Example Test Structure Pattern -->
-<script>
-// tests/components/accordion.spec.ts - Example testing pattern
-import { test, expect } from '@playwright/test';
-
-test.describe('Accordion Component', () => {
-  test('should render with correct structure', async ({ page }) => {
-    await page.goto('/components/accordion');
-    
-    // Verify component markup
-    const accordion = await page.locator('[role="region"]');
-    await expect(accordion).toBeVisible();
-  });
-
-  test('should have correct ARIA attributes', async ({ page }) => {
-    await page.goto('/components/accordion');
-    
-    const button = await page.locator('[role="button"][aria-expanded]');
-    await expect(button).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  test('should toggle expanded state on click', async ({ page }) => {
-    await page.goto('/components/accordion');
-    
-    const button = await page.locator('[role="button"]').first();
-    await button.click();
-    
-    await expect(button).toHaveAttribute('aria-expanded', 'true');
-  });
-
-  test('should be keyboard accessible', async ({ page }) => {
-    await page.goto('/components/accordion');
-    
-    const button = await page.locator('[role="button"]').first();
-    await button.focus();
-    await page.keyboard.press('Enter');
-    
-    await expect(button).toHaveAttribute('aria-expanded', 'true');
-  });
-
-  test('should apply correct CSS classes', async ({ page }) => {
-    await page.goto('/components/accordion');
-    
-    const accordion = await page.locator('.accordion');
-    await expect(accordion).toHaveClass(/accordion/);
-  });
-});
-</script>
-
-<!-- Component to be tested -->
-<div class="accordion" role="region">
-  <button 
-    role="button" 
-    aria-expanded="false" 
-    aria-controls="accordion-panel-1"
-    class="accordion__button"
-  >
-    Accordion Item
-  </button>
-  <div 
-    id="accordion-panel-1" 
-    role="region" 
-    aria-labelledby="accordion-button-1"
-    class="accordion__panel"
-    hidden
-  >
-    <p>Panel content goes here</p>
-  </div>
-</div>
-```
-
+This is a Getting Started documentation page describing testing infrastructure and processes rather than a renderable component. No HTML component implementation is applicable. The page provides configuration instructions and command-line examples for running the Playwright test suite integrated with the MDWDS Storybook environment.
 
 ### Context
 
-Playwright Testing is a foundational practice within MDWDS that ensures all components, utilities, and templates meet quality, accessibility, and functionality standards. It integrates with the component development workflow to validate that implementations follow the design system specifications and maintain consistency across Maryland state web projects.
+Playwright Testing is part of the MDWDS development and quality assurance workflow. It integrates with the Storybook component library to provide automated visual regression testing and accessibility checking across all MDWDS components, ensuring consistency and accessibility standards are maintained across viewports and browsers.
 
 ---
 
-## Use `maryland-` Prefix for Web Components and CSS Variables
+## Use BEM Convention for CSS
 
 *Getting Started*
 
-This is an architectural decision document (ADR) that establishes the naming convention for the Maryland Web Design System, requiring all custom web components and CSS variables to use the `maryland-` prefix. This ensures namespace consistency, prevents naming collisions with other libraries, and establishes a clear identity for Maryland state web components across all implementations.
+This is an Architectural Decision Record (ADR) documenting the adoption of BEM (Block Element Modifier) as the standard CSS class naming convention for the Maryland Design System. BEM provides a consistent, scalable approach to naming that improves code clarity, reduces CSS collisions, and makes the relationship between styles and markup self-evident.
 
 ### Key Information
 
-## Naming Convention
-- **Web Components**: All custom web components MUST use the `maryland-` prefix (e.g., `<maryland-accordion>`, `<maryland-button>`)
-- **CSS Variables**: All custom CSS variables MUST use the `maryland-` prefix (e.g., `--maryland-color-primary`, `--maryland-spacing-unit`)
-- **Purpose**: Ensures global namespace isolation and prevents conflicts with third-party libraries
-- **Scope**: Applies across all MDWDS components, utilities, and design tokens
+## BEM Structure
 
-## Implementation Standards
-- Custom HTML element names must follow Web Components naming requirements (hyphenated, lowercase)
-- CSS custom properties should follow a consistent hierarchical naming pattern
-- All new components and variables should be reviewed to ensure compliance with this prefix standard
+The BEM naming convention uses the format: `block-name__element-name--modifier-name`
+
+### Components:
+
+- **Block**: A standalone component representing the highest-level abstraction (e.g., `maryland-card`)
+- **Element**: A part or child of the block, denoted with double underscore `__` (e.g., `maryland-card__title`)
+- **Modifier**: A variation, state, or flag applied to a block or element, denoted with double hyphens `--` (e.g., `maryland-card--highlighted`)
+
+### Key Facts:
+
+- No class name prefix is shown in the example content; components should use the `maryland-` namespace prefix for consistency across the system
+- BEM improves readability by making styles self-descriptive
+- Reduces CSS specificity collisions in large-scale applications
+- Encourages modular, component-driven development
+- Compatible with utility-first frameworks, SCSS modules, and preprocessors
+- Class names may be verbose but provide clear semantic meaning
 
 ### Implementation
 
 ```html
-<!-- Web Component Example -->
-<maryland-accordion>
-  <maryland-accordion-item>
-    <h3 slot="header">Accordion Header</h3>
-    <p>Accordion content</p>
-  </maryland-accordion-item>
-</maryland-accordion>
-
-<!-- CSS Variables Example -->
-<style>
-  :root {
-    --maryland-color-primary: #003366;
-    --maryland-spacing-unit: 8px;
-    --maryland-font-size-base: 16px;
-  }
-  
-  .component {
-    color: var(--maryland-color-primary);
-    padding: calc(var(--maryland-spacing-unit) * 2);
-    font-size: var(--maryland-font-size-base);
-  }
-</style>
+<!-- BEM Naming Convention Example -->
+<div class="maryland-card maryland-card--highlighted">
+  <h2 class="maryland-card__title">Card Title</h2>
+  <p class="maryland-card__content">Description here...</p>
+</div>
 ```
+
+### Structure Breakdown:
+
+- `maryland-card` — Block (standalone component)
+- `maryland-card__title` — Element (part of the block, child component)
+- `maryland-card__content` — Element (another part of the block)
+- `maryland-card--highlighted` — Modifier (variation/state applied to the block)
+
+### Naming Pattern:
+
+```
+Block:     block-name
+Element:   block-name__element-name
+Modifier:  block-name--modifier-name
+Combined:  block-name__element-name--modifier-name
+```
+
+Each class should clearly indicate its role and hierarchy within the component structure.
 
 ### Context
 
-This ADR establishes a foundational naming convention that all MDWDS components, tokens, and utilities must follow to ensure consistency, prevent namespace collisions, and maintain a coherent identity across the entire Maryland state web design ecosystem.
+This ADR establishes a foundational naming convention that applies across all components, utilities, and templates in the MDWDS. By standardizing on BEM, all contributors—whether working on Foundation elements, Components, or Templates—can follow the same predictable naming pattern, improving consistency, discoverability, and maintainability throughout the entire design system.
 
 ---
 
@@ -894,52 +941,54 @@ This ADR establishes a foundational naming convention that all MDWDS components,
 
 *Getting Started*
 
-The Welcome page serves as the entry point and introduction to the Maryland Web Design System (MDWDS) Storybook. It provides orientation for users getting started with the design system and directs them to key documentation and resources. This page establishes the foundation for understanding how to navigate and utilize the MDWDS for building Maryland state web pages.
+This is the welcome/introduction page for the Maryland Web Design System (MDWDS). It provides an overview of what MDWDS is and its purpose: to help Maryland government teams design, build, and measure high-performing digital services that are consistent, accessible, well-designed, and mobile-friendly. The page notes that the system is currently under development and will evolve in response to user needs and changing technology.
 
 ### Key Information
 
-The Welcome page is the landing page of the MDWDS Storybook documentation site located at designsystem.maryland.gov. It contains:
-
-- Toolbar navigation at the top
-- Main navigation sidebar (accessible via skip link)
-- Introduction and orientation content for new users
-- Links to key sections and documentation resources
-
-The page serves as a navigational hub that helps users understand the structure of the design system and directs them to Foundation (colors, typography, spacing), Components (UI building blocks), Templates (page layouts), Utilities, and other resources.
+- This is a documentation/welcome page, not a reusable component
+- Contains informational alert using `usa-alert` and `usa-alert--info` classes
+- Page structure uses `sbdocs` and `sbdocs-wrapper` classes for Storybook documentation layout
+- Alert body uses `usa-alert__body` and `usa-alert__text` classes
+- Table of Contents (TOC) navigation with `toc-wrapper`, `toc-list`, and `toc-list-item` classes
+- Includes links to external resources (MDWDS Contributors Google Chat channel)
+- The MDWDS is in early stages of development
+- Future announcements will be made in the Google Chat channel
 
 ### Implementation
 
 ```html
-<!-- Welcome page - Entry point to MDWDS Storybook -->
-<html>
-<head>
-  <title>Welcome - Maryland Web Design System</title>
-</head>
-<body>
-  <!-- Skip link for accessibility -->
-  <a href="#sidebar" class="skip-link">Skip to sidebar</a>
-  
-  <!-- Toolbar -->
-  <nav class="toolbar" role="navigation" aria-label="Main toolbar">
-    <!-- Toolbar content -->
-  </nav>
-  
-  <!-- Main content area -->
-  <main id="main-content">
-    <!-- Welcome page content -->
-  </main>
-  
-  <!-- Sidebar with navigation -->
-  <aside id="sidebar" role="navigation" aria-label="Documentation sidebar">
-    <!-- Sidebar navigation content -->
+<div class="sbdocs sbdocs-wrapper">
+  <aside class="sbdocs sbdocs-toc--custom">
+    <nav aria-labelledby="_r_0_">
+      <h2 id="_r_0_">Table of Contents</h2>
+      <div class="toc-wrapper">
+        <ul class="toc-list">
+          <li class="toc-list-item is-active-li">
+            <a href="#a-design-system-for-the-state-of-maryland" class="toc-link node-name--H3 is-active-link">
+              A design system for the State of Maryland
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
   </aside>
-</body>
-</html>
+  <div class="sbdocs sbdocs-content">
+    <h1 id="maryland-web-design-system-mdwds">Maryland Web Design System (MDWDS)</h1>
+    <h3 id="a-design-system-for-the-state-of-maryland">A design system for the State of Maryland</h3>
+    <p>The Maryland Web Design System (MDWDS) provides design, code, and guidance to help Maryland government teams design, build, and measure high-performing digital services that are consistent, accessible, well-designed, and mobile-friendly.</p>
+    <div class="usa-alert usa-alert--info">
+      <div class="usa-alert__body">
+        <p class="usa-alert__text">The MDWDS is currently under development and still in its early stages.</p>
+      </div>
+    </div>
+    <p>The MDWDS will evolve over time in response to the needs of users, as well as to changing technology. As new UI components and patterns are released, we will announce them in the <a href="https://chat.google.com/room/AAAAxp8FY9A?cls=7" target="_top" rel="nofollow">MDWDS Contributors Google Chat channel</a>.</p>
+  </div>
+</div>
 ```
 
 ### Context
 
-The Welcome page is the primary entry point to the MDWDS documentation system and serves as the organizational hub for all design system resources. It connects users to Foundation elements, Components, Templates, and Utilities that comprise the complete Maryland Web Design System.
+This is the landing/welcome documentation page for MDWDS that introduces the design system to users and establishes its purpose. It serves as the entry point for the Storybook documentation and directs users to other resources for staying updated on new components and patterns as the system evolves.
 
 ---
 
@@ -947,262 +996,331 @@ The Welcome page is the primary entry point to the MDWDS documentation system an
 
 *Getting Started*
 
-This architectural decision record (ADR) provides guidance on choosing between web components and standard HTML + CSS when building features within the Maryland Web Design System. It helps developers understand the trade-offs, performance implications, and use cases for each approach to ensure consistency and maintainability across state web pages.
+This is an Architectural Decision Record (ADR) that establishes guidelines for when to use Web Components versus standard HTML + CSS in the Maryland Web Design System. It provides boundary conditions and anti-patterns to help developers make informed decisions about component implementation, emphasizing that standard HTML should be the default approach unless Web Components offer meaningful encapsulation or framework-agnostic behavior.
 
 ### Key Information
 
-## Decision Framework
+**Key Decision Principles:**
 
-**Web Components (MDWDS Custom Elements):**
-- Use for: Complex interactive components with encapsulated state, reusable across multiple projects, components requiring Shadow DOM isolation
-- Benefits: Style encapsulation, scoped DOM, reusable across different technology stacks
-- Considerations: Larger bundle size, learning curve, JavaScript required for functionality
+- **Default to standard HTML markup** — Use native HTML, utility classes, and ARIA attributes as the preferred approach
+- **Use Web Components selectively** — Only introduce them when they offer meaningful encapsulation, framework-agnostic behavior, or replace something requiring an iframe, embedded script, or complex JavaScript
+- **Avoid wrapping basic native elements** — Do not replace `<a>`, `<button>`, `<input>` with custom components unless significant value is added in behavior, accessibility, or usability
+- **Use Web Components for static, reusable elements** — Examples: site-wide banners, footers, alert regions that are centrally managed and reused across Maryland.gov properties
+- **Embedded styles** — Web Components should include embedded styles to support fallback display when JavaScript is disabled
+- **Anti-pattern** — Do not use Web Components merely to shorten verbose HTML (e.g., replacing multi-div structures with `<alert>` tags)
 
-**Standard HTML + CSS:**
-- Use for: Simple layout patterns, static content, components compatible with progressive enhancement
-- Benefits: Lighter bundle, better SEO (plain HTML), works without JavaScript, easier for content editors
-- Considerations: More CSS to manage, no style encapsulation, potential for style conflicts
-
-## Key Criteria for Selection
-- Component complexity and interactivity requirements
-- Reusability needs across projects
-- Bundle size and performance targets
-- Team expertise and maintenance capabilities
-- Accessibility requirements (both approaches support WCAG)
-- Progressive enhancement priorities
+**Status:** Proposed  
+**Date:** 2025-06-01
 
 ### Implementation
 
-## Decision Guidance
+**Avoid — Web Component for brevity (Anti-Pattern):**
 
-**Choose Web Components when:**
-```
-- Building complex interactive features (modals, dropdowns, tabs with state)
-- Component needs to be used across multiple MDWDS projects
-- Style encapsulation is important to prevent CSS conflicts
-- You're building a reusable library element
-```
-
-**Choose Standard HTML + CSS when:**
-```
-- Building simple layout patterns and static content blocks
-- Supporting progressive enhancement is a priority
-- Component complexity is minimal
-- You need maximum compatibility with content management systems
-- Performance on initial page load is critical
+```html
+<alert>
+  <div slot="heading">Informative status</div>
+  <div slot="text">Lorem ipsum dolor sit amet.</div>
+</alert>
 ```
 
-## Implementation Pattern
+**Prefer — Standard HTML with utility classes and ARIA:**
 
-Web Components in MDWDS typically follow this structure:
-- Register custom element (e.g., `<mdwds-component>`)
-- Define component class extending HTMLElement or similar
-- Encapsulate styles in Shadow DOM
-- Expose public properties and methods
-- Emit custom events for parent communication
+```html
+<div class="alert" role="status" aria-live="polite">
+  <h3 class="alert__heading">Informative status</h3>
+  <p class="alert__text">Lorem ipsum dolor sit amet.</p>
+</div>
+```
 
-Standard HTML + CSS in MDWDS typically follow this structure:
-- Semantic HTML structure
-- CSS utility classes and component classes
-- BEM or similar naming convention for clarity
-- Data attributes for progressive enhancement
-- Optional data-driven scripting for enhancements
+**When Web Components ARE Appropriate:**
+
+```html
+<!-- Site-wide banner (static, reusable, centrally managed) -->
+<md-site-banner>
+  <!-- embedded styles included for JS-disabled fallback -->
+</md-site-banner>
+
+<!-- Footer (static, reusable across Maryland.gov properties) -->
+<md-site-footer>
+  <!-- embedded styles included for JS-disabled fallback -->
+</md-site-footer>
+```
 
 ### Context
 
-This ADR serves as architectural guidance for all MDWDS contributors and developers building on the system. It clarifies when to extend the component library with web components versus when to build features using the foundation of HTML and CSS utilities, ensuring consistent decision-making across the design system and its implementations.
+This ADR provides architectural guidance for the entire MDWDS system, establishing standards that all component authors and system consumers should follow. It helps maintain consistency across Maryland.gov properties and ensures that component choices prioritize accessibility, portability, and performance over unnecessary complexity.
 
 ---
 
 # Foundation
 
+## Block Spacing
+
+*Foundation*
+
+Block Spacing is a foundational spacing system for components on the page where each component manages its own block-level spacing. The `.block-spacing` class is available to apply consistent vertical spacing between major page sections and components. Use this to maintain visual rhythm and consistent white space throughout your layouts.
+
+### Key Information
+
+- **CSS Class**: `.block-spacing` - Apply to block-level elements (sections, divs) to add consistent spacing
+- **Usage**: Wrap component sections with the `.block-spacing` class to automatically apply appropriate margins
+- **Scope**: Each component manages its own block-spacing internally; the utility class is also available for manual application
+- **Note**: Multiple `.block-spacing` sections can be stacked on a single page and will respect the MDWDS spacing system
+
+### Implementation
+
+```html
+<div class="usa-prose">
+  <h1>Block Spacing</h1>
+  <p>
+    The blocks below represent components placed on the page. Each component
+    manages its own block-spacing, and a
+    <code>.block-spacing</code> class is available.
+  </p>
+  <section class="block-spacing"></section>
+  <section class="block-spacing"></section>
+</div>
+```
+
+**Styling Context** (for reference):
+```css
+section {
+  min-height: 10rem;
+  background-color: lightgray;
+  outline: 2px dashed gray;
+  outline-offset: -2px;
+}
+```
+
+### Context
+
+Block Spacing is a foundational spacing utility in MDWDS that works in conjunction with the `usa-prose` wrapper to provide consistent vertical rhythm across page layouts. It is typically applied to container elements alongside prose and component sections to maintain predictable spacing relationships.
+
+---
+
 ## Colors
 
 *Foundation*
 
-The Colors page establishes the color palette and guidelines for the Maryland Web Design System. It defines the standardized colors used across all state web pages, ensuring visual consistency and accessibility compliance. Use these colors for all UI components, backgrounds, text, and interactive states throughout Maryland state applications.
+The Colors foundation provides a standardized color palette for the Maryland Web Design System based on USWDS colors. It includes semantic color names (primary, secondary, accent-cool, accent-warm, info, success, warning, error, emergency, disabled, base) with multiple tints/shades for each. Use colors intentionally and consistently throughout projects to convey meaning, emotion, and information hierarchy while maintaining accessibility.
 
 ### Key Information
 
-## Color Palette Overview
+## Color Families
 
-The MDWDS color system includes primary colors, secondary colors, neutral grays, and semantic colors for various UI states and purposes.
+The MDWDS color system includes 11 semantic color families:
+- **base** — neutral grays
+- **primary** — Maryland blue (primary brand color)
+- **secondary** — Maryland gold/yellow
+- **accent-cool** — cyan/teal accents
+- **accent-warm** — orange/warm accents
+- **info** — information/notice blue
+- **success** — success/positive green
+- **warning** — warning/caution orange
+- **error** — error/critical red
+- **emergency** — emergency red
+- **disabled** — disabled state gray
 
-## Primary Colors
-- **Maryland Blue**: Used for primary actions, links, and brand elements
-- **Maryland Gold**: Used for highlights, accents, and secondary actions
+## Color Tints & Shades
 
-## Secondary Colors
-- Supporting colors for additional visual variety and semantic meaning
+Each color family includes 8 variants:
+- **lightest** — lightest tint
+- **lighter** — lighter tint
+- **light** — light tint
+- **default** — base color
+- **vivid** — saturated/vivid variant
+- **dark** — dark shade
+- **darker** — darker shade
+- **darkest** — darkest shade
 
-## Neutral Colors
-- **Grays**: Range from light backgrounds to dark text, providing contrast hierarchy
-- White and black for extremes
+## Integration Options
 
-## Semantic Colors
-- **Success/Green**: Positive actions, confirmations, success states
-- **Warning/Yellow**: Cautions, alerts, warnings
-- **Error/Red**: Errors, destructive actions, alerts
-- **Information/Blue**: Informational messages, help text
+1. **Option 1: Limited environments** — Use colors directly from the palette for custom builds
+2. **Option 2: Full MDWDS via CDN** — Include `https://cdn.maryland.gov/mdwds/latest/css/mdwds.min.css`
+3. **Option 3 (experimental): CSS Variables** — Include `https://cdn.maryland.gov/mdwds/latest/css/colors.css`
 
-## Accessibility
-- All colors meet WCAG AA contrast ratio requirements
-- Use color in combination with other visual indicators (icons, text, patterns) rather than color alone
-- Ensure sufficient contrast between foreground and background colors
+## CSS Variables & Utilities
 
-## CSS Class Naming
-Colors are typically applied through CSS utility classes or design tokens:
-- Background colors: `.bg-primary`, `.bg-secondary`, `.bg-success`, `.bg-warning`, `.bg-error`, `.bg-info`
-- Text colors: `.text-primary`, `.text-secondary`, `.text-muted`
-- Border colors: `.border-primary`, `.border-secondary`
+- MDWDS provides CSS variables in the format `var(--maryland-color-*)`
+- Utility classes available for text color and background color applications
+- Text color utilities apply foreground colors
+- Background color utilities apply background colors
 
-## Implementation Notes
-- Use design tokens/CSS variables for consistency
-- Never hardcode color hex values in component code
-- Apply colors through utility classes or component modifier classes
-- Test color combinations for accessibility compliance before deployment
+## Best Practices
+
+- Use colors intentionally and consistently (same blue throughout as primary)
+- Use colors to convey emotion, importance, and information categories
+- **Avoid** introducing custom colors outside the palette
+- **Never** use color alone to convey meaning (pair with icons/symbols for errors, etc.)
 
 ### Implementation
 
-```html
-<!-- Primary Button using primary color -->
-<button class="btn btn-primary">Primary Action</button>
+## CSS Variables
 
-<!-- Secondary Button using secondary color -->
-<button class="btn btn-secondary">Secondary Action</button>
+```css
+.example {
+  background-color: var(--maryland-color-primary);
+  color: var(--maryland-color-base-darkest);
+}
 
-<!-- Success State -->
-<div class="alert alert-success">
-  <strong>Success!</strong> Your action was completed.
-</div>
+.success-message {
+  background-color: var(--maryland-color-success-lighter);
+  color: var(--maryland-color-success-darkest);
+  border-left: 4px solid var(--maryland-color-success);
+}
 
-<!-- Warning State -->
-<div class="alert alert-warning">
-  <strong>Warning:</strong> Please review before proceeding.
-</div>
+.error-message {
+  background-color: var(--maryland-color-error-lighter);
+  color: var(--maryland-color-error-darkest);
+  border-left: 4px solid var(--maryland-color-error);
+}
 
-<!-- Error State -->
-<div class="alert alert-error">
-  <strong>Error:</strong> Something went wrong.
-</div>
+.warning-message {
+  background-color: var(--maryland-color-warning-lighter);
+  color: var(--maryland-color-warning-darkest);
+  border-left: 4px solid var(--maryland-color-warning);
+}
 
-<!-- Info State -->
-<div class="alert alert-info">
-  <strong>Information:</strong> Additional details provided.
-</div>
+.info-message {
+  background-color: var(--maryland-color-info-lighter);
+  color: var(--maryland-color-info-darkest);
+  border-left: 4px solid var(--maryland-color-info);
+}
 
-<!-- Text with semantic colors -->
-<p class="text-success">This text indicates success</p>
-<p class="text-warning">This text indicates a warning</p>
-<p class="text-error">This text indicates an error</p>
-<p class="text-info">This text provides information</p>
-
-<!-- Background colors -->
-<div class="bg-primary text-white padding-3">Primary background</div>
-<div class="bg-secondary text-white padding-3">Secondary background</div>
-
-<!-- Using CSS Variables (design tokens) -->
-<style>
-  .custom-element {
-    background-color: var(--color-primary);
-    color: var(--color-text-primary);
-    border: 2px solid var(--color-border-primary);
-  }
-</style>
+.disabled-button {
+  background-color: var(--maryland-color-disabled-light);
+  color: var(--maryland-color-disabled-darker);
+  cursor: not-allowed;
+}
 ```
+
+## CDN Integration
+
+```html
+<!-- Option 2: Full MDWDS integration via CDN -->
+<link
+  rel="stylesheet"
+  href="https://cdn.maryland.gov/mdwds/0.44.0/css/mdwds.min.css"
+/>
+
+<!-- Option 3 (experimental): CSS Variables only -->
+<link
+  rel="stylesheet"
+  href="https://cdn.maryland.gov/mdwds/0.44.0/css/colors.css"
+/>
+```
+
+## Color Families Available
+
+- `--maryland-color-base-lightest` through `--maryland-color-base-darkest`
+- `--maryland-color-primary-lightest` through `--maryland-color-primary-darkest`
+- `--maryland-color-secondary-lightest` through `--maryland-color-secondary-darkest`
+- `--maryland-color-accent-cool-lightest` through `--maryland-color-accent-cool-darkest`
+- `--maryland-color-accent-warm-lightest` through `--maryland-color-accent-warm-darkest`
+- `--maryland-color-info-lightest` through `--maryland-color-info-darkest`
+- `--maryland-color-success-lightest` through `--maryland-color-success-darkest`
+- `--maryland-color-warning-lightest` through `--maryland-color-warning-darkest`
+- `--maryland-color-error-lightest` through `--maryland-color-error-darkest`
+- `--maryland-color-emergency-lightest` through `--maryland-color-emergency-darkest`
+- `--maryland-color-disabled-lightest` through `--maryland-color-disabled-darkest`
 
 ### Context
 
-The Colors foundation provides the visual design foundation that all MDWDS components build upon. These standardized colors ensure consistency across components, templates, and utilities while maintaining accessibility standards required for Maryland state web properties.
+Colors are a foundational design token in the MDWDS system, derived from the United States Web Design System (USWDS) palette but tailored to reflect Maryland's natural features and state flag. All semantic color usage throughout MDWDS components (buttons, alerts, badges, links, etc.) builds upon this foundation, ensuring visual consistency and accessibility compliance across the entire design system.
 
 ---
 
-## Full Width
+## Maryland Logo
 
 *Foundation*
 
-Full Width is a block spacing utility that enables content to extend across the entire viewport width, breaking out of standard container constraints. It solves the problem of needing full-bleed layouts while maintaining design system consistency. Use this when you need hero sections, background images, or other content that should span edge-to-edge.
+The Maryland Logo is the official logo for the State of Maryland, provided in multiple format variants (vertical/horizontal, black/white text). These guidelines ensure proper and accurate logo use to maintain brand consistency across state applications. Use the vertical logo for general applications, and the horizontal variant only when space constraints require it.
 
 ### Key Information
 
-- **Purpose**: Extends content to full viewport width, useful for hero sections, banners, and full-bleed backgrounds
-- **CSS Class**: `.full-width` or similar utility class for breaking container constraints
-- **Block Spacing Context**: Part of the Foundation block spacing system that controls layout spacing patterns
-- **Use Cases**: Hero sections, full-width backgrounds, image galleries, color blocks that need to extend beyond normal container widths
-- **Integration**: Works with standard container and grid systems; content inside can be constrained with nested containers if needed
-- **Responsive**: Adjusts appropriately across breakpoints while maintaining full viewport width
+## Logo Variants
+
+- **Vertical with Black Text**: Default version for general applications
+- **Vertical with White Text**: Use on dark backgrounds
+- **Horizontal with Black Text**: Use when vertical space is limited
+- **Horizontal with White Text**: Use on dark backgrounds with space constraints
+
+## Logo Colors
+
+The logo employs four primary colors with CSS custom properties:
+
+- **Maryland Red**: `--maryland-color-logo-red` / `var(--maryland-color-logo-red)` / `#c8122c`
+- **Maryland Gold**: `--maryland-color-logo-gold` / `var(--maryland-color-logo-gold)` / `#ffc838`
+- **Black**: `--maryland-color-logo-black` / `var(--maryland-color-logo-black)` / `#231f20`
+- **White**: `--maryland-color-logo-white` / `var(--maryland-color-logo-white)` / `#ffffff`
+
+## Typography
+
+The logo uses **Montserrat Semi Bold** typeface.
+
+## Download Formats
+
+- Vertical with Black Text: SVG, PNG, JPG
+- Vertical with White Text: SVG, PNG (1x, 2x, 3x, 4x)
+- Horizontal with Black Text: SVG
+- Horizontal with White Text: SVG, PNG (1x, 2x, 3x, 4x)
+
+## Usage Guidelines
+
+**Do:**
+- Use Vertical Logo for general applications (or as directed)
+- Use Horizontal Logo only when space constraints require it
+
+**Do Not:**
+- Outline, distort, or manipulate the logo
+- Use unapproved color variations or opacity
+- Alter logo colors, typefaces, or layout
+- Place logo over text, graphics, or patterns
+- Apply effects or use unapproved versions
 
 ### Implementation
 
+## CSS Custom Properties
+
+Logo colors are accessible via CSS custom properties:
+
 ```html
-<!-- Full Width Container with content -->
-<div class="full-width">
-  <div class="container">
-    <!-- Content can be constrained here with container class -->
-  </div>
-</div>
+<link
+  rel="stylesheet"
+  href="https://cdn.maryland.gov/mdwds/0.44.0/css/colors.css"
+/>
+```
 
-<!-- Full Width with background color or image -->
-<div class="full-width" style="background-color: #f5f5f5;">
-  <div class="container">
-    <h2>Full Width Section</h2>
-    <p>Content with constrained width inside full-width container</p>
-  </div>
-</div>
+## HTML Usage Example
 
-<!-- Full Width with background image -->
-<div class="full-width" style="background-image: url('hero-image.jpg'); background-size: cover;">
-  <div class="container">
-    <h1>Hero Section</h1>
-  </div>
-</div>
+```html
+<p class="maryland-color-logo-red">This text uses the red logo color</p>
+```
+
+## Logo Assets
+
+The following SVG logo files are available for use:
+
+- `/img/md_wordmark_vertical.svg` – Vertical logo with black text
+- Vertical logo with white text (SVG version)
+- Horizontal logo with black text (SVG version)
+- Horizontal logo with white text (SVG version)
+
+PNG and JPG variants are also available in multiple resolutions (1x, 2x, 3x, 4x for PNG versions).
+
+## Color Variable Usage
+
+```css
+/* Apply logo colors using CSS custom properties */
+color: var(--maryland-color-logo-red);
+color: var(--maryland-color-logo-gold);
+color: var(--maryland-color-logo-black);
+color: var(--maryland-color-logo-white);
 ```
 
 ### Context
 
-Full Width is part of the MDWDS Foundation block spacing utilities that define how sections and major content blocks are structured on Maryland state web pages. It complements standard container and grid utilities to enable flexible layout patterns while maintaining design consistency.
-
----
-
-## Logo
-
-*Foundation*
-
-The Logo component provides the official Maryland state branding element for use across web applications. It establishes visual identity and consistency for state web properties. Use the Logo component in header and branding areas to reinforce Maryland's official presence.
-
-### Key Information
-
-The Logo component includes the Maryland state seal and wordmark. It serves as a foundational branding element and should be used consistently across all Maryland state web properties. The logo may appear in various sizes and contexts, typically in page headers or navigation areas. Key considerations include:
-
-- Official Maryland state seal imagery
-- Proper spacing and sizing guidelines
-- Use in header/navigation contexts
-- Maintains consistent branding across the MDWDS system
-- May have responsive sizing variants
-- Should include alt text when used as an image element
-- Color variations may be available (full color, single color, reversed)
-
-### Implementation
-
-```html
-<!-- Standard Logo Implementation -->
-<img src="/path/to/maryland-logo.svg" alt="State of Maryland" class="logo" />
-
-<!-- Logo with container/wrapper -->
-<div class="logo-container">
-  <img src="/path/to/maryland-logo.svg" alt="State of Maryland" class="logo" />
-</div>
-
-<!-- Logo as part of header branding -->
-<header class="header-branding">
-  <img src="/path/to/maryland-logo.svg" alt="State of Maryland" class="logo" />
-  <span class="org-name">Agency Name</span>
-</header>
-```
-
-### Context
-
-The Logo is a foundational branding element of the MDWDS that provides visual identity across all Maryland state web properties. It typically appears in conjunction with header and navigation components to establish consistent state branding and official presence.
+The Maryland Logo is a foundational branding element within the MDWDS system, establishing the State of Maryland's visual identity. The accompanying color palette (red, gold, black, white) serves as a base for theming and branding across other components and templates in the design system.
 
 ---
 
@@ -1210,54 +1328,109 @@ The Logo is a foundational branding element of the MDWDS that provides visual id
 
 *Foundation*
 
-Typography defines the font families, sizes, weights, and line heights used across Maryland state web pages. It establishes a consistent visual hierarchy and readability standard that applies to all text content, ensuring accessibility and professional presentation across the design system.
+Typography defines the typeface, sizing, and styling standards for the Maryland Web Design System. It covers font selection, hierarchy, and best practices for readable, accessible text across all components and pages. Use this foundation to maintain visual consistency and legibility throughout MDWDS implementations.
 
 ### Key Information
 
-Typography is a foundational element that includes:
-- **Font Families**: Primary and secondary typefaces used throughout MDWDS
-- **Font Sizes**: Standardized size scale for headings, body text, and captions
-- **Font Weights**: Regular, medium, semibold, and bold weight options
-- **Line Heights**: Proportional line spacing for different text types
-- **Letter Spacing**: Tracking adjustments for improved legibility
-- **Text Transform**: Options for uppercase, lowercase, and capitalize
-- **Utility Classes**: CSS classes for applying typography styles consistently
+## Typefaces
 
-Typography should be applied using semantic HTML elements (h1-h6, p, span, etc.) combined with MDWDS typography utility classes for consistent styling across all components and pages.
+**Primary Typeface: Source Sans Pro Web**
+- Default typeface for all MDWDS components and pages
+- Selected for high legibility, platform accessibility, and USWDS standards compliance
+- Automatically included and applied via CDN or future NPM packages
+
+**Alternate Typeface: Merriweather**
+- Secondary/accent typeface option
+- Also selected for high legibility, platform accessibility, and USWDS standards compliance
+- Automatically included via CDN or NPM packages
+
+## Typography Best Practices
+
+- Use "Source Sans Pro Web" as the primary font across all components and pages
+- Set a base font size of 16px on html or body element
+- Scale text using relative units (rem, em) instead of fixed pixel values
+- Maintain clear visual hierarchy using defined heading levels (h1–h6)
+
+## Heading Levels
+
+The system supports semantic heading levels h1 through h6 for creating document structure and visual hierarchy.
+
+## Text Elements
+
+- **Paragraph Text**: Standard body copy using base font size
+- **Lists**: Unordered, ordered, and description lists for organizing content
+- **Grid Container**: Layout mechanism for organizing typographic content
 
 ### Implementation
 
+Typography in MDWDS is applied through standard semantic HTML elements and inherited font stack. No special component markup is required.
+
+## Base Font Configuration
+
 ```html
-<!-- Heading Levels with Typography Classes -->
-<h1 class="text-h1">Heading Level 1</h1>
-<h2 class="text-h2">Heading Level 2</h2>
-<h3 class="text-h3">Heading Level 3</h3>
-<h4 class="text-h4">Heading Level 4</h4>
-<h5 class="text-h5">Heading Level 5</h5>
-<h6 class="text-h6">Heading Level 6</h6>
+<html style="font-size: 16px;">
+  <body style="font-family: 'Source Sans Pro Web', sans-serif;">
+    <!-- Content -->
+  </body>
+</html>
+```
 
-<!-- Body Text -->
-<p class="text-body">Standard body text paragraph</p>
-<p class="text-body-small">Small body text</p>
+## Heading Levels (h1–h6)
 
-<!-- Display Text -->
-<p class="text-display-large">Display Large</p>
-<p class="text-display-medium">Display Medium</p>
+```html
+<h1>Heading Level 1</h1>
+<h2>Heading Level 2</h2>
+<h3>Heading Level 3</h3>
+<h4>Heading Level 4</h4>
+<h5>Heading Level 5</h5>
+<h6>Heading Level 6</h6>
+```
 
-<!-- Caption and Label Text -->
-<span class="text-caption">Caption text</span>
-<label class="text-label">Label text</label>
+## Paragraph Text
 
-<!-- Font Weight Modifiers -->
-<p class="text-body text-weight-regular">Regular weight</p>
-<p class="text-body text-weight-medium">Medium weight</p>
-<p class="text-body text-weight-semibold">Semibold weight</p>
-<p class="text-body text-weight-bold">Bold weight</p>
+```html
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+```
+
+## Lists
+
+### Unordered List
+```html
+<ul>
+  <li>List item one</li>
+  <li>List item two</li>
+  <li>List item three</li>
+</ul>
+```
+
+### Ordered List
+```html
+<ol>
+  <li>First item</li>
+  <li>Second item</li>
+  <li>Third item</li>
+</ol>
+```
+
+### Description List
+```html
+<dl>
+  <dt>Term</dt>
+  <dd>Definition</dd>
+</dl>
+```
+
+## Using Alternate Typeface (Merriweather)
+
+Apply the Merriweather font family to specific elements as needed:
+
+```html
+<h2 style="font-family: 'Merriweather', serif;">Alternate Typeface Heading</h2>
 ```
 
 ### Context
 
-Typography is a core Foundation element that provides the stylistic basis for all text content across MDWDS components, templates, and page layouts. It works in conjunction with the Color Palette and Spacing system to create a cohesive visual identity for Maryland state digital properties.
+Typography is a foundational design element in MDWDS that establishes the visual language and reading experience across all components and pages. It works in concert with the color palette and spacing system to create consistent, accessible interfaces. Proper typography scaling using relative units ensures responsive design works correctly across all device sizes.
 
 ---
 
@@ -1265,73 +1438,79 @@ Typography is a core Foundation element that provides the stylistic basis for al
 
 *Foundation*
 
-Typography defines the typographic system and heading/text styles for the Maryland Web Design System. It establishes consistent font families, sizes, weights, and spacing across all state web pages. Use typography classes to ensure visual hierarchy, readability, and brand consistency throughout Maryland government digital properties.
+Typography is the foundational system for text styling in MDWDS, providing standardized heading levels, font families, sizes, and line heights from USWDS. It establishes readable, accessible body text at minimum 16px (token 5), lead paragraphs for introductory content, and comprehensive typeface options including Source Sans Pro, Merriweather, Public Sans, and Roboto Mono. Use typography utilities to maintain consistent hierarchy, readability, and accessibility across digital products.
 
 ### Key Information
 
-Typography in MDWDS includes:
+## Typefaces
+- **Source Sans Pro**: Primary sans-serif for UI design
+- **Merriweather**: Serif for extended reading
+- **Public Sans**: Alternative sans-serif
+- **Roboto Mono**: Monospaced for code
 
-**Heading Levels**: Use semantic HTML heading elements (h1–h6) with appropriate class names for styling consistency
-- `h1`, `h2`, `h3`, `h4`, `h5`, `h6` - Standard heading elements
-- Heading classes can override default styling without changing semantic markup
+## Heading Levels
+- Supports: display, h1, h2, h3, h4, h5, h6
+- Each level represents a different hierarchy in content structure
 
-**Body Text Variants**:
-- Standard paragraph text with `<p>` tags
-- `.lead` - Larger introductory text for emphasis
-- `.usa-body` - Standard body text class
-- `.usa-body--small` - Reduced size for secondary information
+## Font Sizes
+- USWDS token scale: 1, 2, 3, 4, 5, 6
+- Minimum body text size: 16px (token 5) for accessibility
+- Font family options: sans, serif, mono
 
-**Font Stack**:
-- Headings: Uses system font stack optimized for clarity
-- Body: Uses readable serif or sans-serif depending on context
+## Line Heights
+- Line height adjustments available for optimal readability
+- Measured in sans-compatible scales
 
-**Text Modifiers**:
-- Bold/strong emphasis: `<strong>` or `<b>`
-- Italic emphasis: `<em>` or `<i>`
-- `.usa-font-body-xs` through `.usa-font-body-lg` - Size variants
-- Text alignment classes for layout control
+## Measure (Line Length) Variants
+- measure-2: Recommended 66 characters for extended reading
+- Ensures comfortable reading lengths
 
-**Line Height & Spacing**:
-- Consistent line-height for readability (typically 1.5–1.6)
-- Margin and padding utilities control spacing between elements
+## CSS Classes Used
+- `usa-intro`: Lead paragraph styling for introductory text
+- `font-sans-5`: Font family and size utility (sans-serif, token 5)
+- `line-height-sans-5`: Line height utility for sans-serif scale token 5
+- `measure-2`: Line length/measure utility for comfortable reading width
 
-**Color Support**:
-- Typography works with MDWDS color palette
-- Text color classes for emphasis and hierarchy
+## Key Requirements
+- Maintain proper heading hierarchy for screen readers
+- Use flush-left alignment for consistency
+- Minimum body text size: 16px (font-size 5) for running text
+- Lead paragraphs use larger text to draw attention and provide context
 
 ### Implementation
 
 ```html
-<!-- Heading Examples -->
-<h1>Main Page Title</h1>
-<h2>Section Heading</h2>
-<h3>Subsection Heading</h3>
-
-<!-- Lead/Introductory Text -->
-<p class="lead">This is an important introductory paragraph that stands out with larger, bolder text.</p>
-
-<!-- Standard Body Text -->
-<p>Regular paragraph text in the default body font.</p>
-
-<!-- Small Text -->
-<p class="usa-body--small">This is secondary or supplementary information in a smaller font.</p>
-
-<!-- Text with Emphasis -->
-<p>Use <strong>bold text</strong> for emphasis and <em>italic text</em> for additional context.</p>
-
-<!-- Typography Size Variants -->
-<p class="usa-font-body-xs">Extra small body text</p>
-<p class="usa-font-body-sm">Small body text</p>
-<p class="usa-font-body">Default body text</p>
-<p class="usa-font-body-lg">Large body text</p>
-
-<!-- Heading with Optional Class Override -->
-<h2 class="usa-heading-xl">Large heading styled with size class</h2>
+<!-- Typography Showcase Container -->
+<div>
+  <h2>Typography Showcase</h2>
+  
+  <!-- Lead Paragraph (Introductory Text) -->
+  <p class="usa-intro">This is a lead paragraph that introduces the content. Lead paragraphs use larger text to draw attention and provide context.</p>
+  
+  <!-- Body Text with Font, Line Height, and Measure Controls -->
+  <p class="font-sans-5 line-height-sans-5 measure-2">This is body text at the default size. Body text should be comfortable to read for extended periods. The USWDS recommends using at least 16px font size (token 5) for running text.</p>
+</div>
 ```
+
+### CSS Class Modifiers
+
+**Lead Paragraph:**
+- `usa-intro` — Applies lead paragraph styling with larger text size
+
+**Font & Size Utilities:**
+- `font-sans-5` — Sans-serif typeface at token size 5 (16px)
+- `font-serif-*` — Serif typeface variants
+- `font-mono-*` — Monospaced typeface variants
+
+**Line Height Utilities:**
+- `line-height-sans-5` — Line height control for sans-serif at token 5
+
+**Measure (Reading Width) Utilities:**
+- `measure-2` — Optimal line length of approximately 66 characters for comfortable reading
 
 ### Context
 
-Typography is a foundational element in MDWDS that establishes visual consistency across all Maryland state web properties. It works in conjunction with the color palette and spacing utilities to create accessible, readable page layouts and establishes the baseline for all text-based content.
+Typography is a foundational element of the MDWDS system that provides the typographic building blocks for all text-based content. It works across all component types—from headings in Headers and Statewide Banners to body text in Cards, Lists, and Content blocks—ensuring consistent, accessible text rendering throughout digital Maryland products.
 
 ---
 
@@ -1341,89 +1520,116 @@ Typography is a foundational element in MDWDS that establishes visual consistenc
 
 *Components*
 
-An accordion is a collapsible content component that displays a list of headers that expand and collapse to reveal or hide associated content sections. It helps organize information into compact, scannable sections and is useful for FAQs, detailed explanations, and managing information hierarchy on pages with limited vertical space.
+Accordions are collapsible content sections that hide or reveal additional information when selected. They solve the problem of displaying large amounts of content in a limited space by letting users access only the specific information they need. Use accordions when users need only a few specific pieces of content within a page or when space is constrained.
 
 ### Key Information
 
 ## Variants
-- Single accordion item
-- Multiple accordion items (allow multiple sections open simultaneously or only one at a time)
-- Accordion with custom icons/styling
+- **default**: Standard accordion styling
+- **bordered**: Accordion with border styling
 
 ## Key CSS Classes
-- `.accordion` - Main container class
-- `.accordion-item` - Individual accordion item wrapper
-- `.accordion-button` - Clickable header that toggles content (should have `aria-expanded` attribute)
-- `.accordion-collapse` - Container for collapsible content
-- `.accordion-body` - Inner content area of the accordion item
+- `maryland-accordion`: Root wrapper for the accordion component
+- `maryland-accordion__list`: Container for the accordion header and description
+- `maryland-accordion__list--heading`: Heading text for the accordion list
+- `maryland-accordion__list--content`: Description text for the accordion list
+- `maryland-accordion__items`: Container for all accordion items
+- `maryland-accordion__item`: Individual accordion item wrapper
+- `maryland-accordion__heading`: Heading container for each item
+- `maryland-accordion__button`: Clickable button to expand/collapse items
 
 ## Required Attributes
-- `aria-expanded="true|false"` - On `.accordion-button` to indicate expanded/collapsed state
-- `aria-controls` - Links button to its associated content panel
-- `id` - Unique identifier for each accordion item and button
-- `data-bs-toggle="collapse"` - Enables collapse functionality
-- `data-bs-target` - Targets the collapse element to toggle
+- `aria-labelledby`: Points to the ID of the accordion title
+- `aria-expanded`: Boolean indicating if accordion item is open/closed
+- `aria-controls`: Points to the ID of the controlled content panel
+- `type="button"`: Required on accordion trigger buttons
+
+## Configuration Props
+- `accordionListTitle` (string): Title for the accordion list
+- `accordionListDescription` (string): Description text for the accordion list
+- `variant` (string): Choose between "default" or "bordered"
+- `items` (array): Array of accordion items, each with properties for the item content
+- `headingLevel` (string): Semantic heading level (h1-h6) for accordion items
+- `ariaLabel` (string): Accessible label for the accordion
+- `role` (string): ARIA role - "none", "group", or "region"
 
 ## Important Facts
-- Typically uses Bootstrap accordion structure
-- Should support keyboard navigation (Enter/Space to expand/collapse)
-- All accordion items should be wrapped in a container with `role="region"` or semantic context
-- Collapsed items should have `aria-expanded="false"` and expanded items `aria-expanded="true"`
+- Accordion items use semantic heading elements (h2, h3, etc.) based on the `headingLevel` prop
+- Each accordion item requires unique IDs for the button and controlled content panel
+- The component requires proper ARIA attributes for screen reader accessibility
 
 ### Implementation
 
 ```html
-<div class="accordion" id="accordionExample">
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-        Accordion Item #1
-      </button>
+<!-- Root accordion section with aria-labelledby reference -->
+<section class="maryland-accordion" aria-labelledby="id-oj7o2dygx4">
+  
+  <!-- Accordion header section -->
+  <div class="maryland-accordion__list">
+    <h2 class="maryland-accordion__list--heading" id="id-oj7o2dygx4">
+      Accordion Title
     </h2>
-    <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
-      <div class="accordion-body">
-        <strong>This is the first item's accordion body.</strong> It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions.
+    <p class="maryland-accordion__list--content">
+      Accordion description text.
+    </p>
+  </div>
+  
+  <!-- Container for accordion items -->
+  <div class="maryland-accordion__items">
+    
+    <!-- Individual accordion item -->
+    <div class="maryland-accordion__item">
+      <h3 class="maryland-accordion__heading">
+        <button 
+          type="button" 
+          class="maryland-accordion__button" 
+          id="id-4makj0jlhaj" 
+          aria-expanded="true" 
+          aria-controls="id-jywwykfz2ar"
+        >
+          First Amendment
+        </button>
+      </h3>
+      <!-- Content panel controlled by the button above -->
+      <div id="id-jywwykfz2ar" class="maryland-accordion__panel">
+        Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof...
       </div>
     </div>
-  </div>
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-        Accordion Item #2
-      </button>
-    </h2>
-    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-      <div class="accordion-body">
-        <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element.
+    
+    <!-- Additional accordion items follow the same structure -->
+    <div class="maryland-accordion__item">
+      <h3 class="maryland-accordion__heading">
+        <button 
+          type="button" 
+          class="maryland-accordion__button" 
+          id="id-second" 
+          aria-expanded="false" 
+          aria-controls="id-second-panel"
+        >
+          Second Amendment
+        </button>
+      </h3>
+      <div id="id-second-panel" class="maryland-accordion__panel">
+        <!-- Content here -->
       </div>
     </div>
+    
   </div>
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-        Accordion Item #3
-      </button>
-    </h2>
-    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-      <div class="accordion-body">
-        <strong>This is the third item's accordion body.</strong> Nothing more exciting happening here in terms of content, but that's all you need.
-      </div>
-    </div>
-  </div>
-</div>
+  
+</section>
 ```
 
-## JavaScript Initialization
-If using Bootstrap 5+, include Bootstrap's JS bundle:
+## Variant: Bordered
+Add a modifier class to the root section:
 ```html
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.x.x/dist/js/bootstrap.bundle.min.js"></script>
+<section class="maryland-accordion maryland-accordion--bordered" aria-labelledby="id-oj7o2dygx4">
+  <!-- Same structure as above -->
+</section>
 ```
-
-The accordion will automatically initialize with the `data-bs-toggle` and `data-bs-target` attributes.
 
 ### Context
 
-The Accordion component is a standard interactive UI element within MDWDS that builds on Bootstrap's collapse utility. It composes with heading and text content components to create organized, accessible content sections and is commonly used in templates for FAQs, policy details, and multi-step forms.
+The Accordion component is a foundational UI pattern in MDWDS used to organize and present grouped information while conserving page space. It works in concert with semantic HTML heading elements and ARIA attributes to ensure accessibility, and is typically used within page templates to structure FAQs, help content, or collapsible sections of forms.
 
 ---
 
@@ -1431,95 +1637,90 @@ The Accordion component is a standard interactive UI element within MDWDS that b
 
 *Components*
 
-The Accordion component is a collapsible content container that allows users to expand and collapse sections of content to manage information density. It helps organize related content into logical sections and improves readability by reducing cognitive load. Use accordions when you have multiple sections of content where users need to focus on one section at a time, or when space is limited.
+An accordion is a list of headers that hide or reveal additional content when selected. It provides fully accessible keyboard and screen reader support, making it ideal for organizing related content that users can expand or collapse on demand. Use accordions to reduce cognitive load and allow users to focus on relevant sections.
 
 ### Key Information
 
-**Variants & Modifiers:**
-- Standard accordion with collapsible sections
-- Each section can be independently expanded or collapsed
-- Only one section can be open at a time (typical behavior)
-- Multi-select accordion (if supported) allows multiple sections open simultaneously
+## Variants
+- **default**: Standard accordion styling
+- **bordered**: Accordion with borders between items
 
-**CSS Classes:**
-- `.usa-accordion` - Main wrapper class
-- `.usa-accordion__heading` - Header element for each section
-- `.usa-accordion__button` - Clickable button to toggle section
-- `.usa-accordion__content` - Container for expandable content
-- `.usa-accordion-item` - Individual accordion item wrapper
+## Key Class Names
+- `usa-accordion`: Main container class
+- `usa-accordion__heading`: Wraps each accordion header (typically an h4)
+- `usa-accordion__button`: Clickable button that toggles content visibility
+- `usa-accordion__content`: Content container that shows/hides based on button state
 
-**Required Attributes:**
-- `aria-expanded` - Boolean attribute on button indicating if section is expanded
-- `aria-controls` - Links button to its corresponding content panel
-- `id` - Unique identifier for content panels
-- `type="button"` - Specifies accordion buttons as buttons, not links
+## Required Attributes
+- `aria-expanded`: Boolean indicating if content is open or closed (set on button)
+- `aria-controls`: ID reference linking button to its content panel (set on button)
+- `id`: Unique identifiers required on both button and content elements for aria-controls/aria-labelledby linking
+- `type="button"`: Required on accordion buttons
 
-**Important Facts:**
-- Accordion buttons must be semantic `<button>` elements
-- Use proper heading hierarchy within accordion items
-- Content is revealed/hidden via CSS or JavaScript state management
-- ARIA attributes are critical for screen reader accessibility
-- Supports keyboard navigation (Enter/Space to toggle, arrows to navigate)
+## Options
+- **variant**: Choose between "default" or "bordered"
+- **items**: Array of accordion items (each with title, content, and optional properties)
+- **headingLevel**: Control heading level (h1–h6) for the accordion headers
+- **ariaLabel**: Optional string for labeling the accordion container
+- **role**: Optional role attribute supporting "none", "group", or "region"
+
+## Accessibility Features
+- Full keyboard navigation support (arrow keys, Enter/Space to toggle)
+- Screen reader support with aria-expanded and aria-controls
+- Supports aria-label, aria-describedby, and semantic roles
+- Follows USWDS and WCAG accessibility standards
 
 ### Implementation
 
 ```html
 <div class="usa-accordion">
-  <div class="usa-accordion-item">
-    <h2 class="usa-accordion__heading">
-      <button
-        class="usa-accordion__button"
-        aria-expanded="false"
-        aria-controls="accordion-content-1"
-        type="button">
-        Section Title
-      </button>
-    </h2>
-    <div id="accordion-content-1" class="usa-accordion__content">
-      <p>Content for this accordion section goes here.</p>
-    </div>
+  <h4 class="usa-accordion__heading">
+    <button 
+      type="button" 
+      class="usa-accordion__button" 
+      id="id-gx85lsle3qv" 
+      aria-expanded="true" 
+      aria-controls="id-z8onz0r06vi">
+      First Amendment
+    </button>
+  </h4>
+  <div 
+    class="usa-accordion__content" 
+    id="id-z8onz0r06vi" 
+    aria-labelledby="id-gx85lsle3qv">
+    <p>Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof...</p>
   </div>
 
-  <div class="usa-accordion-item">
-    <h2 class="usa-accordion__heading">
-      <button
-        class="usa-accordion__button"
-        aria-expanded="false"
-        aria-controls="accordion-content-2"
-        type="button">
-        Another Section
-      </button>
-    </h2>
-    <div id="accordion-content-2" class="usa-accordion__content">
-      <p>Content for the second accordion section.</p>
-    </div>
+  <h4 class="usa-accordion__heading">
+    <button 
+      type="button" 
+      class="usa-accordion__button" 
+      id="id-198d5p7f6lw" 
+      aria-expanded="false" 
+      aria-controls="id-content-198d5p7f6lw">
+      Second Amendment
+    </button>
+  </h4>
+  <div 
+    class="usa-accordion__content" 
+    id="id-content-198d5p7f6lw" 
+    aria-labelledby="id-198d5p7f6lw">
+    <p>A well regulated Militia, being necessary to the security of a free State...</p>
   </div>
 </div>
 ```
 
-**Pre-expanded Variant:**
-```html
-<div class="usa-accordion">
-  <div class="usa-accordion-item">
-    <h2 class="usa-accordion__heading">
-      <button
-        class="usa-accordion__button"
-        aria-expanded="true"
-        aria-controls="accordion-content-1"
-        type="button">
-        Initially Open Section
-      </button>
-    </h2>
-    <div id="accordion-content-1" class="usa-accordion__content">
-      <p>This section starts expanded.</p>
-    </div>
-  </div>
-</div>
-```
+## Key Structure Notes
+- Wrap accordion in a `div` with class `usa-accordion`
+- Each item consists of a heading containing a button and a content panel
+- Button must have unique `id` and reference content panel via `aria-controls`
+- Content panel must have unique `id` matching button's `aria-controls` value
+- Use `aria-labelledby` on content to reference the button ID
+- `aria-expanded` toggles between "true" (open) and "false" (closed) as users interact
 
 ### Context
 
-The Accordion component is part of the MDWDS component library, built on USWDS (U.S. Web Design System) standards. It follows accessible design patterns and integrates with other content organization components like tabs and collapsible sections to provide flexible layouts for Maryland state web pages.
+The Accordion is a USWDS-based component that follows U.S. web standards for accessible disclosure widgets. It integrates seamlessly with other MDWDS components and can be combined with typography, spacing utilities, and other structural components to create complex content organizations.
 
 ---
 
@@ -1527,113 +1728,90 @@ The Accordion component is part of the MDWDS component library, built on USWDS (
 
 *Components*
 
-Action Items are interactive components used to display and manage a list of actionable tasks or items requiring user attention. They help organize and prioritize work, allowing users to mark items as complete or take specific actions on each item. Use them in dashboards, to-do lists, task management interfaces, or anywhere users need to track and manage multiple action items.
+Action Items provide a list of tasks, steps, or featured actions that users need to complete or can choose to engage with. They can be displayed with optional icons, status indicators, and descriptions to guide users through workflows or highlight key actions on a page.
 
 ### Key Information
 
-Action Items typically include the following features and variants:
+## Variants & Modifiers
 
-**Structure:**
-- Container for displaying a list of related action items
-- Each item represents a discrete task or action
-- Items can be marked as complete/incomplete
+- **Featured Actions**: Basic list of action items displayed as links
+- **Action Spotlight**: Items with descriptions, nested sub-items, and optional grouping
+- **Action Group**: Items grouped with category headers and optional group descriptions
 
-**Variants & States:**
-- Default/incomplete state
-- Completed/done state
-- Priority levels (if supported)
-- Hover and focus states for interactivity
+## CSS Classes
 
-**Required Elements:**
-- Clear item text/title
-- Action mechanism (checkbox, button, or status indicator)
-- Optional: timestamps, assignees, or priority indicators
+- `maryland-featured-actions`: Main container wrapper
+- `maryland-featured-actions__list`: Container for list items (uses `<ul>`)
+- `maryland-featured-actions__item`: Individual list item wrapper
+- `maryland-featured-actions__link`: Anchor element for each action
 
-**CSS Classes & Attributes:**
-- Standard semantic HTML structure with appropriate ARIA roles
-- `aria-label` for describing action items
-- `aria-checked` for toggleable items
-- Consider `aria-live` regions if items update dynamically
+## Required Attributes
 
-**Important Facts:**
-- Supports accessibility through proper ARIA labeling
-- Items should have clear visual feedback for state changes
-- Consider supporting keyboard navigation (Tab, Enter, Space)
-- Each item should be independently actionable
+- List items must be semantic `<li>` elements
+- Links use standard `<a>` href attribute
+- Structure uses valid HTML list semantics
+
+## Important Facts
+
+- Items are organized as an unordered list
+- Each item contains a wrapped link element
+- Can be nested with sub-items for action spotlights
+- Supports optional descriptions and grouping via heading structure
+- Flexible for grouping items under categories or sections
+- Component data structure uses an `items` array property
 
 ### Implementation
 
 ```html
-<!-- Basic Action Items List -->
-<div class="action-items" role="list">
-  <div class="action-item" role="listitem">
-    <input 
-      type="checkbox" 
-      id="action-1" 
-      class="action-item__checkbox"
-      aria-label="Mark item as complete"
-    />
-    <label for="action-1" class="action-item__label">
-      Review and approve design mockups
-    </label>
-  </div>
-
-  <div class="action-item action-item--completed" role="listitem">
-    <input 
-      type="checkbox" 
-      id="action-2" 
-      class="action-item__checkbox"
-      checked
-      aria-label="Mark item as complete"
-    />
-    <label for="action-2" class="action-item__label">
-      Submit requirements document
-    </label>
-  </div>
-
-  <div class="action-item" role="listitem">
-    <input 
-      type="checkbox" 
-      id="action-3" 
-      class="action-item__checkbox"
-      aria-label="Mark item as complete"
-    />
-    <label for="action-3" class="action-item__label">
-      Schedule stakeholder meeting
-    </label>
-  </div>
+<!-- Featured Actions (Basic) -->
+<div class="maryland-featured-actions">
+  <ul class="maryland-featured-actions__list">
+    <li class="maryland-featured-actions__item">
+      <div>
+        <a class="maryland-featured-actions__link" href="javascript:void(0)">Learn more and make an appointment today</a>
+      </div>
+    </li>
+    <li class="maryland-featured-actions__item">
+      <div>
+        <a class="maryland-featured-actions__link" href="javascript:void(0)">Find out how to apply for SNAP</a>
+      </div>
+    </li>
+    <li class="maryland-featured-actions__item">
+      <div>
+        <a class="maryland-featured-actions__link" href="javascript:void(0)">Find a group near you</a>
+      </div>
+    </li>
+  </ul>
 </div>
 ```
-
-**With Priority & Timestamps:**
 
 ```html
-<div class="action-items" role="list">
-  <div class="action-item action-item--priority-high" role="listitem">
-    <input 
-      type="checkbox" 
-      id="action-urgent" 
-      class="action-item__checkbox"
-      aria-label="Mark urgent item as complete"
-    />
-    <label for="action-urgent" class="action-item__label">
-      Fix critical bug in production
-    </label>
-    <span class="action-item__priority" aria-label="Priority level">High</span>
-    <span class="action-item__timestamp">Today</span>
-  </div>
+<!-- Action Spotlight (With descriptions and nested items) -->
+<div class="maryland-featured-actions">
+  <ul class="maryland-featured-actions__list">
+    <li class="maryland-featured-actions__item">
+      <h3>Check eligibility for food and nutrition benefits</h3>
+      <p>Learn about the benefits you may qualify for in just five minutes with the benefits screener.</p>
+      <a class="maryland-featured-actions__link" href="javascript:void(0)">Check eligibility now</a>
+    </li>
+    <li class="maryland-featured-actions__item">
+      <h3>SNAP guides for participants</h3>
+      <ul class="maryland-featured-actions__list">
+        <li class="maryland-featured-actions__item">
+          <a class="maryland-featured-actions__link" href="javascript:void(0)">Use SNAP for online grocery shopping</a>
+        </li>
+        <li class="maryland-featured-actions__item">
+          <a class="maryland-featured-actions__link" href="javascript:void(0)">Check out the SNAP quality control guide</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
 </div>
 ```
-
-**Keyboard & Screen Reader Support:**
-- Tab to focus items
-- Space/Enter to toggle checkboxes
-- Proper label associations for screen readers
-- Use `aria-label` or `aria-labelledby` for clarity
 
 ### Context
 
-Action Items are a fundamental component in the MDWDS for task management and workflow interfaces. They compose with other components like buttons, badges, and date/time utilities to create complete task management experiences, and follow the system's accessibility guidelines for interactive elements.
+Action Items are a foundational component within the MDWDS for organizing and presenting task-based content to users. They serve as building blocks for templates like action pages and can be composed with headings, descriptions, and nested groupings to create complex action hierarchies and navigation structures.
 
 ---
 
@@ -1641,78 +1819,79 @@ Action Items are a fundamental component in the MDWDS for task management and wo
 
 *Components*
 
-Alerts are messaging components that communicate important information to users, such as success, warning, error, or informational states. They grab user attention and provide contextual feedback about actions or system states. Use alerts to notify users about status changes, validation errors, or other important messages that require acknowledgment.
+Alerts communicate important information to users in a clear, timely, and accessible manner. The component supports ARIA roles, live region updates, describedBy links, and labeling for optimal screen reader behavior. Use alerts to notify users of status changes, warnings, errors, or other critical information that requires attention.
 
 ### Key Information
 
-
 ## Variants
-- Success: Indicates a successful action or positive outcome
-- Warning: Indicates a cautionary message requiring user attention
-- Error: Indicates an error or problem that needs to be addressed
-- Information: Provides general informational messages
+The Alert component supports the following status variants that determine visual styling:
+- `info` — Informational status (default)
+- `warning` — Warning status
+- `success` — Success status
+- `error` — Error status
+- `emergency` — Emergency status
 
 ## CSS Classes
-- `.alert` - Base alert container class
-- `.alert-success` - Success variant
-- `.alert-warning` - Warning variant
-- `.alert-danger` - Error/danger variant
-- `.alert-info` - Information variant
-- `.alert-dismissible` - Makes alert closeable with a dismiss button
+- `maryland-alert` — Main alert container
+- `maryland-alert--info` — Info variant (status modifier)
+- `maryland-alert--warning` — Warning variant
+- `maryland-alert--success` — Success variant
+- `maryland-alert--error` — Error variant
+- `maryland-alert--emergency` — Emergency variant
+- `maryland-alert__container` — Inner container wrapper
+- `maryland-alert__body` — Body content area
+- `maryland-alert__heading` — Alert heading element
+- `maryland-alert__text` — Alert message text container
 
-## Key Attributes
-- Role: `role="alert"` for accessibility to announce to screen readers
-- `aria-live="polite"` - For dynamic alerts that update without page reload
-- `aria-live="assertive"` - For urgent alerts requiring immediate attention
+## Properties
+- **status** (string) — Visual style of the alert (info, warning, success, error, emergency)
+- **heading** (string) — Text for the alert heading (ignored in slim mode)
+- **message** (string) — Main message text for the alert
+- **slim** (boolean) — Use slim variant (no heading by default)
+- **noIcon** (boolean) — Hide icon
 
-## Important Facts
-- Alerts should include clear, concise messaging
-- Icons or colors help distinguish alert types
-- Dismissible alerts allow users to close them after reading
-- Multiple alerts can be stacked
-- Consider using appropriate heading levels within alerts for complex content
-
+## ARIA & Accessibility
+- `role="status"` — Identifies the alert as a status region for live updates
+- `aria-labelledby` — Links to the heading ID for proper labeling
+- HTML is allowed in the message content; be sure to escape or sanitize properly
 
 ### Implementation
 
-
 ```html
-<!-- Basic Success Alert -->
-<div class="alert alert-success" role="alert">
-  <strong>Success!</strong> Your action completed successfully.
-</div>
-
-<!-- Warning Alert -->
-<div class="alert alert-warning" role="alert">
-  <strong>Warning:</strong> Please review before proceeding.
-</div>
-
-<!-- Error/Danger Alert -->
-<div class="alert alert-danger" role="alert">
-  <strong>Error:</strong> Something went wrong. Please try again.
-</div>
-
-<!-- Informational Alert -->
-<div class="alert alert-info" role="alert">
-  <strong>Information:</strong> Here's something you should know.
-</div>
-
-<!-- Dismissible Alert -->
-<div class="alert alert-success alert-dismissible" role="alert">
-  <strong>Success!</strong> Your changes have been saved.
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-
-<!-- Alert with Live Region (for dynamic updates) -->
-<div class="alert alert-info" role="alert" aria-live="polite">
-  <strong>Status Update:</strong> Processing your request...
+<!-- Basic Informational Alert -->
+<div class="maryland-alert maryland-alert--info" role="status" aria-labelledby="maryland-alert-id-93bwol4mcje">
+  <div class="maryland-alert__container">
+    <div class="maryland-alert__body">
+      <h2 class="maryland-alert__heading" id="maryland-alert-id-93bwol4mcje">
+        Informational status
+      </h2>
+      <div class="maryland-alert__text">
+        <p>Lorem ipsum dolor sit amet, <a class="usa-link maryland-link" href="#">consectetur adipiscing</a> elit, sed do eiusmod.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      </div>
+    </div>
+  </div>
 </div>
 ```
 
+## Alert Status Variants
+The status variant is controlled by the `maryland-alert--{status}` modifier class:
+
+- **Info**: `class="maryland-alert maryland-alert--info"`
+- **Warning**: `class="maryland-alert maryland-alert--warning"`
+- **Success**: `class="maryland-alert maryland-alert--success"`
+- **Error**: `class="maryland-alert maryland-alert--error"`
+- **Emergency**: `class="maryland-alert maryland-alert--emergency"`
+
+## Key Structure
+- Alert container requires `role="status"` for live region announcements
+- `aria-labelledby` must reference the heading element's `id` for proper screen reader association
+- The heading is wrapped in an `h2` element (or appropriate heading level)
+- Message content goes in `maryland-alert__text` and supports HTML with proper sanitization
 
 ### Context
 
-Alerts are fundamental feedback components in MDWDS that work alongside form validation, modals, and other user feedback mechanisms. They provide crucial accessibility features through ARIA roles and live regions, ensuring all users, including those using assistive technologies, are informed of important system states and messages.
+The Alert component is a core component in the MDWDS system used to communicate urgent or important information to users. It integrates with the Maryland design system's color and typography standards and can contain inline links using the `usa-link` and `maryland-link` classes for consistency with other MDWDS components.
 
 ---
 
@@ -1720,92 +1899,97 @@ Alerts are fundamental feedback components in MDWDS that work alongside form val
 
 *Components*
 
-Alerts are prominent messages that communicate important information to users, such as warnings, errors, successes, or informational notices. They help users understand the status of system operations and guide them toward appropriate actions. Use alerts to provide timely feedback and draw attention to critical information.
+Alerts communicate important information to users in a clear, timely, and accessible manner. This component supports ARIA roles, live region updates, describedBy links, and labeling for optimal screen reader behavior. Use alerts to display status messages, warnings, errors, and informational content that requires user attention.
 
 ### Key Information
 
+## Variants and Modifiers
 
-**Variants:**
-- Alert (Default/Informational)
-- Success Alert
-- Warning Alert
-- Error/Danger Alert
+**Status variants** (visual styles via `usa-alert--{status}` modifier):
+- `info` - Informational status (blue)
+- `warning` - Warning status (gold/yellow)
+- `success` - Success status (green)
+- `error` - Error status (red)
+- `emergency` - Emergency status (dark red)
 
-**CSS Classes:**
-- `.usa-alert` - Base alert container
-- `.usa-alert--success` - Success variant
-- `.usa-alert--warning` - Warning variant
-- `.usa-alert--error` - Error variant
-- `.usa-alert-body` - Contains the alert content
-- `.usa-alert-heading` - Optional alert heading
-- `.usa-alert-text` - Alert message text
+**Display modes:**
+- Full alert (default) - includes heading, icon, and message
+- Slim variant - compact display without heading by default (use `slim` property)
+- No icon variant - hide the status icon (use `noIcon` property)
 
-**Key Attributes:**
-- `role="alert"` or `role="status"` - Semantic role for assistive technologies
-- `aria-live="polite"` or `aria-live="assertive"` - For dynamic alerts
+## CSS Classes
 
-**Modifiers:**
-- Color variants change the visual appearance and semantic meaning
-- Alerts can include headings, text, and optional close buttons
-- Can contain links and other inline content
+- `usa-alert` - Main alert container
+- `usa-alert--info`, `usa-alert--warning`, `usa-alert--success`, `usa-alert--error`, `usa-alert--emergency` - Status modifiers
+- `usa-alert__body` - Container for alert content
+- `usa-alert__heading` - Alert heading (h4)
+- `usa-alert__text` - Alert message text
 
-**Important Facts:**
-- Alerts should be dismissible when appropriate
-- Use semantic color coding (green for success, red for error, etc.)
-- Include appropriate ARIA attributes for accessibility
-- Keep alert messages concise and actionable
+## Key Properties
 
+- **status** (string): Visual style of the alert (info, warning, success, error, emergency)
+- **heading** (string): Text for the alert heading (ignored in slim mode)
+- **message** (string): Main message text for the alert
+- **slim** (boolean): Use slim variant (no heading by default)
+- **noIcon** (boolean): Hide icon
+
+## Important Notes
+
+- HTML is allowed in the message content; ensure content is properly escaped or sanitized
+- Component supports inline links via `usa-link` class within message text
+- Full screen reader support with ARIA roles and live region capabilities
 
 ### Implementation
 
-
 ```html
-<!-- Informational Alert (Default) -->
-<div class="usa-alert" role="alert">
-  <div class="usa-alert-body">
-    <h4 class="usa-alert-heading">Informational Alert</h4>
-    <p class="usa-alert-text">This is an informational alert message.</p>
-  </div>
-</div>
-
-<!-- Success Alert -->
-<div class="usa-alert usa-alert--success" role="status">
-  <div class="usa-alert-body">
-    <h4 class="usa-alert-heading">Success</h4>
-    <p class="usa-alert-text">Your action was completed successfully.</p>
-  </div>
-</div>
-
-<!-- Warning Alert -->
-<div class="usa-alert usa-alert--warning" role="alert">
-  <div class="usa-alert-body">
-    <h4 class="usa-alert-heading">Warning</h4>
-    <p class="usa-alert-text">Please review this important warning message.</p>
-  </div>
-</div>
-
-<!-- Error Alert -->
-<div class="usa-alert usa-alert--error" role="alert">
-  <div class="usa-alert-body">
-    <h4 class="usa-alert-heading">Error</h4>
-    <p class="usa-alert-text">An error has occurred. Please try again.</p>
-  </div>
-</div>
-
-<!-- Alert with Close Button -->
-<div class="usa-alert" role="alert">
-  <div class="usa-alert-body">
-    <h4 class="usa-alert-heading">Dismissible Alert</h4>
-    <p class="usa-alert-text">This alert can be closed by the user.</p>
-    <button class="usa-button usa-button--unstyled" aria-label="Close alert" onclick="this.closest('.usa-alert').remove()">✕</button>
+<!-- Standard Informational Alert -->
+<div class="usa-alert usa-alert--info">
+  <div class="usa-alert__body">
+    <h4 class="usa-alert__heading">Informational status</h4>
+    <p class="usa-alert__text">Lorem ipsum dolor sit amet, <a class="usa-link" href="#">consectetur adipiscing</a> elit, sed do eiusmod.</p>
   </div>
 </div>
 ```
 
+## Alert Variants
+
+```html
+<!-- Warning Alert -->
+<div class="usa-alert usa-alert--warning">
+  <div class="usa-alert__body">
+    <h4 class="usa-alert__heading">Warning message</h4>
+    <p class="usa-alert__text">This is a warning alert message.</p>
+  </div>
+</div>
+
+<!-- Success Alert -->
+<div class="usa-alert usa-alert--success">
+  <div class="usa-alert__body">
+    <h4 class="usa-alert__heading">Success message</h4>
+    <p class="usa-alert__text">This is a success alert message.</p>
+  </div>
+</div>
+
+<!-- Error Alert -->
+<div class="usa-alert usa-alert--error">
+  <div class="usa-alert__body">
+    <h4 class="usa-alert__heading">Error message</h4>
+    <p class="usa-alert__text">This is an error alert message.</p>
+  </div>
+</div>
+
+<!-- Emergency Alert -->
+<div class="usa-alert usa-alert--emergency">
+  <div class="usa-alert__body">
+    <h4 class="usa-alert__heading">Emergency message</h4>
+    <p class="usa-alert__text">This is an emergency alert message.</p>
+  </div>
+</div>
+```
 
 ### Context
 
-Alerts are a core USWDS component adopted by MDWDS for providing user feedback and important system messages. They compose well with forms and pages to communicate validation results, system status, and actionable information to users.
+Alerts are a core USWDS component integrated into the Maryland Design System. They compose with text elements like headings and paragraphs, and support linked content via the `usa-link` class. Alerts work independently or can be combined with other notification patterns to create comprehensive messaging systems.
 
 ---
 
@@ -1813,51 +1997,70 @@ Alerts are a core USWDS component adopted by MDWDS for providing user feedback a
 
 *Components*
 
-The Automatic List is a component that dynamically generates a list of items from data, automatically handling formatting and presentation. It reduces manual HTML markup while maintaining consistent styling across Maryland web pages. Use this when you need to display collections of items that require consistent formatting and responsive behavior.
+Automatic List displays a grid of linked cards that guide users to different sections or resources. Each card is fully clickable and uses the Linked variant of the Maryland Cards component. It supports multiple content types including Contacts, Documents, Locations, and News.
 
 ### Key Information
 
-- **Purpose**: Automatically renders lists from data structures without manual item markup
-- **Variants**: Supports unordered lists, ordered lists, and nested list structures
-- **Styling**: Automatically applies MDWDS list styles and spacing classes
-- **Responsive**: Adapts to different screen sizes automatically
-- **Accessibility**: Includes proper semantic HTML and ARIA attributes for screen readers
-- **Integration**: Works with other MDWDS components and can be nested within other elements
-- **Class names**: Apply standard list classes for styling (ul, ol, li elements)
-- **Data-driven**: Can be populated from arrays, JSON, or other data sources
+## Variants
+- Default layout with card grid
+- With Sidebar variant
+- Section menu variant
+
+## Supported Content Types
+- Contacts
+- Documents
+- Locations
+- News
+
+## CSS Class Names
+- `maryland-automatic-list` — Main wrapper class
+- `maryland-card-group__header` — Header section container
+- `maryland-card-group__header-content` — Header content wrapper
+- `maryland-card-group__title` — Title heading (h2)
+- `maryland-card-group__description` — Description text
+- `maryland-card-group__more-link` — More link container
+
+## Required Attributes
+- `aria-labelledby` on the section element linking to the title ID
+- `id` on the title heading for accessibility reference
+
+## Important Facts
+- Uses linked Maryland Cards as the base component for each card item
+- Supports images and links (placeholder URLs used in examples)
+- Includes optional description text below the title
+- Includes optional "See more" link for accessing additional items
+- Each card is fully clickable
 
 ### Implementation
 
 ```html
-<!-- Unordered List -->
-<ul>
-  <li>List item one</li>
-  <li>List item two</li>
-  <li>List item three</li>
-</ul>
-
-<!-- Ordered List -->
-<ol>
-  <li>First item</li>
-  <li>Second item</li>
-  <li>Third item</li>
-</ol>
-
-<!-- Nested List -->
-<ul>
-  <li>Parent item
-    <ul>
-      <li>Child item one</li>
-      <li>Child item two</li>
-    </ul>
-  </li>
-  <li>Another parent item</li>
-</ul>
+<section class="maryland-automatic-list" aria-labelledby="id-0yoyxpp2gau">
+  <div class="maryland-card-group__header">
+    <div class="maryland-card-group__header-content">
+      <h2 class="maryland-card-group__title" id="id-0yoyxpp2gau">
+        Featured News
+      </h2>
+      <p class="maryland-card-group__description">
+        Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt
+      </p>
+    </div>
+    <div class="maryland-card-group__more-link">
+      <!-- More link content -->
+    </div>
+  </div>
+  <!-- Card grid items follow -->
+</section>
 ```
+
+## Default Story Structure
+The component wraps a section with the `maryland-automatic-list` class and includes:
+- A header section with title and optional description
+- A more-link container for "See more" navigation
+- Grid of linked card items below (not shown in excerpt but referenced in documentation)
 
 ### Context
 
-The Automatic List component is a foundational content element within MDWDS that provides consistent list presentation across the design system. It composes with text components and can be nested within cards, sections, and other layout components to organize content hierarchically.
+The Automatic List component is a template-level component that composes Maryland Cards in a grid layout with header information. It's used to present collections of related content items (news, contacts, documents, locations) in an organized, scannable format and integrates with the card group styling system.
 
 ---
 
@@ -1865,77 +2068,75 @@ The Automatic List component is a foundational content element within MDWDS that
 
 *Components*
 
-The Banner component is a USWDS-based component that provides a consistent header area for Maryland state web pages. It serves as a prominent, reusable element that establishes visual identity and provides key navigation and branding for users at the top of the page.
+The Banner component identifies official websites of government organizations in the United States and helps visitors understand whether a website is official and secure. It should be used to identify your site as an official site of the State of Maryland and assure visitors they're connected to a legitimate government domain. The banner should only be used on government domains (.gov) and not on commercial sites (.com, .org, etc.).
 
 ### Key Information
 
-The Banner component follows USWDS (U.S. Web Design System) patterns and standards. Key variants and features include:
+## Class Names and Structure
+- `usa-banner`: Main container for the banner component
+- `usa-banner__header`: Header section of the banner
+- `usa-banner__inner`: Inner wrapper for header content
+- `usa-banner__header-text`: Text describing the official website
+- `usa-banner__button`: Toggle button to reveal additional information
+- `usa-accordion`: Accordion wrapper for expandable content
 
-- **Base Structure**: Uses semantic HTML with proper heading hierarchy
-- **Class Names**: Includes USWDS utility classes for layout and styling
-- **Responsive Design**: Adapts to different screen sizes
-- **Accessibility**: Includes ARIA attributes for screen readers and semantic HTML elements
-- **Content Areas**: Typically contains site title, navigation links, and branding
-- **Variants**: May include different layouts for different page contexts (full-width, standard)
-- **Modifiers**: Can be styled with alternate background colors or configurations
-- **Required Attributes**: Proper heading levels (h1 for site title), role attributes where needed
-- **Navigation Integration**: Works with primary navigation components for consistent UX
+## ARIA Attributes
+- `aria-label="Official website of the State of Maryland"`: Identifies the banner purpose
+- `aria-controls`: Links the button to the expandable content (e.g., `aria-controls="gov-banner-default"`)
+- `aria-expanded`: Indicates collapsed/expanded state (starts as `false`)
+- `aria-hidden="true"`: Applied to decorative SVG icons
+- `role="img"`: Applied to SVG elements when they convey meaning
+
+## Customization Options
+The banner supports three boolean toggles:
+- **Include flag**: Display the Maryland state flag (boolean, default: false)
+- **Include link to maryland.gov**: Display a link to Maryland.gov (boolean, default: false)
+- **Include translation widget**: Display Google Translate integration (boolean, default: false)
+
+## Button Properties
+- `type="button"`: Standard button type
+- The toggle button uses an SVG icon to indicate expand/collapse functionality
+- Button content reads "Here's how you know" followed by an icon
+
+## Important Notes
+- The banner should be positioned at the top of the page, before main content
+- The translate link href should be formatted as: `https://translate.google.com/translate?u=LOCATION/` where LOCATION is the current page URL
+- The banner uses USWDS (U.S. Web Design System) classes and patterns
 
 ### Implementation
 
 ```html
-<header class="usa-banner" role="banner">
-  <div class="usa-banner__content">
-    <div class="grid-container">
-      <div class="usa-banner__header">
-        <div class="usa-banner__inner">
-          <div class="grid-col-auto">
-            <p class="usa-banner__header-text">
-              An official website of the United States government
-            </p>
-          </div>
-          <button class="usa-banner__button" aria-expanded="false" aria-controls="gov-banner-id">
-            Here's how you know
-          </button>
-        </div>
-      </div>
-      <div class="usa-banner__guidance-id" id="gov-banner-id" hidden="">
-        <div class="usa-banner__guidance">
-          <div class="grid-row gap-1">
-            <div class="grid-col-12 tablet:grid-col-6">
-              <h3 class="usa-banner__heading">Official websites use .gov</h3>
-              <p>A <strong>.gov</strong> website belongs to an official government organization in the United States.</p>
-            </div>
-            <div class="grid-col-12 tablet:grid-col-6">
-              <h3 class="usa-banner__heading">Secure .gov websites use HTTPS</h3>
-              <p>A lock icon or https:// means you've safely connected to the .gov website. Share sensitive information only on official, secure websites.</p>
-            </div>
-          </div>
-        </div>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know 
+          <svg role="img" aria-hidden="true" aria-label="Toggle button" xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+            <path d="M576-253.85 349.85-480 576-706.15l42.3 42.3L464.62-480l153.68 153.68L576-253.85Z"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
-</header>
+</section>
 ```
 
-For Maryland-specific implementation, the banner may include state-specific branding:
+## Variant: With Maryland.gov Link
+When "Include link to maryland.gov" toggle is enabled, a link to Maryland.gov is displayed within the banner inner section.
 
-```html
-<header class="usa-banner md-banner" role="banner">
-  <div class="md-banner__content">
-    <div class="grid-container">
-      <div class="md-banner__inner">
-        <h1 class="md-banner__title">Maryland State Website</h1>
-        <p class="md-banner__description">Maryland Web Design System</p>
-      </div>
-    </div>
-  </div>
-</header>
-```
+## Variant: With Translation Widget
+When "Include translation widget" toggle is enabled, a translation link appears directing users to Google Translate with the current page URL as the translation parameter.
+
+## Variant: With Flag
+When "Include flag" toggle is enabled, the Maryland state flag icon is displayed in the banner.
 
 ### Context
 
-The Banner component is a foundational USWDS component adapted for the MDWDS and appears at the top of all Maryland state web pages. It works in conjunction with Navigation, Skip Links, and site header components to create a cohesive page header experience that meets federal web standards and accessibility requirements.
+The Banner is a USWDS-based component that integrates with the MDWDS system to provide consistent government website branding. It composes with the accordion component (usa-accordion) to create an expandable details section and uses standard semantic HTML (section, button) with ARIA attributes for accessibility, following USWDS patterns for official government site identification.
 
 ---
 
@@ -1943,71 +2144,111 @@ The Banner component is a foundational USWDS component adapted for the MDWDS and
 
 *Components*
 
-A breadcrumb navigation component displays the user's current location within a website hierarchy as a sequence of links. It helps users understand where they are and allows them to navigate back up the site structure. Breadcrumbs should be used on pages that are nested within a hierarchical information architecture.
+The MDWDS Breadcrumb component helps users navigate back to previous pages by displaying a hierarchical trail of links. It's based on USWDS Breadcrumb with Maryland-specific styling, supporting both light and dark color variants. Use it to show the current page location within the site hierarchy and enable quick navigation to parent pages.
 
 ### Key Information
 
-The breadcrumb component typically includes:
+## Variants
+- **Light**: White background with dark gray text (default)
+- **Dark**: Blue background (blue-60v) with white text (used in Hero component)
 
-- **Structure**: An ordered list (`<ol>` or `<ul>`) of navigation links representing the page hierarchy
-- **Current page**: The last item in the breadcrumb represents the current page and may be non-clickable text or a link
-- **Separators**: Visual separators (typically "/" or ">") between items, usually added via CSS
-- **CSS classes**: Uses semantic HTML5 `<nav>` element with appropriate classes for styling
-- **ARIA attributes**: Must include `aria-label="Breadcrumb"` on the nav element to identify it to assistive technology
-- **Link structure**: Each item except the current page should be clickable and link to the appropriate parent level
-- **Responsive**: On mobile devices, breadcrumbs may be hidden or condensed to save space
-- **Schema markup**: Can include JSON-LD schema.org BreadcrumbList for SEO
+## Key Options
+- **pages** (required): Array of breadcrumb pages. Can be strings or objects with `{label, href}` properties. The last item is automatically marked as the current page (not linked).
+- **variant**: Breadcrumb color variant (`light` or `dark`)
+- **wrapping**: Boolean to allow breadcrumb text to wrap
+- **rdfa**: Boolean to enable RDFa metadata for SEO
 
-The breadcrumb should clearly reflect the current page position and provide an efficient way to navigate the site hierarchy.
+## Class Names
+- `maryland-breadcrumb__wrapper`: Outer wrapper container
+- `maryland-breadcrumb__wrapper--light`: Light variant modifier for wrapper
+- `maryland-breadcrumb`: Main breadcrumb nav element
+- `maryland-breadcrumb--light`: Light variant modifier for breadcrumb
+- `maryland-breadcrumb--dark`: Dark variant modifier for breadcrumb
+- `maryland-breadcrumb__list`: Ordered list container
+- `maryland-breadcrumb__list-item`: Individual breadcrumb item
+- `maryland-breadcrumb__link`: Breadcrumb link element
+- `usa-breadcrumb*`: USWDS base classes also present
+
+## Important Features
+- Accessible with ARIA attributes (`aria-label="Breadcrumbs"`)
+- Current page is rendered as plain text, not linked
+- Supports wrapping and RDFa metadata for SEO
+- Automatically handles the last item in the array as current page
 
 ### Implementation
 
 ```html
-<nav aria-label="Breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item">
-      <a href="/">Home</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="/services">Services</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="/services/permits">Permits</a>
-    </li>
-    <li class="breadcrumb-item active">
-      <span aria-current="page">Permit Application</span>
-    </li>
-  </ol>
-</nav>
+<!-- Light Variant (Default) -->
+<div class="maryland-breadcrumb__wrapper maryland-breadcrumb__wrapper--light">
+  <nav aria-label="Breadcrumbs" class="usa-breadcrumb maryland-breadcrumb maryland-breadcrumb--light">
+    <ol class="usa-breadcrumb__list maryland-breadcrumb__list">
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/">
+          <span>Home</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/level-1">
+          <span>Link Level 1</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/level-2">
+          <span>Link Level 2</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/level-3">
+          <span>Link Level 3</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/level-4">
+          <span>Link Level 4</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <span>Current Page</span>
+      </li>
+    </ol>
+  </nav>
+</div>
+
+<!-- Dark Variant -->
+<div class="maryland-breadcrumb__wrapper maryland-breadcrumb__wrapper--dark">
+  <nav aria-label="Breadcrumbs" class="usa-breadcrumb maryland-breadcrumb maryland-breadcrumb--dark">
+    <ol class="usa-breadcrumb__list maryland-breadcrumb__list">
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/">
+          <span>Home</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <a class="usa-breadcrumb__link maryland-breadcrumb__link" href="/level-1">
+          <span>Link Level 1</span>
+        </a>
+      </li>
+      <li class="usa-breadcrumb__list-item maryland-breadcrumb__list-item">
+        <span>Current Page</span>
+      </li>
+    </ol>
+  </nav>
+</div>
 ```
 
-**Variant with non-linked current page:**
-```html
-<nav aria-label="Breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item">
-      <a href="/">Home</a>
-    </li>
-    <li class="breadcrumb-item active">
-      Current Page
-    </li>
-  </ol>
-</nav>
-```
+## Required ARIA Attributes
+- `aria-label="Breadcrumbs"` on the `<nav>` element for accessibility
 
-**Minimal breadcrumb:**
-```html
-<nav aria-label="Breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/">Home</a></li>
-    <li class="breadcrumb-item active">Current</li>
-  </ol>
-</nav>
-```
+## Component Composition
+- **Wrapper**: `maryland-breadcrumb__wrapper` with variant modifier
+- **Nav**: `maryland-breadcrumb` (combines USWDS `usa-breadcrumb` class) with variant modifier
+- **List**: Ordered list (`<ol>`) with `maryland-breadcrumb__list` class
+- **Items**: List items with `maryland-breadcrumb__list-item` class containing either links or text
+- **Links**: Anchor elements with `maryland-breadcrumb__link` class; last item is plain text (not linked)
 
 ### Context
 
-The Breadcrumb component is a foundational navigation pattern within MDWDS used to enhance wayfinding on multi-level state websites. It works alongside the main navigation and provides a secondary navigation path, particularly important for deeply nested content hierarchies common in government websites.
+The Breadcrumb component integrates with the MDWDS system as a navigation aid, extending USWDS Breadcrumb with Maryland-specific styling and color variants. It commonly appears in layouts alongside other navigation components and pairs naturally with the Hero component when using the dark variant for cohesive visual hierarchy.
 
 ---
 
@@ -2015,224 +2256,339 @@ The Breadcrumb component is a foundational navigation pattern within MDWDS used 
 
 *Components*
 
-Breadcrumbs are a navigation component that displays the user's current location within a website hierarchy. They provide a visual trail of links showing the path from the homepage to the current page, helping users understand their location and navigate back to parent pages. Use breadcrumbs on interior pages to improve wayfinding and reduce navigation friction.
+Breadcrumbs help users navigate back to previous pages or higher levels in the site hierarchy. They improve orientation, accessibility, and SEO with optional RDFa metadata support. Use breadcrumbs to show hierarchical page structure and provide quick navigation paths to parent pages.
+
+### Key Information
+
+## Key Class Names
+- `usa-breadcrumb`: Main container wrapper
+- `usa-breadcrumb__list`: Ordered list of breadcrumb items
+- `usa-breadcrumb__list-item`: Individual breadcrumb item (list item)
+- `usa-breadcrumb__link`: Breadcrumb link element
+- `usa-current`: Modifier class for the current/active page item
+
+## Variants & Options
+- **pages**: Array of breadcrumb page labels (including current page). Example: `["Home", "Federal Contracting", "Contracting assistance programs", "Small Business"]`
+- **wrapping**: Boolean to allow breadcrumb text to wrap (default: false)
+- **rdfa**: Boolean to enable RDFa metadata for SEO enhancements (default: false)
+
+## Required Attributes
+- `aria-label="Breadcrumbs"` on the `<nav>` element for accessibility
+- `aria-current` attribute on the current page list item (typically the last item)
+
+## HTML Structure Notes
+- Uses semantic `<nav>` with proper ARIA labeling
+- List items wrapped in `<ol>` for ordered list semantics
+- Links use `#` as placeholder URLs (should be replaced with real URLs in implementation)
+- Current page indicator uses `usa-current` class modifier
+
+
+### Implementation
+
+```html
+<nav aria-label="Breadcrumbs" class="usa-breadcrumb">
+  <ol class="usa-breadcrumb__list">
+    <li class="usa-breadcrumb__list-item">
+      <a href="#" class="usa-breadcrumb__link">
+        Home
+      </a>
+    </li>
+    
+    <li class="usa-breadcrumb__list-item">
+      <a href="#" class="usa-breadcrumb__link">
+        Federal Contracting
+      </a>
+    </li>
+    
+    <li class="usa-breadcrumb__list-item">
+      <a href="#" class="usa-breadcrumb__link">
+        Contracting assistance programs
+      </a>
+    </li>
+    
+    <li class="usa-breadcrumb__list-item usa-current" aria-current="page">
+      <a href="#" class="usa-breadcrumb__link">
+        Small Business
+      </a>
+    </li>
+  </ol>
+</nav>
+```
+
+## Variant: With Wrapping Enabled
+Add the `wrapping` modifier when breadcrumb items need to wrap on smaller screens:
+
+```html
+<nav aria-label="Breadcrumbs" class="usa-breadcrumb usa-breadcrumb--wrapping">
+  <ol class="usa-breadcrumb__list">
+    <!-- list items same as above -->
+  </ol>
+</nav>
+```
+
+## Variant: With RDFa Metadata
+Enable RDFa schema markup for SEO by adding data attributes:
+
+```html
+<nav aria-label="Breadcrumbs" class="usa-breadcrumb" vocab="https://schema.org/" typeof="BreadcrumbList">
+  <ol class="usa-breadcrumb__list">
+    <li class="usa-breadcrumb__list-item" property="itemListElement" typeof="ListItem">
+      <a href="#" class="usa-breadcrumb__link" property="item" typeof="WebPage">
+        <span property="name">Home</span>
+      </a>
+      <meta property="position" content="1">
+    </li>
+    
+    <li class="usa-breadcrumb__list-item usa-current" property="itemListElement" typeof="ListItem" aria-current="page">
+      <a href="#" class="usa-breadcrumb__link" property="item" typeof="WebPage">
+        <span property="name">Current Page</span>
+      </a>
+      <meta property="position" content="2">
+    </li>
+  </ol>
+</nav>
+```
+
+
+### Context
+
+Breadcrumbs are a USWDS component integrated into MDWDS that enhance site navigation and user orientation. They typically appear near the top of content pages and work in concert with main navigation to provide multiple pathways through the site hierarchy, improving both UX and SEO through schema markup support.
+
+---
+
+## Button Group
+
+*Components*
+
+A button group displays 1-3 related action buttons with an optional title. Each button can be styled as Primary or Secondary, and external links display an external link icon. Titles can be visually hidden while remaining accessible to screen readers.
+
+### Key Information
+
+## Variants and Options
+
+- **Primary Button**: Default button style using `.usa-button` class
+- **Secondary Button**: Alternative button style (indicated in the visible text)
+- **Up to 3 buttons**: Component is designed for 1-3 related action buttons
+- **Title Display**: Title can be visually shown or hidden (still accessible to screen readers) via the `hide title` boolean property
+- **External Link Support**: External links display an external link icon
+- **Title Character Limit**: 75 character maximum for button group title
+
+## CSS Classes
+
+- `.maryland-button-group`: Main container wrapper
+- `.maryland-button-group__title`: Title element (h2)
+- `.maryland-button-group__list`: Button list container (uses `.usa-button-group`)
+- `.maryland-button-group__item`: Individual button list item (also uses `.usa-button-group__item`)
+- `.maryland-button-group__button`: Individual button/link element (also uses `.usa-button`)
+- `.usa-button-group`: USWDS button group list wrapper
+- `.usa-button-group__item`: USWDS button item
+- `.usa-button`: USWDS button base class
+
+## Required Attributes
+
+- Title element should have an `id` attribute for accessible labeling
+- List element should have `aria-labelledby` attribute pointing to the title's id
+- Buttons can use `href` attribute for links
+
+## Properties
+
+- **Title**: String for button group title (75 character limit)
+- **Hide title**: Boolean to visually hide title (default: false)
+- **Buttons**: Array of button objects with text, url, and style properties
+
+### Implementation
+
+```html
+<div class="maryland-button-group">
+  <h2 id="id-f97jkhskbe" class="maryland-button-group__title">
+    Button group title goes here (can be hidden)
+  </h2>
+  <ul class="usa-button-group maryland-button-group__list" aria-labelledby="id-f97jkhskbe">
+    <li class="usa-button-group__item maryland-button-group__item">
+      <a href="#!" class="usa-button maryland-button-group__button">
+        Primary button
+      </a>
+    </li>
+    <li class="usa-button-group__item maryland-button-group__item">
+      <a href="#!" class="usa-button maryland-button-group__button">
+        Secondary button
+      </a>
+    </li>
+    <li class="usa-button-group__item maryland-button-group__item">
+      <a href="#!" class="usa-button maryland-button-group__button">
+        3rd Button
+      </a>
+    </li>
+  </ul>
+</div>
+```
+
+**Hidden Title Variant** (title still accessible to screen readers):
+
+```html
+<div class="maryland-button-group">
+  <h2 id="id-f97jkhskbe" class="maryland-button-group__title" style="display: none;">
+    Button group title goes here (can be hidden)
+  </h2>
+  <ul class="usa-button-group maryland-button-group__list" aria-labelledby="id-f97jkhskbe">
+    <!-- buttons same as above -->
+  </ul>
+</div>
+```
+
+### Context
+
+The Button Group component is built on top of USWDS button group patterns (.usa-button-group) and extends them with Maryland Design System styling through maryland-prefixed classes. It composes with individual buttons (.usa-button) and integrates accessible labeling patterns through ARIA attributes and semantic HTML structure.
+
+---
+
+## Button Group
+
+*Components*
+
+The Button Group component presents a set of related buttons as a unified element. It supports default (spaced) or segmented (cohesive row) layouts, with customizable variants, disabled states, and optional Google Analytics tracking. Use it when you need to group related actions with a unified visual presentation.
 
 ### Key Information
 
 ## Variants
-- Standard breadcrumb list with multiple navigation levels
-- Supports wrapping on smaller screens
-- Last item is typically the current page (non-clickable)
-- All parent items are clickable links
+
+- **Default**: Buttons displayed with spacing between them; stack vertically on mobile devices.
+- **Segmented**: Buttons displayed as a unified row element, ideal for view toggles or mutually exclusive options.
 
 ## CSS Classes
-- `usa-breadcrumb`: Main wrapper container
-- `usa-breadcrumb__list`: Ordered list containing breadcrumb items
-- `usa-breadcrumb__list-item`: Individual breadcrumb item
-- `usa-breadcrumb__link`: Anchor tag for navigation
 
-## Key Attributes
-- Uses semantic `<nav>` element with proper labeling
-- Implements `<ol>` (ordered list) for proper semantics
-- Last item should not be wrapped in a link (current page indicator)
-- Should include `aria-label` on nav for accessibility
+- `usa-button-group`: Main container class for the button group
+- `usa-button-group__item`: Wrapper class for each button in the group
+- `usa-button`: Standard button class (used for buttons within the group)
+- `usa-button--outline`: Outline variant modifier for secondary-style buttons
+- `usa-button--secondary`: Secondary button variant
+- `usa-button--accent-cool`: Cool accent button variant
+- `usa-button--accent-warm`: Warm accent button variant
+- `usa-button--base`: Base button variant
+
+## Required Attributes
+
+- `aria-label`: Required ARIA label for the button group providing context to screen readers
+- `id`: Unique identifier for the button group element
+
+## Key Configuration Options
+
+- **variant**: Choose between "default" (separated buttons) or "segmented" (cohesive row)
+- **buttons**: Array of button configurations with `label`, `variant`, and `disabled` properties
+- **disabled**: Boolean to disable all buttons in the group
+- **enableAnalytics**: Boolean to enable Google Analytics tracking
+- **gaCategory**: GA event category string
+- **gaAction**: GA event action string
+- **gaLabel**: GA event label string
 
 ## Important Facts
-- Breadcrumbs are a secondary navigation aid, not a replacement for primary navigation
-- Improves SEO through semantic HTML structure
-- Should reflect site hierarchy, not browser history
-- Mobile responsive with appropriate text truncation
-- Mobile breakpoint typically shows abbreviated version
+
+- Buttons are wrapped in `<li>` elements with the `usa-button-group__item` class
+- The button group uses an unordered list (`<ul>`) as the container
+- Each button is a `<button>` element with `type="button"`
+- Button variants control visual hierarchy and styling
+- Keyboard accessibility and ARIA labels are supported and recommended
 
 ### Implementation
 
+## Default Button Group
+
 ```html
-<nav aria-label="Breadcrumbs" class="usa-breadcrumb">
-  <ol class="usa-breadcrumb__list">
-    <li class="usa-breadcrumb__list-item">
-      <a href="/" class="usa-breadcrumb__link">Home</a>
-    </li>
-    <li class="usa-breadcrumb__list-item">
-      <a href="/parent-page/" class="usa-breadcrumb__link">Parent Page</a>
-    </li>
-    <li class="usa-breadcrumb__list-item usa-breadcrumb__list-item--current">
-      <span class="usa-breadcrumb__link">Current Page</span>
-    </li>
-  </ol>
-</nav>
+<ul class="usa-button-group" id="button-group-id-h3pn5aaf6q" aria-label="Navigation buttons">
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline">
+      Back
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button">
+      Continue
+    </button>
+  </li>
+</ul>
 ```
 
-## Multi-level Example
+## Segmented Button Group (Mutually Exclusive Options)
+
 ```html
-<nav aria-label="Breadcrumbs" class="usa-breadcrumb">
-  <ol class="usa-breadcrumb__list">
-    <li class="usa-breadcrumb__list-item">
-      <a href="/" class="usa-breadcrumb__link">Home</a>
-    </li>
-    <li class="usa-breadcrumb__list-item">
-      <a href="/services/" class="usa-breadcrumb__link">Services</a>
-    </li>
-    <li class="usa-breadcrumb__list-item">
-      <a href="/services/permits/" class="usa-breadcrumb__link">Permits</a>
-    </li>
-    <li class="usa-breadcrumb__list-item usa-breadcrumb__list-item--current">
-      <span class="usa-breadcrumb__link">Apply for Permit</span>
-    </li>
-  </ol>
-</nav>
+<ul class="usa-button-group usa-button-group--segmented" id="button-group-id-segmented" aria-label="View options">
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline">
+      Map
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline">
+      Hybrid
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button">
+      Satellite
+    </button>
+  </li>
+</ul>
 ```
 
-## Notes
-- No JavaScript required for basic functionality
-- Separators (typically `/`) are added via CSS pseudo-elements
-- Current page item uses `<span>` instead of `<a>` to prevent linking to itself
-- Mobile version may abbreviate or collapse breadcrumb trail
-
-### Context
-
-Breadcrumbs are a USWDS component integrated into MDWDS that enhances site navigation and supports Maryland state website hierarchy. They work alongside the main navigation menu to provide redundant navigation paths and improve user experience on multi-level state service pages.
-
----
-
-## Button Group
-
-*Components*
-
-A Button Group is a container component that organizes related buttons together for improved visual and functional cohesion. It helps users understand that multiple button actions are related or part of the same operation. Use Button Groups when you need to present related actions that belong together contextually, such as pagination controls, filter options, or grouped form actions.
-
-### Key Information
-
-The Button Group component organizes buttons into a cohesive unit with consistent spacing and alignment.
-
-**Variants:**
-- Horizontal button group (default)
-- Vertical button group
-- Segmented control variant
-- Icon-only button groups
-
-**CSS Classes:**
-- `.button-group` - Main container class
-- `.button-group--vertical` - Stacks buttons vertically
-- `.button-group--segmented` - Segmented/toggle-style variant
-
-**Key Attributes:**
-- Buttons within the group should maintain consistent sizing
-- Use semantic HTML button elements or links styled as buttons
-- Support both single and multiple selection depending on variant
-- May include ARIA attributes for toggle groups or segmented controls
-
-**Important Facts:**
-- Buttons within a group are typically related contextually
-- Spacing is automatically handled by the container
-- Groups can be combined with other components like dropdowns
-- Responsive behavior may stack buttons on smaller screens
-- Works well with icon buttons and text buttons
-
-### Implementation
+## Multiple Actions with Different Variants
 
 ```html
-<!-- Horizontal Button Group -->
-<div class="button-group" role="group" aria-label="Actions">
-  <button class="btn btn-primary">Action 1</button>
-  <button class="btn btn-secondary">Action 2</button>
-  <button class="btn btn-secondary">Action 3</button>
-</div>
+<ul class="usa-button-group" id="button-group-id-actions" aria-label="Form actions">
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--secondary">
+      Cancel
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline">
+      Save Draft
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button">
+      Publish
+    </button>
+  </li>
+</ul>
 ```
 
-```html
-<!-- Vertical Button Group -->
-<div class="button-group button-group--vertical" role="group" aria-label="Vertical Actions">
-  <button class="btn btn-primary">Action 1</button>
-  <button class="btn btn-secondary">Action 2</button>
-  <button class="btn btn-secondary">Action 3</button>
-</div>
-```
+## Button Group with Disabled State
 
 ```html
-<!-- Segmented Control Variant -->
-<div class="button-group button-group--segmented" role="group" aria-label="View Options">
-  <button class="btn btn-secondary active" aria-pressed="true">List View</button>
-  <button class="btn btn-secondary" aria-pressed="false">Grid View</button>
-  <button class="btn btn-secondary" aria-pressed="false">Map View</button>
-</div>
+<ul class="usa-button-group" id="button-group-id-disabled" aria-label="Navigation buttons" disabled>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline" disabled>
+      Back
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button" disabled>
+      Continue
+    </button>
+  </li>
+</ul>
 ```
 
+## Button Group with Google Analytics Attributes
+
 ```html
-<!-- Icon-Only Button Group -->
-<div class="button-group" role="group" aria-label="Formatting">
-  <button class="btn btn-icon" aria-label="Bold"><i class="icon-bold"></i></button>
-  <button class="btn btn-icon" aria-label="Italic"><i class="icon-italic"></i></button>
-  <button class="btn btn-icon" aria-label="Underline"><i class="icon-underline"></i></button>
-</div>
+<ul class="usa-button-group" id="button-group-id-analytics" aria-label="Navigation buttons" data-ga-category="engagement" data-ga-action="button-group-click" data-ga-label="navigation">
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button usa-button--outline" data-ga-category="engagement" data-ga-action="back-click" data-ga-label="navigation">
+      Back
+    </button>
+  </li>
+  <li class="usa-button-group__item">
+    <button type="button" class="usa-button" data-ga-category="engagement" data-ga-action="continue-click" data-ga-label="navigation">
+      Continue
+    </button>
+  </li>
+</ul>
 ```
 
 ### Context
 
-Button Group is a foundational component in MDWDS that composes individual Button components into organized, related sets. It works alongside the Button component and pairs well with other UI patterns like toolbars, pagination, and form controls to create cohesive user experiences across Maryland state web applications.
-
----
-
-## Button Group
-
-*Components*
-
-The Button Group component is a USWDS component that groups multiple related buttons together for logical organization and consistent spacing. It provides visual and semantic grouping of button actions that belong together, improving user experience and interface clarity.
-
-### Key Information
-
-## Key Information
-
-### Purpose
-- Groups related buttons together semantically and visually
-- Maintains consistent spacing between grouped buttons
-- Commonly used for action sets like primary/secondary button pairs or multiple related actions
-
-### USWDS Integration
-- Part of the USWDS component library integrated into MDWDS
-- Follows U.S. Web Design System styling and accessibility standards
-- Works with standard Button component variants
-
-### Variants & Usage
-- Can contain multiple button types (primary, secondary, etc.)
-- Supports different button sizes when needed
-- Responsive design adapts spacing on smaller screens
-- Often used for form actions (Save/Cancel) or navigation options
-
-### Common Patterns
-- Action pairs: Primary action button + Secondary cancel/back button
-- Multiple related actions grouped together
-- Form submission and cancellation controls
-
-### Implementation
-
-```html
-<!-- Basic Button Group -->
-<div class="usa-button-group">
-  <button class="usa-button">Primary Action</button>
-  <button class="usa-button usa-button--secondary">Secondary Action</button>
-</div>
-```
-
-```html
-<!-- Button Group with Multiple Buttons -->
-<div class="usa-button-group">
-  <button class="usa-button">Save</button>
-  <button class="usa-button usa-button--secondary">Cancel</button>
-  <button class="usa-button usa-button--secondary">Delete</button>
-</div>
-```
-
-```html
-<!-- Responsive Button Group -->
-<div class="usa-button-group">
-  <button class="usa-button">Submit</button>
-  <button class="usa-button usa-button--secondary">Reset</button>
-</div>
-```
-
-### Context
-
-Button Group is a layout utility component from USWDS that works alongside the Button component to organize multiple button actions. It's commonly used in forms, modals, and action areas to group related actions with proper spacing and visual hierarchy.
+The Button Group component is built on USWDS standards and is part of the MDWDS component library. It composes with the Button component and follows the same variant pattern system (default, secondary, accent-cool, accent-warm, base, outline), making it consistent with other interactive elements in the design system.
 
 ---
 
@@ -2240,99 +2596,101 @@ Button Group is a layout utility component from USWDS that works alongside the B
 
 *Components*
 
-Buttons are interactive elements that trigger actions or navigate to new pages. They are fundamental components used throughout Maryland state web pages to enable user interactions, form submissions, and navigation. Use buttons to encourage primary actions, secondary navigation, or specific user tasks.
+The USWDS Button component provides multiple style variants to support various UI use cases, including primary actions, secondary options, and accent styles. It allows customization of button style, label, type, and state, with optional Google Analytics tracking and accessibility attributes. Use buttons to trigger actions, submit forms, or navigate within your application.
 
 ### Key Information
 
-## Variants and Styles
+## Variants
+- **Primary** (default): Standard primary action button
+- **Secondary**: Secondary action variant
+- **Accent Cool**: Cool accent style variant
+- **Accent Warm**: Warm accent style variant
+- **Base**: Base button style
+- **Outline**: Outline button variant
 
-- **Primary Button**: Standard action button for main call-to-action
-- **Secondary Button**: Alternative action button with less visual emphasis
-- **Disabled Button**: Non-interactive state when action is unavailable
-- **Hover/Focus States**: Visual feedback for user interaction
+## Sizes
+- **default**: Standard button size
+- **big**: Larger button size
+
+## Properties
+- **variant**: Button style variant (string) — options: default, secondary, accent-cool, accent-warm, base, outline
+- **size**: Button size (string) — options: default, big
+- **label**: Text displayed on the button (string)
+- **type**: Button type attribute (string) — options: button, submit, reset
+- **disabled**: Boolean to disable the button
+- **enableAnalytics**: Enable or disable GA tracking attributes (boolean)
+- **gaCategory**: Google Analytics event category (string)
+- **gaAction**: Google Analytics event action (string)
+- **gaLabel**: Google Analytics event label (string)
 
 ## CSS Classes
+- `usa-button`: Base button class
 
-- `.usa-button` - Base button class
-- `.usa-button--secondary` - Secondary style variant
-- `.usa-button--accent` - Accent color variant
-- `.usa-button--outline` - Outline style variant
-- `.usa-button--unstyled` - Removes default button styling
-
-## Required Attributes
-
-- `type` attribute: "button", "submit", or "reset"
-- `aria-label` - For icon-only buttons or additional context
-- `disabled` attribute for disabled state
-
-## Important Facts
-
-- Buttons must have sufficient color contrast per WCAG guidelines
-- All buttons require proper focus indicators for keyboard navigation
-- Buttons should not be used for navigation; use links (`<a>` tags) instead
-- Icon buttons must include text or aria-label for accessibility
-- Button sizing follows a consistent scale for visual hierarchy
+## Accessibility
+ARIA attributes and screen reader support are configurable through the component's accessibility properties.
 
 ### Implementation
 
 ```html
-<!-- Primary Button -->
-<button class="usa-button" type="button">
-  Click me
+<!-- Primary Button (default variant) -->
+<button type="button" class="usa-button">
+  Primary Button
 </button>
 
 <!-- Secondary Button -->
-<button class="usa-button usa-button--secondary" type="button">
-  Secondary action
+<button type="button" class="usa-button usa-button--secondary">
+  Secondary Button
 </button>
 
-<!-- Accent Button -->
-<button class="usa-button usa-button--accent" type="button">
-  Accent action
+<!-- Accent Cool Button -->
+<button type="button" class="usa-button usa-button--accent-cool">
+  Accent Cool Button
+</button>
+
+<!-- Accent Warm Button -->
+<button type="button" class="usa-button usa-button--accent-warm">
+  Accent Warm Button
+</button>
+
+<!-- Base Button -->
+<button type="button" class="usa-button usa-button--base">
+  Base Button
 </button>
 
 <!-- Outline Button -->
-<button class="usa-button usa-button--outline" type="button">
-  Outline button
+<button type="button" class="usa-button usa-button--outline">
+  Outline Button
+</button>
+
+<!-- Big/Large Button -->
+<button type="button" class="usa-button usa-button--big">
+  Big Button
 </button>
 
 <!-- Disabled Button -->
-<button class="usa-button" type="button" disabled>
-  Disabled button
+<button type="button" class="usa-button" disabled>
+  Disabled Button
 </button>
 
-<!-- Button with Icon (Icon + Text) -->
-<button class="usa-button" type="button">
-  <svg class="usa-icon" aria-hidden="true" role="img">
-    <use xlink:href="/assets/img/sprite.svg#search"></use>
-  </svg>
-  Search
+<!-- Button with Submit Type -->
+<button type="submit" class="usa-button">
+  Submit
 </button>
 
-<!-- Icon-Only Button -->
-<button class="usa-button" type="button" aria-label="Search">
-  <svg class="usa-icon" aria-hidden="true" role="img">
-    <use xlink:href="/assets/img/sprite.svg#search"></use>
-  </svg>
+<!-- Button with Reset Type -->
+<button type="reset" class="usa-button">
+  Reset
 </button>
 
-<!-- Form Submit Button -->
-<form>
-  <input type="text" name="search">
-  <button class="usa-button" type="submit">
-    Submit
-  </button>
-</form>
-
-<!-- Unstyled Button -->
-<button class="usa-button usa-button--unstyled" type="button">
-  Unstyled button
+<!-- Button with Google Analytics Tracking -->
+<button type="button" class="usa-button" data-ga-category="engagement" data-ga-action="click" data-ga-label="primary-action">
+  Tracked Button
 </button>
 ```
 
 ### Context
 
-Buttons are core interactive components in the Maryland Web Design System, built on USWDS standards. They compose with forms, modals, and other components to provide consistent, accessible call-to-action elements across all Maryland state web applications.
+The Button component is a core UI element in the MDWDS system based on USWDS standards. It composes with forms, navigation patterns, and action workflows throughout the design system, providing consistent styling and interaction patterns across Maryland digital services.
 
 ---
 
@@ -2340,81 +2698,171 @@ Buttons are core interactive components in the Maryland Web Design System, built
 
 *Components*
 
-A callout is a prominent content container used to highlight important information, warnings, or special notices that require user attention. It draws focus to critical messages or related content that stands apart from the main page flow. Use callouts to emphasize alerts, tips, important information, or contextual notes.
+The Callout component highlights important information with a description and optional title and/or image. It's used to draw attention to key messages, government information, or announcements in a visually distinct container. Use this when you need to emphasize critical information that stands out from regular body content.
 
 ### Key Information
 
-## Variants and Types
+## Key Classes and Structure
+- **Root container**: `maryland-callout` — semantic `<section>` element
+- **Inner wrapper**: `maryland-callout__container` — holds all callout content
+- **Image area**: `maryland-callout__image` — optional image container with `<img>` element
+- **Content wrapper**: `maryland-callout__content` — groups title and description
+- **Title**: `maryland-callout__title` — optional `<h2>` element with auto-generated ID
+- **Description**: `maryland-callout__description` — required text content area
 
-The Callout component supports multiple variants to communicate different message types:
-- **Default/Info**: Standard informational callout
-- **Warning**: For cautionary or alert-level messages
-- **Success**: For positive confirmations or completed actions
-- **Error**: For error messages or critical issues
+## Properties (Configurable via Attributes)
+- **Title** (optional): Display text for the callout heading
+- **Visually hide title** (boolean): Hides title from display while keeping it available to screen readers
+- **Description** (required): The main descriptive text content
+- **Show image** (boolean): Toggle image display on/off
+- **Image** (optional): URL for the callout image
+- **Image alt text** (optional): Alt text for accessibility; leave empty for decorative images
+
+## ARIA Requirements
+- `aria-labelledby` attribute on `<section>` element that references the title's ID for accessible labeling
+- Auto-generated unique IDs on title elements for proper association
+
+## Required Attributes
+- `<section>` must include `aria-labelledby` attribute pointing to the title's ID
+- Title `<h2>` must have an `id` attribute for the `aria-labelledby` reference
+- Image `<img>` must have an `alt` attribute (can be empty for decorative images)
+
+### Implementation
+
+```html
+<!-- Basic Callout with Title, Image, and Description -->
+<section class=" maryland-callout " aria-labelledby="id-oti3dembu68">
+  <div class="maryland-callout__container">
+    
+    <div class="maryland-callout__image">
+      <img src="https://placehold.co/400x400/1976d2/white/webp" alt="">
+    </div>
+    
+    <div class="maryland-callout__content">
+      <h2 id="id-oti3dembu68" class=" maryland-callout__title ">
+        Your government is committed to serving Marylanders
+      </h2>
+      
+      <div class="maryland-callout__description">
+        The goal of Maryland's state government is to serve the public and represent Marylanders' interests.
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+**Variant: Title with Alt Text on Image**
+```html
+<section class=" maryland-callout " aria-labelledby="id-example-title">
+  <div class="maryland-callout__container">
+    
+    <div class="maryland-callout__image">
+      <img src="image-url.webp" alt="Descriptive alt text for the image">
+    </div>
+    
+    <div class="maryland-callout__content">
+      <h2 id="id-example-title" class=" maryland-callout__title ">
+        Title Text
+      </h2>
+      
+      <div class="maryland-callout__description">
+        Description text goes here.
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+**Variant: Without Image**
+```html
+<section class=" maryland-callout " aria-labelledby="id-no-image-example">
+  <div class="maryland-callout__container">
+    
+    <div class="maryland-callout__content">
+      <h2 id="id-no-image-example" class=" maryland-callout__title ">
+        Important Title
+      </h2>
+      
+      <div class="maryland-callout__description">
+        Description content only, no image display.
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+### Context
+
+The Callout component is a foundational MDWDS component used throughout the design system to highlight critical information, government announcements, and important notices. It combines with typography and image utilities to create flexible, accessible information containers that adapt across the system's various page templates and layouts.
+
+---
+
+## Cards
+
+*Components*
+
+Maryland Design System cards are modular containers that group related information in a visually distinct format. They support multiple variants (simple, media, full, flag, linked) and can display images, headings, subheadings, text, links, and link buttons. Cards are ideal for highlighting articles, events, news, or services in a grid layout.
+
+### Key Information
+
+## Variants
+- **simple**: Basic card layout with title and body text
+- **media**: Card with image support
+- **full**: Full-featured card with all content options
+- **flag**: Card with flag-style layout
+- **linked**: Card formatted as an interactive link
 
 ## CSS Classes
+- `.maryland-card`: Base card component class
+- `.maryland-card--simple`: Modifier for simple variant
+- `.maryland-card__container`: Main card container
+- `.maryland-card__header`: Card heading section
+- `.maryland-card__heading`: Card title (h3 element)
+- `.maryland-card__body`: Main content area
+- `.maryland-card__footer`: Footer section
+- `.maryland-card__footer--left`: Left-aligned footer modifier
+- `.maryland-card-group`: Wrapper list for card collections
+- `.tablet-lg:grid-col-6`: Responsive grid class for tablet large screens (6 columns)
+- `.desktop-lg:grid-col-4`: Responsive grid class for desktop large screens (4 columns)
 
-- `.callout`: Base class for the container
-- `.callout--info`: Info variant (default)
-- `.callout--warning`: Warning variant
-- `.callout--success`: Success variant
-- `.callout--error`: Error variant
+## Content Options
+- **title** (string): Card heading text
+- **body** (string): Main content text of the card
+- **variant** (string): Choose card style - options: simple, media, full, flag, linked
 
-## Key Attributes and Structure
-
-- Semantic HTML structure with proper heading hierarchy
-- Support for optional icons to visually reinforce message type
-- Flexible content area for text, links, and other inline elements
-- Optional close button for dismissible callouts
-- Proper contrast and color coding for accessibility
-
-## Important Facts
-
-- Each variant uses distinct color schemes for quick visual recognition
-- Callouts should include appropriate ARIA roles for screen readers
-- Content should be concise and focused on the key message
-- Can be used standalone or in combination with other components
+## Structure
+Cards are displayed within a `.maryland-card-group` (ul element) with individual cards as `.maryland-card` list items.
 
 ### Implementation
 
 ```html
-<!-- Info Callout -->
-<div class="callout callout--info" role="region" aria-label="Information">
-  <h3>Informational Message</h3>
-  <p>This is an informational callout used to highlight important details or tips.</p>
-</div>
+<ul class="maryland-card-group">
+  <li class="maryland-card maryland-card--simple tablet-lg:grid-col-6 desktop-lg:grid-col-4">
+    <div class="maryland-card__container">
+      <div class="maryland-card__header">
+        <h3 class="maryland-card__heading">Maryland Card Title</h3>
+      </div>
+      
+      <div class="maryland-card__body">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+      </div>
 
-<!-- Warning Callout -->
-<div class="callout callout--warning" role="region" aria-label="Warning">
-  <h3>Warning Message</h3>
-  <p>This is a warning callout that alerts users to important cautions or considerations.</p>
-</div>
-
-<!-- Success Callout -->
-<div class="callout callout--success" role="region" aria-label="Success">
-  <h3>Success Message</h3>
-  <p>This is a success callout confirming a completed action or positive outcome.</p>
-</div>
-
-<!-- Error Callout -->
-<div class="callout callout--error" role="region" aria-label="Error">
-  <h3>Error Message</h3>
-  <p>This is an error callout used for critical issues or error states.</p>
-</div>
-
-<!-- Dismissible Callout with Close Button -->
-<div class="callout callout--info" role="region" aria-label="Information">
-  <button class="callout__close" aria-label="Close this message" onclick="this.parentElement.style.display='none';">
-    <span aria-hidden="true">&times;</span>
-  </button>
-  <h3>Dismissible Message</h3>
-  <p>This callout can be dismissed by clicking the close button.</p>
-</div>
+      <div class="maryland-card__footer maryland-card__footer--left">
+        <!-- footer content -->
+      </div>
+    </div>
+  </li>
+</ul>
 ```
+
+## Responsive Grid Modifiers
+The card list items use responsive utility classes to control column span:
+- `.tablet-lg:grid-col-6`: 6-column layout on tablet large breakpoint
+- `.desktop-lg:grid-col-4`: 4-column layout on desktop large breakpoint
 
 ### Context
 
-The Callout component is a foundational component in MDWDS for communicating important messages and drawing user attention to critical information. It works alongside other messaging components and typography elements to create a cohesive information hierarchy across Maryland state web pages.
+Cards are a foundational container component in the Maryland Design System used to organize and display grouped content. They compose with grid utilities and responsive breakpoint classes to create flexible layouts, and integrate with the system's typography and link patterns.
 
 ---
 
@@ -2422,197 +2870,106 @@ The Callout component is a foundational component in MDWDS for communicating imp
 
 *Components*
 
-Cards are container components that organize and present related information in a visually distinct, self-contained format. They help structure content into scannable, modular units that improve readability and user engagement. Use cards when displaying collections of related items such as services, features, articles, or calls-to-action.
+Cards are modular containers that group related information in a visually distinct format. They are ideal for highlighting articles, events, services, or tasks, and support images, headings, links, buttons, and metadata. Cards help organize content in a scannable, self-contained manner for better user engagement.
 
 ### Key Information
 
-Cards are flexible layout components that can contain various content types including text, images, links, and buttons. Common variants include:
-- **Basic Card**: Simple container with padding and optional borders
-- **Card with Image**: Includes an image header or background
-- **Card with Actions**: Contains buttons or interactive elements
-- **Clickable Card**: Entire card functions as a link
+## Variants
 
-Key CSS classes and modifiers:
-- `.card`: Base card container class
-- `.card-body`: Content wrapper inside the card
-- `.card-header`: Optional header section (can contain image or text)
-- `.card-footer`: Optional footer section for actions
-- `.card-link`: Modifier for clickable card variants
-- `.card-shadow`: Optional shadow effect for depth
+- **Simple**: Basic card with heading, body text, and optional button
+- **Media**: Card with image support (media can be placed first or after header)
+- **Flag**: Alternative card style variant
 
-Cards support flexible content organization and can be arranged in grid layouts. They maintain consistent padding, spacing, and visual hierarchy across the design system. Supports responsive behavior adapting to different screen sizes.
+## CSS Class Names
+
+- `usa-card-group`: Container for multiple cards (applied to `<ul>`)
+- `usa-card`: Individual card item wrapper (applied to `<li>`)
+- `usa-card__container`: Inner wrapper for card content
+- `usa-card__header`: Card header section
+- `usa-card__heading`: Card title/heading element
+- `usa-card__body`: Main content section
+- `usa-card__footer`: Footer section (typically contains buttons/links)
+
+## Grid Modifiers
+
+- `tablet-lg:grid-col-6`: 50% width on tablet-lg breakpoint (2 columns)
+- `desktop-lg:grid-col-4`: 33.33% width on desktop-lg breakpoint (3 columns)
+
+## Media Placement Options
+
+- **Media First**: Image appears before heading
+- **Header First**: Heading appears before image
+
+## Media Style Options
+
+- **Default**: Standard image sizing
+- **Inset**: Image inset within card
+- **Exdent**: Image extends beyond card bounds
+
+## Component Properties
+
+- `variant`: Card style (simple, media, flag)
+- `title`: Card heading text
+- `body`: Main content text
+- `buttonText`: CTA button/link label
+- `buttonUrl`: Button destination URL
+- `cardCount`: Number of cards to display
+- `imageUrl`: Image URL for media cards
+- `imageAlt`: Alt text for images
+- `mediaPlacement`: Order of card contents (Media First or Header First)
+- `mediaStyle`: Media sizing (Default, Inset, Exdent)
+- `enableAnalytics`: Enable GA tracking
+- `gaCategory`: GA event category
+- `gaAction`: GA event action
+- `gaLabel`: GA event label
 
 ### Implementation
 
 ```html
-<!-- Basic Card -->
-<div class="card">
-  <div class="card-body">
-    <h3 class="card-title">Card Title</h3>
-    <p class="card-text">Card content goes here. This is a basic card component.</p>
-  </div>
-</div>
+<!-- Card Group Container -->
+<ul class="usa-card-group">
+  <!-- Individual Card Item -->
+  <li class="usa-card tablet-lg:grid-col-6 desktop-lg:grid-col-4">
+    <div class="usa-card__container">
+      
+      <!-- Card Header Section -->
+      <div class="usa-card__header">
+        <h4 class="usa-card__heading">Card Title</h4>
+      </div>
 
-<!-- Card with Image -->
-<div class="card">
-  <img class="card-img-top" src="image.jpg" alt="Card image">
-  <div class="card-body">
-    <h3 class="card-title">Card with Image</h3>
-    <p class="card-text">Description text for the card.</p>
-  </div>
-</div>
+      <!-- Card Body Section -->
+      <div class="usa-card__body">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+      </div>
 
-<!-- Card with Header and Footer -->
-<div class="card">
-  <div class="card-header">
-    <h3>Card Header</h3>
-  </div>
-  <div class="card-body">
-    <p class="card-text">Main content area.</p>
-  </div>
-  <div class="card-footer">
-    <button class="btn btn-primary">Action Button</button>
-  </div>
-</div>
+      <!-- Card Footer Section (typically with button/link) -->
+      <div class="usa-card__footer">
+        <a class="usa-button" href="#">Learn More</a>
+      </div>
 
-<!-- Clickable Card -->
-<a href="#" class="card card-link">
-  <div class="card-body">
-    <h3 class="card-title">Clickable Card</h3>
-    <p class="card-text">Entire card is clickable and navigates on click.</p>
-  </div>
-</a>
+    </div>
+  </li>
+
+  <!-- Additional cards follow same structure -->
+  <li class="usa-card tablet-lg:grid-col-6 desktop-lg:grid-col-4">
+    <div class="usa-card__container">
+      <div class="usa-card__header">
+        <h4 class="usa-card__heading">Card Title</h4>
+      </div>
+      <div class="usa-card__body">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+      </div>
+      <div class="usa-card__footer">
+        <a class="usa-button" href="#">Learn More</a>
+      </div>
+    </div>
+  </li>
+</ul>
 ```
 
 ### Context
 
-Cards are a foundational component in the MDWDS that composes with other elements like buttons, images, and typography to create organized content layouts. They are commonly used in grid-based templates and work alongside spacing and layout utilities to structure complex information hierarchies across Maryland state web pages.
-
----
-
-## Cards
-
-*Components*
-
-Cards are flexible container components used to display related content and actions in a contained format. They organize information into scannable, digestible chunks and support various content types including text, images, and actions. Cards are commonly used for displaying grouped information, product listings, team members, or any modular content that benefits from visual separation and organization.
-
-### Key Information
-
-
-### Variants
-- **Basic Card**: Standard card with padding and border
-- **Card with Image**: Card featuring a featured image at the top
-- **Card with Actions**: Card with action buttons or links at the bottom
-- **Themed Cards**: Cards with different background colors or accent colors
-
-### CSS Classes
-- `.usa-card` - Base card container class
-- `.usa-card__container` - Inner wrapper for card content
-- `.usa-card__header` - Card header section
-- `.usa-card__body` - Card body/content section
-- `.usa-card__footer` - Card footer section for actions
-- `.usa-card__image` - Image container class
-- `.usa-card__media-block` - For side-by-side image and content layouts
-
-### Modifiers & Options
-- Padding options: Standard, compact
-- Border styles: Standard border, no border
-- Shadow effects: No shadow, subtle shadow, elevated shadow
-- Background colors: White, gray, themed colors
-- Header variations: Text-only, with image, with tags
-
-### Required Attributes
-- Semantic HTML structure (proper heading hierarchy)
-- Image alt attributes when using `.usa-card__image`
-
-### Important Facts
-- Cards are responsive and stack on mobile
-- Support flexible content layouts
-- Can contain headings, paragraphs, lists, images, and buttons
-- Work well in grid layouts for multiple cards
-- Inherit typography and spacing from USWDS/MDWDS system
-
-
-### Implementation
-
-
-```html
-<!-- Basic Card -->
-<div class="usa-card">
-  <div class="usa-card__container">
-    <header class="usa-card__header">
-      <h2 class="usa-card__heading">Card Title</h2>
-    </header>
-    <div class="usa-card__body">
-      <p>Card content goes here. This is the main body of the card.</p>
-    </div>
-  </div>
-</div>
-
-<!-- Card with Image -->
-<div class="usa-card">
-  <img class="usa-card__image" src="image.jpg" alt="Card image description">
-  <div class="usa-card__container">
-    <header class="usa-card__header">
-      <h2 class="usa-card__heading">Card with Image</h2>
-    </header>
-    <div class="usa-card__body">
-      <p>Card content with featured image.</p>
-    </div>
-  </div>
-</div>
-
-<!-- Card with Actions -->
-<div class="usa-card">
-  <div class="usa-card__container">
-    <header class="usa-card__header">
-      <h2 class="usa-card__heading">Card with Actions</h2>
-    </header>
-    <div class="usa-card__body">
-      <p>Card content with action buttons.</p>
-    </div>
-    <footer class="usa-card__footer">
-      <a href="#" class="usa-button">Learn More</a>
-      <a href="#" class="usa-button usa-button--outline">View Details</a>
-    </footer>
-  </div>
-</div>
-
-<!-- Cards in Grid -->
-<div class="grid-container">
-  <div class="grid-row grid-gap">
-    <div class="tablet:grid-col-6 desktop:grid-col-4">
-      <div class="usa-card">
-        <div class="usa-card__container">
-          <header class="usa-card__header">
-            <h2 class="usa-card__heading">Card 1</h2>
-          </header>
-          <div class="usa-card__body">
-            <p>Content for card 1</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="tablet:grid-col-6 desktop:grid-col-4">
-      <div class="usa-card">
-        <div class="usa-card__container">
-          <header class="usa-card__header">
-            <h2 class="usa-card__heading">Card 2</h2>
-          </header>
-          <div class="usa-card__body">
-            <p>Content for card 2</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-```
-
-
-### Context
-
-Cards are a fundamental component in the MDWDS system for organizing and presenting grouped content across Maryland state web pages. They compose well with the grid system for responsive layouts and can combine with other components like buttons, badges, and images to create rich content containers.
+Cards are a core MDWDS component based on USWDS card patterns, providing a flexible, reusable container for content organization. They compose well with grid systems (using responsive grid column classes) and button components, making them essential for service listings, event highlights, and content discovery in Maryland digital properties.
 
 ---
 
@@ -2620,112 +2977,122 @@ Cards are a fundamental component in the MDWDS system for organizing and present
 
 *Components*
 
-Character Count is a component that displays and monitors the number of characters entered in a text input or textarea field in real-time. It helps users stay within character limits by providing immediate feedback on their input length. Use this component when you need to enforce or inform users about character restrictions on form fields.
+The Character Count component provides real-time character counting feedback for text inputs and textareas. It displays the remaining or used character count with visual feedback and automatically shows error states when limits are exceeded. Use it to help users stay within specified character limits for form fields.
 
 ### Key Information
 
-## Variants and Options
+## Variants
+- **Input**: Uses `<input>` element for single-line character counting
+- **Textarea**: Uses `<textarea>` element for multi-line character counting
 
-- **Character counter display**: Shows current character count with optional maximum limit (e.g., "5 characters")
-- **Character limit warning**: Can display remaining characters and warn when approaching or exceeding limit (e.g., "5 characters remaining")
-- **Hint text vs. character count message**: Choose between displaying as helper text or as a dedicated character count message below the input
+## CSS Classes
+- `usa-form`: Form wrapper class
+- `usa-label`: Label element styling
+- `usa-hint`: Hint text styling (displayed below label)
+- `usa-character-count`: Main wrapper container for the component
+- `usa-character-count__field`: Applied to the textarea or input element
+- `usa-character-count__message`: Container for character count message text
+- `usa-sr-only`: Screen reader only text (hides message visually but keeps it accessible)
+- `usa-textarea`: Textarea field styling
 
-## CSS Classes and Structure
+## Required Attributes
+- `data-maxlength`: Set on `.usa-character-count` container to define maximum character limit (number value)
+- `id`: Unique identifier for the input/textarea element
+- `aria-describedby`: Links the field to both the hint and message via their IDs
+- `name`: Name attribute for form submission
 
-- `.usa-character-count`: Main wrapper class for the character count component
-- `.usa-character-count__message`: Class for the character count display message
-- `.usa-character-count__input`: Applied to the input or textarea being monitored
-- `maxlength` attribute: HTML attribute that sets the maximum character limit
-
-## Required Attributes and Properties
-
-- `maxlength`: Required attribute on input/textarea to set character limit
-- `aria-live="polite"` or `aria-live="assertive"`: Used on the message element for screen reader announcements
-- `aria-describedby`: Links the input to the character count message for accessibility
-- Character count updates dynamically via JavaScript event listeners (input or change events)
+## Configuration Options
+- **label**: Label text for the input field
+- **inputType**: Choose between "input" or "textarea"
+- **maxLength**: Maximum character limit (numeric)
+- **hint**: Optional hint text displayed below the label
+- **defaultValue**: Default text value in the field
+- **required**: Mark field as required (boolean)
+- **enableAnalytics**: Enable Google Analytics tracking (boolean)
+- **gaCategory**: GA event category (string)
+- **gaAction**: GA event action (string)
+- **gaLabel**: GA event label (string)
 
 ## Important Facts
-
-- Works with both `<input type="text">` and `<textarea>` elements
-- Updates character count in real-time as user types
-- Must be initialized with JavaScript to enable dynamic character counting
-- Supports both "characters used" and "characters remaining" display modes
-- Screen reader announcements update as character count changes
+- Requires USWDS JavaScript to be loaded for live counting functionality
+- The message element uses `usa-sr-only` for screen reader announcement
+- Character count message is dynamically updated as user types
+- Works with both input validation and form submission
 
 ### Implementation
 
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="textarea-character-count">
-    Textarea with character count
+<form class="usa-form usa-form--large">
+  <label class="usa-label" for="character-count-id-lfeaaigyv5o">
+    Message
   </label>
-  <span class="usa-hint" id="textarea-hint">
-    This is helper text with a character limit
-  </span>
-  <textarea
-    class="usa-textarea usa-character-count__input"
-    id="textarea-character-count"
-    name="textarea-character-count"
-    aria-describedby="textarea-hint textarea-character-count-message"
-    maxlength="100"
-  ></textarea>
-  <div
-    class="usa-character-count__message"
-    id="textarea-character-count-message"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <span class="usa-sr-only">Textarea character count: </span>
-    0 / 100 characters
+  <span class="usa-hint" id="hint-id-lfeaaigyv5o">Enter your message</span>
+  <div class="usa-character-count" data-maxlength="200">
+    <textarea 
+      class="usa-textarea usa-character-count__field" 
+      id="character-count-id-lfeaaigyv5o" 
+      name="character-count-id-lfeaaigyv5o" 
+      aria-describedby="hint-id-lfeaaigyv5o message-id-lfeaaigyv5o">
+    </textarea>
+    <span 
+      class="usa-character-count__message usa-sr-only" 
+      id="message-id-lfeaaigyv5o">
+      200 characters allowed
+    </span>
   </div>
-</div>
+</form>
 ```
 
+## Variant: Input Element
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-character-count">
-    Input with character count
+<form class="usa-form usa-form--large">
+  <label class="usa-label" for="character-count-input">
+    Short Description
   </label>
-  <input
-    class="usa-input usa-character-count__input"
-    id="input-character-count"
-    type="text"
-    name="input-character-count"
-    aria-describedby="input-character-count-message"
-    maxlength="50"
-  />
-  <div
-    class="usa-character-count__message"
-    id="input-character-count-message"
-    aria-live="polite"
-    aria-atomic="true"
-  >
-    <span class="usa-sr-only">Input character count: </span>
-    0 / 50 characters
+  <div class="usa-character-count" data-maxlength="50">
+    <input 
+      class="usa-input usa-character-count__field" 
+      id="character-count-input" 
+      name="character-count-input" 
+      aria-describedby="message-count-input"
+      type="text">
+    <span 
+      class="usa-character-count__message usa-sr-only" 
+      id="message-count-input">
+      50 characters allowed
+    </span>
   </div>
-</div>
+</form>
 ```
 
-```javascript
-// JavaScript initialization for character count
-document.querySelectorAll('.usa-character-count__input').forEach(input => {
-  const maxlength = input.getAttribute('maxlength');
-  const messageId = input.getAttribute('aria-describedby').split(' ').pop();
-  const message = document.getElementById(messageId);
-  
-  const updateCount = () => {
-    const currentCount = input.value.length;
-    message.textContent = currentCount + ' / ' + maxlength + ' characters';
-  };
-  
-  input.addEventListener('input', updateCount);
-  updateCount(); // Initialize on load
-});
+## Variant: With Hint and Required Field
+```html
+<form class="usa-form usa-form--large">
+  <label class="usa-label" for="character-count-required">
+    Required Message
+    <span class="usa-label__required">*</span>
+  </label>
+  <span class="usa-hint" id="hint-required">Provide detailed information (required)</span>
+  <div class="usa-character-count" data-maxlength="200">
+    <textarea 
+      class="usa-textarea usa-character-count__field" 
+      id="character-count-required" 
+      name="character-count-required" 
+      aria-describedby="hint-required message-required"
+      required>
+    </textarea>
+    <span 
+      class="usa-character-count__message usa-sr-only" 
+      id="message-required">
+      200 characters allowed
+    </span>
+  </div>
+</form>
 ```
 
 ### Context
 
-Character Count is a USWDS component integrated into MDWDS that pairs with form inputs and textareas to provide real-time character limit feedback. It enhances form accessibility and user experience by keeping users informed about input constraints, and is typically used alongside standard form components like text inputs and textareas.
+Character Count is a USWDS component that enhances form field accessibility and user experience by providing real-time feedback. It integrates with form fields (input/textarea) and works alongside label, hint, and ARIA attributes to ensure proper form structure and screen reader support within the MDWDS system.
 
 ---
 
@@ -2733,168 +3100,172 @@ Character Count is a USWDS component integrated into MDWDS that pairs with form 
 
 *Components*
 
-Checkboxes are input controls that allow users to select zero, one, or multiple options from a set. They provide a clear, accessible way for users to make binary choices or select multiple items from a list. Use checkboxes when users need to select any combination of options from a group.
+Checkboxes allow users to select one or more options from a list, making them ideal for forms where multiple selections are permitted. This component supports both default and tile styles with configurable checked and disabled states per option, plus optional Google Analytics tracking and ARIA accessibility attributes.
 
 ### Key Information
 
 ## Variants
-- **Single checkbox**: A standalone checkbox for a single binary choice
-- **Checkbox group**: Multiple checkboxes grouped together for selecting multiple options
-- **Disabled state**: Disabled checkboxes prevent user interaction
-- **Checked state**: Indicates a selected checkbox
-- **Indeterminate state**: Used in parent-child checkbox hierarchies (partially selected)
+- **default**: Standard checkbox style
+- **tile**: Tile-based checkbox style
 
 ## CSS Classes
-- `.usa-checkbox`: Container class for checkbox wrapper
-- `.usa-checkbox__input`: Applied to the `<input type="checkbox">` element
-- `.usa-checkbox__label`: Applied to the label element
+- `usa-fieldset`: Container for checkbox fieldset
+- `usa-legend`: Legend text for screen readers and visual display
+- `usa-checkbox`: Wrapper div for each checkbox option
+- `usa-checkbox__input`: The actual checkbox input element
+- `usa-checkbox__label`: Label associated with checkbox input
 
-## ARIA Attributes
-- `aria-label` or associated `<label>`: Required for accessibility
-- `aria-disabled="true"`: Indicate disabled state when needed
-- `aria-checked="mixed"`: For indeterminate state in parent-child relationships
-- `aria-describedby`: Optional, for additional helper text
+## Key Attributes & Options
+- **variant**: Choose between "default" or "tile" styles (default: not specified)
+- **legend**: Group legend text displayed to users and screen readers
+- **fieldName**: Form field element name attribute (applies to all inputs in group)
+- **options**: Array of checkbox option objects with structure:
+  - `label` (required): Display text for the checkbox
+  - `value` (required): Value attribute for the input
+  - `description` (optional): Additional descriptive text
+  - `checked` (optional): Boolean to set default checked state
+  - `disabled` (optional): Boolean to disable the option
+- **enableAnalytics**: Boolean to enable/disable Google Analytics tracking attributes
+- **gaCategory**: GA event category string
+- **gaAction**: GA event action string
+- **gaLabel**: GA event label string
 
-## Required Attributes
-- `type="checkbox"`: Define input type
-- `id`: Unique identifier for the checkbox
-- Associated `<label>` with `for` attribute matching the checkbox `id`
-
-## Important Facts
-- Always provide labels or ARIA labels for accessibility compliance
-- Use consistent spacing and sizing with MDWDS patterns
-- Checkboxes can be arranged horizontally or vertically
-- Parent checkboxes controlling child checkboxes require indeterminate state handling with JavaScript
+## Required Structure
+- Checkboxes must be wrapped in a `<form>` element
+- Use `<fieldset>` with `<legend>` for semantic grouping and accessibility
+- Each checkbox requires a unique `id` attribute
+- Each checkbox should have an associated `<label>` with matching `for` attribute
 
 ### Implementation
 
 ```html
-<!-- Single Checkbox -->
-<div class="usa-checkbox">
-  <input
-    class="usa-checkbox__input"
-    id="checkbox-single"
-    type="checkbox"
-    name="option"
-  />
-  <label class="usa-checkbox__label" for="checkbox-single">
-    Checkbox option
-  </label>
-</div>
+<form class="usa-form">
+  <fieldset class="usa-fieldset">
+    <legend class="usa-legend">Select any historical figure</legend>
 
-<!-- Checkbox Group -->
-<fieldset class="usa-fieldset">
-  <legend class="usa-legend">Select options</legend>
-  <div class="usa-checkbox">
-    <input
-      class="usa-checkbox__input"
-      id="checkbox-1"
-      type="checkbox"
-      name="options"
-      value="option1"
-    />
-    <label class="usa-checkbox__label" for="checkbox-1">
-      Option 1
-    </label>
-  </div>
-  <div class="usa-checkbox">
-    <input
-      class="usa-checkbox__input"
-      id="checkbox-2"
-      type="checkbox"
-      name="options"
-      value="option2"
-    />
-    <label class="usa-checkbox__label" for="checkbox-2">
-      Option 2
-    </label>
-  </div>
-  <div class="usa-checkbox">
-    <input
-      class="usa-checkbox__input"
-      id="checkbox-3"
-      type="checkbox"
-      name="options"
-      value="option3"
-    />
-    <label class="usa-checkbox__label" for="checkbox-3">
-      Option 3
-    </label>
-  </div>
-</fieldset>
+    <div class="usa-checkbox">
+      <input 
+        type="checkbox" 
+        class="usa-checkbox__input" 
+        id="id-w8ycf11mzgt" 
+        name="historical-figures" 
+        value="sojourner-truth" 
+        checked="">
+      <label class="usa-checkbox__label" for="id-w8ycf11mzgt">
+        Sojourner Truth
+      </label>
+    </div>
 
-<!-- Disabled Checkbox -->
-<div class="usa-checkbox">
-  <input
-    class="usa-checkbox__input"
-    id="checkbox-disabled"
-    type="checkbox"
-    name="option"
-    disabled
-  />
-  <label class="usa-checkbox__label" for="checkbox-disabled">
-    Disabled checkbox
-  </label>
-</div>
+    <div class="usa-checkbox">
+      <input 
+        type="checkbox" 
+        class="usa-checkbox__input" 
+        id="id-52gymqv0c4e" 
+        name="historical-figures" 
+        value="frederick-douglass">
+      <label class="usa-checkbox__label" for="id-52gymqv0c4e">
+        Frederick Douglass
+      </label>
+    </div>
 
-<!-- Checked Checkbox -->
-<div class="usa-checkbox">
-  <input
-    class="usa-checkbox__input"
-    id="checkbox-checked"
-    type="checkbox"
-    name="option"
-    checked
-  />
-  <label class="usa-checkbox__label" for="checkbox-checked">
-    Checked checkbox
-  </label>
-</div>
-
-<!-- Parent-Child with Indeterminate State -->
-<div class="usa-checkbox">
-  <input
-    class="usa-checkbox__input"
-    id="checkbox-parent"
-    type="checkbox"
-    name="parent"
-    aria-controls="child-group"
-  />
-  <label class="usa-checkbox__label" for="checkbox-parent">
-    Select all options
-  </label>
-</div>
-<div id="child-group" style="margin-left: 2rem;">
-  <div class="usa-checkbox">
-    <input
-      class="usa-checkbox__input"
-      id="checkbox-child-1"
-      type="checkbox"
-      name="child"
-      value="child1"
-    />
-    <label class="usa-checkbox__label" for="checkbox-child-1">
-      Child option 1
-    </label>
-  </div>
-  <div class="usa-checkbox">
-    <input
-      class="usa-checkbox__input"
-      id="checkbox-child-2"
-      type="checkbox"
-      name="child"
-      value="child2"
-    />
-    <label class="usa-checkbox__label" for="checkbox-child-2">
-      Child option 2
-    </label>
-  </div>
-</div>
+    <div class="usa-checkbox">
+      <input 
+        type="checkbox" 
+        class="usa-checkbox__input" 
+        id="id-another-id" 
+        name="historical-figures" 
+        value="booker-t-washington" 
+        disabled="">
+      <label class="usa-checkbox__label" for="id-another-id">
+        Disabled option
+      </label>
+    </div>
+  </fieldset>
+</form>
 ```
+
+## Key Implementation Notes
+- Each checkbox in a group shares the same `name` attribute but must have unique `id` values
+- The `<label>` element's `for` attribute must match the checkbox `id` for proper accessibility
+- Use `checked=""` attribute to set default checked state
+- Use `disabled=""` attribute to disable an option
+- The `usa-form` wrapper provides form styling context
+- The `usa-fieldset` and `usa-legend` provide semantic structure and screen reader support
 
 ### Context
 
-Checkboxes are a core USWDS form component integrated into the Maryland Web Design System for collecting user input. They compose with fieldset and legend elements for grouped selections and follow WCAG accessibility standards for state government applications.
+Checkboxes are a fundamental USWDS form component used in conjunction with fieldsets and legends to create accessible grouped form controls. They compose with the `usa-form` container and support optional Google Analytics tracking for user interaction monitoring across the MDWDS system.
+
+---
+
+## Collection
+
+*Components*
+
+The Collection component displays a compact list of multiple related items (such as articles, events, or news items) that link to original sources. It supports various display options including images, descriptions, metadata, dates, and tags to help users browse and discover related content efficiently.
+
+### Key Information
+
+## Variants
+- **Default**: Standard collection display with headings, descriptions, and metadata
+- **Media Thumbnail**: Includes optional images or icons for each item
+- **Calendar Display**: Shows date information in calendar format
+- **Headings Only**: Simplified variant displaying only item titles
+- **Condensed**: Compact variant with reduced spacing
+
+## Core CSS Classes
+- `usa-collection`: Main container for the collection list
+- `usa-collection__item`: Individual list item wrapper
+- `usa-collection__body`: Container for item content
+- `usa-collection__heading`: Item title heading (typically `<h4>`)
+- `usa-collection__description`: Item description text
+- `usa-link`: Link styling for item titles
+- `usa-icon`: Icon element (e.g., external link launch icon)
+
+## Key Features
+- Display items with headings, descriptions, and metadata
+- Optional images or icon support for each item
+- Date information (standard or calendar format)
+- Tag support for categorization
+- Google Analytics tracking attributes support (optional)
+
+## HTML Structure
+- Collection is rendered as an unordered list (`<ul>`)
+- Each item is a list item (`<li class="usa-collection__item">`)
+- Items contain a body div with heading, description, and optional metadata
+- Links use standard `usa-link` class styling
+
+### Implementation
+
+```html
+<ul class="usa-collection" id="collection-id-example">
+  <li class="usa-collection__item">
+    <div class="usa-collection__body">
+      <h4 class="usa-collection__heading">
+        <a class="usa-link" href="https://example.com/item">
+          Item Title
+          <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+            <use xlink:href="/assets/img/sprite.svg#launch"></use>
+          </svg>
+        </a>
+      </h4>
+      <p class="usa-collection__description">
+        Item description text goes here.
+      </p>
+    </div>
+  </li>
+</ul>
+```
+
+## Accessibility Requirements
+- Use unique, descriptive headings (avoid generic "read more" links)
+- Maintain logical heading level hierarchy
+- Ensure images have descriptive alt text
+- Include external link indicators (e.g., launch icon) when linking to outside sources
+
+### Context
+
+The Collection component is part of the USWDS component library and integrates with the Maryland Web Design System for displaying lists of related content items. It composes standard elements like headings, links, descriptions, and optional media, following USWDS patterns and accessibility guidelines for creating scannable, organized content displays.
 
 ---
 
@@ -2902,141 +3273,109 @@ Checkboxes are a core USWDS form component integrated into the Maryland Web Desi
 
 *Components*
 
-A combo box is an input field with an associated dropdown list that allows users to select from predefined options or enter custom text. It combines the functionality of a text input with autocomplete capabilities and a dropdown menu, making it useful for searchable selections with large option lists or when users need flexibility to enter values not in the list.
+The Combo Box is an enhanced select dropdown that combines a text input with a filterable option list, providing type-ahead functionality ideal for long lists of options. It solves the UX problem of scrolling through lengthy option lists by allowing users to quickly filter and find their choice. Use it when you need to present many selectable options while maintaining accessibility and keyboard navigation support.
 
 ### Key Information
 
-## Key Features
-- Searchable dropdown list that filters as user types
-- Supports both selection from list and custom text entry
-- ARIA-compliant with proper roles and attributes for accessibility
-- Keyboard navigation support (arrow keys, Enter, Escape)
-- Optional clearable state with clear button
+## Variants & Features
+
+- **Type-ahead filtering** — Real-time filtering as users type
+- **Keyboard navigation** — Arrow keys, Enter, Escape support
+- **Clear button** — Reset selection capability
+- **Required field support** — For mandatory selections
+- **Disabled state** — Disable the entire combo box
+- **Default selected value** — Pre-populate with a selection
+- **Google Analytics tracking** — Built-in analytics attributes
+- **WCAG 2.1 AA compliant** — Full accessibility support
 
 ## CSS Classes
-- `.usa-combo-box` - Main wrapper class
-- `.usa-combo-box__input` - Input field element
-- `.usa-combo-box__list` - Dropdown list container
-- `.usa-combo-box__list-option` - Individual list items
 
-## Required Attributes
-- `data-module="usa-combo-box"` - Enables JavaScript initialization
-- `role="combobox"` on input element
-- `aria-owns` - Links input to listbox
-- `aria-expanded` - Indicates if list is open/closed
-- `aria-controls` - Associates input with list
+- `usa-combo-box` — Main wrapper container
+- `usa-combo-box__select` — Hidden select element (requires `usa-sr-only`, `usa-select` classes)
+- `usa-form` — Form container
+- `usa-label` — Label element
+- `usa-select` — Select styling
+- `usa-sr-only` — Screen reader only visibility
 
-## Options & Modifiers
-- Clearable combo box with clear button
-- Disabled state
-- Custom placeholder text
-- Optional helper text below input
-- Async loading support for large datasets
+## Required Attributes & Structure
 
-## Important Notes
-- Requires JavaScript initialization for full functionality
-- Must include proper ARIA labels for screen readers
-- Works with USWDS form components for consistent styling
+- `<label class="usa-label">` with `for` attribute tied to select `id`
+- `<div class="usa-combo-box">` wrapper with `data-enhanced="true"` attribute
+- `<select>` element with class `usa-select usa-sr-only usa-combo-box__select`
+- `aria-hidden="true"` on the select element
+- `tabindex="-1"` on the select element
+- `name` attribute for form submission
+- Option elements with `value` and label text
+- First option typically serves as placeholder ("Select a fruit")
+
+## Configuration Properties
+
+- **label** — Display label text for the combo box
+- **id** — Identifier for the select element (required for label association)
+- **name** — Name attribute for form submission
+- **placeholder** — Placeholder text for the first option
+- **options** — Array of option objects with structure: `{ label, value, selected?, disabled? }`
+
+## JavaScript
+
+The component automatically loads USWDS JavaScript for keyboard navigation and filtering functionality upon rendering.
 
 ### Implementation
 
 ```html
-<div class="usa-combo-box" data-module="usa-combo-box">
-  <label for="combo-box-input" class="usa-label">Select an option</label>
-  <input
-    id="combo-box-input"
-    class="usa-combo-box__input usa-input"
-    type="text"
-    role="combobox"
-    aria-owns="combo-box-list"
-    aria-expanded="false"
-    aria-controls="combo-box-list"
-    aria-autocomplete="list"
-    placeholder="Search..."
-  />
-  <ul
-    id="combo-box-list"
-    class="usa-combo-box__list"
-    role="listbox"
-    hidden
-  >
-    <li class="usa-combo-box__list-option" role="option">Option 1</li>
-    <li class="usa-combo-box__list-option" role="option">Option 2</li>
-    <li class="usa-combo-box__list-option" role="option">Option 3</li>
-  </ul>
-</div>
-
-<script>
-// USWDS combo box initialization
-const comboBoxes = document.querySelectorAll('[data-module="usa-combo-box"]');
-comboBoxes.forEach(el => {
-  new window.USWDS.components.ComboBox(el);
-});
-</script>
+<form class="usa-form">
+  <label class="usa-label" for="fruit" id="fruit-label">Select a fruit</label>
+  <div class="usa-combo-box" data-enhanced="true">
+    <select id="fruit" name="fruit" class="usa-select usa-sr-only usa-combo-box__select" aria-hidden="true" tabindex="-1">
+      <option value="">Select a fruit</option>
+      <option value="apple">Apple</option>
+      <option value="apricot">Apricot</option>
+      <option value="avocado">Avocado</option>
+      <option value="banana">Banana</option>
+      <option value="blackberry">Blackberry</option>
+      <option value="blueberry">Blueberry</option>
+      <option value="cantaloupe">Cantaloupe</option>
+      <option value="cherry">Cherry</option>
+      <option value="cranberry">Cranberry</option>
+      <option value="date">Date</option>
+      <option value="dragonfruit">Dragonfruit</option>
+      <option value="elderberry">Elderberry</option>
+      <option value="fig">Fig</option>
+      <option value="grape">Grape</option>
+      <option value="grapefruit">Grapefruit</option>
+      <option value="guava">Guava</option>
+      <option value="kiwifruit">Kiwifruit</option>
+      <option value="lemon">Lemon</option>
+      <option value="lime">Lime</option>
+      <option value="mango">Mango</option>
+      <option value="orange">Orange</option>
+      <option value="papaya">Papaya</option>
+      <option value="peach">Peach</option>
+      <option value="pear">Pear</option>
+      <option value="pineapple">Pineapple</option>
+      <option value="plum">Plum</option>
+      <option value="pomegranate">Pomegranate</option>
+      <option value="raspberry">Raspberry</option>
+      <option value="strawberry">Strawberry</option>
+      <option value="tangerine">Tangerine</option>
+      <option value="watermelon">Watermelon</option>
+    </select>
+  </div>
+</form>
 ```
 
-### Clearable Variant
-```html
-<div class="usa-combo-box" data-module="usa-combo-box">
-  <label for="clearable-combo" class="usa-label">Clearable combo box</label>
-  <input
-    id="clearable-combo"
-    class="usa-combo-box__input usa-input"
-    type="text"
-    role="combobox"
-    aria-owns="clearable-list"
-    aria-expanded="false"
-    aria-controls="clearable-list"
-  />
-  <button
-    class="usa-combo-box__clear-button"
-    aria-label="Clear selection"
-    type="button"
-  >
-    ✕
-  </button>
-  <ul
-    id="clearable-list"
-    class="usa-combo-box__list"
-    role="listbox"
-    hidden
-  >
-    <li class="usa-combo-box__list-option" role="option">Option A</li>
-    <li class="usa-combo-box__list-option" role="option">Option B</li>
-  </ul>
-</div>
-```
+## Key Structure Notes
 
-### With Helper Text
-```html
-<div class="usa-combo-box" data-module="usa-combo-box">
-  <label for="helper-combo" class="usa-label">Combo box with helper</label>
-  <span class="usa-hint" id="helper-text">Select from the list below</span>
-  <input
-    id="helper-combo"
-    class="usa-combo-box__input usa-input"
-    type="text"
-    aria-describedby="helper-text"
-    role="combobox"
-    aria-owns="helper-list"
-    aria-expanded="false"
-    aria-controls="helper-list"
-  />
-  <ul
-    id="helper-list"
-    class="usa-combo-box__list"
-    role="listbox"
-    hidden
-  >
-    <li class="usa-combo-box__list-option" role="option">Item 1</li>
-    <li class="usa-combo-box__list-option" role="option">Item 2</li>
-  </ul>
-</div>
-```
+1. The select element is visually hidden using `usa-sr-only` class while remaining available to screen readers
+2. The `data-enhanced="true"` attribute indicates USWDS JavaScript enhancement is active
+3. The label's `for` attribute must match the select's `id` for proper accessibility
+4. The first option typically acts as a placeholder prompt
+5. USWDS JavaScript transforms this hidden select into an interactive combo box with filtering and keyboard navigation
+6. All interactive elements (input, dropdown, filtering) are generated by the USWDS JavaScript library
 
 ### Context
 
-The Combo Box component is a USWDS-based form element that integrates into Maryland's design system for complex selection scenarios. It composes with form elements like labels and helper text, and follows MDWDS styling patterns to maintain consistency with other form controls across state websites.
+The Combo Box is a USWDS component that integrates with MDWDS as an enhanced form control. It composes with the standard form layout (usa-form, usa-label) and leverages USWDS's JavaScript system for progressive enhancement. This component follows the same accessibility and styling patterns as other MDWDS form inputs.
 
 ---
 
@@ -3044,84 +3383,172 @@ The Combo Box component is a USWDS-based form element that integrates into Maryl
 
 *Components*
 
-Data Visualizations are components for presenting complex data, metrics, and statistics in clear, accessible formats. They help users quickly understand patterns, trends, and relationships in information. Use data visualizations when you need to communicate numerical or categorical data efficiently to diverse audiences.
+The USWDS Data Visualizations component provides guidance and accessible patterns for implementing charts, graphs, and data visualizations in compliance with WCAG 2.1 AA. It addresses the critical need for equitable data presentation by ensuring visual information is never embedded in images alone and is always accessible to screen readers. Use this component when displaying charts, graphs, or other data-driven visualizations that must serve all users regardless of ability.
 
 ### Key Information
 
-Data visualizations in MDWDS follow USWDS patterns and accessibility standards. Common variants include:
+## Core CSS Classes
 
-- **Charts**: Bar charts, line charts, pie charts for displaying quantitative data
-- **Tables**: Structured data presentation with sorting and filtering capabilities
-- **Gauges/Meters**: Show progress, percentages, or status indicators
-- **Maps**: Geographic data visualization integrated with state/local context
+- `.usa-data-visualization` — Main container wrapper for the visualization component
+- `.chart-title` — Semantic heading for the chart (typically `<h3>`)
+- `.chart-description` — Narrative summary providing context and intent
+- `.visualization-container` — Wrapper for the actual SVG/visual chart element
 
-Key CSS classes and attributes:
-- Semantic HTML5 elements for structure
-- `role="img"` with `aria-label` for chart containers
-- Alternative text descriptions for all visualizations
-- High contrast colors compliant with WCAG AA standards
-- Responsive design that adapts to mobile/tablet/desktop
-- `<figure>` and `<figcaption>` for context and titles
+## Required HTML Attributes & ARIA
 
-Important facts:
-- All data visualizations must include descriptive labels and legends
-- Color alone should not convey information; use patterns/textures as well
-- Provide data tables as alternatives to complex visualizations
-- Ensure keyboard navigation and screen reader compatibility
+- `role="img"` — Applied to `.visualization-container` to indicate decorative chart content
+- `aria-labelledby` — Links visualization to the chart title ID (e.g., `aria-labelledby="chart-title-id-..."`)
+- `id` attributes — Required on `.chart-title` and `.chart-description` for proper labeling
+- `aria-hidden="true"` — Applied to decorative SVG graphics to hide from screen readers
+
+## Key Variants & Patterns
+
+1. **Default** — Basic chart with title, description, and SVG visualization
+2. **With Pattern Fills** — Uses pattern fills instead of solid colors for colorblind accessibility
+3. **High Contrast** — Enhanced contrast ratio for visibility in varied lighting conditions
+4. **With Data Table** — Includes `.usa-sr-only` data table as screen reader alternative
+5. **Screen Reader Only** — Data table marked with `.usa-sr-only` for non-visual access
+6. **Accessible Color Palette** — USWDS-compliant color scheme that meets WCAG AA standards
+7. **Container Pattern** — Reusable container structure for consistent visualization layout
+8. **With Analytics** — Optional Google Analytics tracking for chart interactions
+
+## Core Principles
+
+- **Simplicity** — Limit to 1-2 central themes; prefer common chart types (line, bar)
+- **Lossless Representation** — Provide textual axis labels and data tables; minimize required interactions
+- **Clarity of Intent** — State the intended message explicitly in text; include statistical trends
+- **Equivalent Access** — Hide decorative graphics; provide screen-reader-only alternatives and narrative context
 
 ### Implementation
 
 ```html
-<!-- Basic Chart Example with Accessible Structure -->
-<figure>
-  <figcaption>Population Growth 2020-2024</figcaption>
-  <div role="img" aria-label="Line chart showing population growth from 2020 to 2024, rising from 6 million to 6.5 million">
-    <!-- Chart implementation (SVG or canvas) -->
-  </div>
-</figure>
+<!-- Basic Data Visualization Container -->
+<div class="usa-data-visualization">
+  <!-- Chart Title (Semantic Heading) -->
+  <h3 class="chart-title" id="chart-title-id-kksq0s9p81m">
+    Maryland State Agency Budgets (FY 2025)
+  </h3>
 
-<!-- Bar Chart with Legend -->
-<figure>
-  <figcaption>Department Budget Allocation</figcaption>
-  <div role="img" aria-labelledby="chart-title chart-legend">
-    <h3 id="chart-title">Budget by Department (millions)</h3>
-    <!-- SVG or Canvas chart content -->
-    <dl id="chart-legend">
-      <dt>Education</dt><dd>$2.5M</dd>
-      <dt>Transportation</dt><dd>$1.8M</dd>
-      <dt>Health</dt><dd>$1.2M</dd>
-    </dl>
-  </div>
-</figure>
+  <!-- Narrative Summary (Accessible Context) -->
+  <p class="chart-description" id="chart-description-id-kksq0s9p81m">
+    Transportation receives the largest budget allocation at $4.2B, followed by Education at $3.8B. Health spending increased 15% year-over-year.
+  </p>
 
-<!-- Data Table Alternative -->
-<table>
-  <caption>Population Growth 2020-2024</caption>
-  <thead>
-    <tr>
-      <th scope="col">Year</th>
-      <th scope="col">Population</th>
-      <th scope="col">Growth Rate</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>2020</td>
-      <td>6,000,000</td>
-      <td>—</td>
-    </tr>
-    <tr>
-      <td>2024</td>
-      <td>6,500,000</td>
-      <td>+8.3%</td>
-    </tr>
-  </tbody>
-</table>
+  <!-- Visualization Container (Decorative SVG, Hidden from Screen Readers) -->
+  <div 
+    class="visualization-container" 
+    role="img" 
+    id="chart-id-kksq0s9p81m" 
+    aria-labelledby="chart-title-id-kksq0s9p81m"
+  >
+    <!-- SVG Chart Content Goes Here (marked aria-hidden if nested SVG) -->
+    <svg aria-hidden="true">
+      <!-- Chart elements -->
+    </svg>
+  </div>
+</div>
+```
+
+### With Screen Reader Data Table Alternative
+
+```html
+<div class="usa-data-visualization">
+  <h3 class="chart-title" id="chart-title-id-example">
+    Budget Allocation Summary
+  </h3>
+
+  <p class="chart-description" id="chart-description-id-example">
+    Key budget trends for FY 2025 across major state agencies.
+  </p>
+
+  <!-- Visual Chart -->
+  <div 
+    class="visualization-container" 
+    role="img" 
+    id="chart-id-example" 
+    aria-labelledby="chart-title-id-example"
+  >
+    <svg aria-hidden="true">
+      <!-- SVG chart -->
+    </svg>
+  </div>
+
+  <!-- Screen Reader Only Data Table -->
+  <table class="usa-sr-only">
+    <caption>Maryland State Agency Budgets (FY 2025) - Data Table</caption>
+    <thead>
+      <tr>
+        <th>Agency</th>
+        <th>Budget Amount (Billions)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Transportation</td>
+        <td>$4.2B</td>
+      </tr>
+      <tr>
+        <td>Education</td>
+        <td>$3.8B</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+```
+
+### With Pattern Fills (Colorblind Accessible)
+
+```html
+<div class="usa-data-visualization">
+  <h3 class="chart-title" id="chart-title-id-patterns">
+    Budget Distribution with Pattern Fills
+  </h3>
+
+  <p class="chart-description" id="chart-description-id-patterns">
+    Uses distinct pattern fills in addition to colors for accessibility.
+  </p>
+
+  <div 
+    class="visualization-container" 
+    role="img" 
+    id="chart-id-patterns" 
+    aria-labelledby="chart-title-id-patterns"
+  >
+    <svg aria-hidden="true">
+      <!-- SVG with pattern fills and defs -->
+    </svg>
+  </div>
+</div>
+```
+
+### High Contrast Variant
+
+```html
+<div class="usa-data-visualization">
+  <h3 class="chart-title" id="chart-title-id-hc">
+    High Contrast Visualization
+  </h3>
+
+  <p class="chart-description" id="chart-description-id-hc">
+    Enhanced contrast ratios meeting WCAG AAA standards.
+  </p>
+
+  <div 
+    class="visualization-container" 
+    role="img" 
+    id="chart-id-hc" 
+    aria-labelledby="chart-title-id-hc"
+  >
+    <svg aria-hidden="true">
+      <!-- High-contrast SVG -->
+    </svg>
+  </div>
+</div>
 ```
 
 ### Context
 
-Data Visualizations are part of the MDWDS Components section, built on USWDS foundations for accessibility and consistency. They compose with Typography, Color, and Layout systems to present state data and metrics clearly to Maryland residents and stakeholders.
+Data Visualizations is a guidance component within the MDWDS system that demonstrates best practices for accessible chart and graph implementation across Maryland digital services. It extends USWDS accessibility patterns by combining semantic HTML, ARIA attributes, narrative descriptions, and alternative data representations to ensure all users can access and understand data-driven content, regardless of ability.
 
 ---
 
@@ -3129,72 +3556,157 @@ Data Visualizations are part of the MDWDS Components section, built on USWDS fou
 
 *Components*
 
-The Date Picker is a form component that allows users to select a date through an interactive calendar interface or by typing directly into an input field. It solves the problem of inconsistent date entry and validation across forms. Use it when you need users to provide a specific date in a standardized format.
+The Date Picker is an accessible calendar popup widget for date selection powered by USWDS JavaScript. It provides users with an interactive calendar interface for selecting dates while supporting keyboard navigation, date range constraints, and required field validation. Use this component when you need a user-friendly way to collect date input in forms.
 
 ### Key Information
 
-The Date Picker component includes:
-- An input field for manual date entry with format guidance
-- A calendar icon button that triggers an interactive calendar modal
-- Support for selecting single dates
-- Keyboard navigation through the calendar (arrow keys, Enter to select)
-- Optional date range selection
-- Built-in date validation
-- ARIA labels and roles for accessibility
-- Disabled date ranges or specific dates
-- Mobile-responsive design
-- Class names: `usa-date-picker`, `usa-date-picker__wrapper`, `usa-date-picker__input`
-- ARIA attributes: `aria-label`, `aria-haspopup="dialog"`, `aria-expanded`, `role="dialog"`
-- Required attributes: `type="text"` or `type="date"` on input
-- JavaScript initialization required to activate calendar functionality
-- Supports `min` and `max` date attributes for range constraints
+## Variants
+- **Default**: Basic date picker with calendar popup widget
+- **With Default Value**: Pre-filled default value (format: YYYY-MM-DD)
+- **With Min Max Dates**: Constrained date selection with minimum and maximum dates
+- **With Range Highlight**: Highlights date range from a specified date
+- **Required**: Marks the date field as required
+- **Disabled**: Disables the date picker input
+- **With Analytics**: Includes Google Analytics tracking attributes
+
+## CSS Classes
+- `usa-form-group`: Container wrapper
+- `usa-label`: Label element
+- `usa-hint`: Hint text for date format
+- `usa-date-picker`: Main date picker container
+- `usa-date-picker--initialized`: Applied when date picker JavaScript is initialized
+- `usa-input`: Input field styling
+- `usa-date-picker__internal-input`: Hidden internal input for accessibility
+- `usa-date-picker__external-input`: Visible user-facing input
+- `usa-date-picker__wrapper`: Wraps the external input
+
+## Key Attributes
+- `data-min-date`: Minimum selectable date (format: YYYY-MM-DD)
+- `aria-labelledby`: Associates input with label ID
+- `aria-describedby`: Associates input with hint text ID
+- `aria-hidden="true"`: Hides internal input from screen readers
+- `tabindex="-1"`: Removes internal input from tab order
+
+## Configuration Properties
+- **label**: Label text for the date picker input (string)
+- **hintText**: Optional hint text for date format (string)
+- **name**: Input name attribute for form submission (string)
+- **required**: Whether the date field is required (boolean)
+- **disabled**: Disable the date picker input (boolean)
+- **defaultValue**: Default date value (format: YYYY-MM-DD)
+- **minDate**: Minimum selectable date (format: YYYY-MM-DD)
+- **maxDate**: Maximum selectable date (format: YYYY-MM-DD)
+- **rangeDate**: Highlight range from this date (format: YYYY-MM-DD)
+- **enableAnalytics**: Enable or disable GA tracking (boolean)
+- **gaCategory**: Google Analytics event category (string)
+- **gaAction**: Google Analytics event action (string)
+- **gaLabel**: Google Analytics event label (string)
+
+## Important Facts
+- Requires USWDS JavaScript to be loaded for functionality
+- Calendar widget initializes automatically on page load
+- Supports keyboard navigation: arrow keys, Page Up/Down, Home/End
+- Follows WCAG 2.1 AA accessibility requirements
+- Two-input pattern: internal hidden input + external visible input for accessibility
 
 ### Implementation
 
 ```html
-<!-- Basic Date Picker -->
-<div class="usa-date-picker">
-  <label class="usa-label" for="date-picker-input">
-    Select a date
+<div class="usa-form-group">
+  <label class="usa-label" id="date-picker-label-id-q3gi6d6crmn" for="date-picker-id-q3gi6d6crmn">
+    Appointment date
   </label>
-  <input
-    class="usa-input"
-    id="date-picker-input"
-    type="text"
-    name="date"
-    aria-label="Select a date"
-  />
+  <div class="usa-hint" id="date-picker-hint-id-q3gi6d6crmn">mm/dd/yyyy</div>
+  
+  <div class="usa-date-picker usa-date-picker--initialized" data-min-date="0000-01-01">
+    <!-- Internal hidden input for accessibility -->
+    <input 
+      class="usa-input usa-date-picker__internal-input" 
+      aria-labelledby="date-picker-label-id-q3gi6d6crmn" 
+      aria-describedby="date-picker-hint-id-q3gi6d6crmn" 
+      aria-hidden="true" 
+      tabindex="-1" 
+      style="display: none;">
+    
+    <!-- Wrapper for external input -->
+    <div class="usa-date-picker__wrapper">
+      <!-- External visible input for user interaction -->
+      <input 
+        class="usa-input usa-date-picker__external-input" 
+        id="date-picker-id-q3gi6d6crmn"
+        aria-labelledby="date-picker-label-id-q3gi6d6crmn" 
+        aria-describedby="date-picker-hint-id-q3gi6d6crmn" 
+        placeholder="mm/dd/yyyy"
+        type="text">
+    </div>
+  </div>
 </div>
+```
 
-<!-- Date Picker with constraints -->
-<div class="usa-date-picker">
-  <label class="usa-label" for="date-range-input">
-    Select a date (within range)
+## With Min/Max Dates Example
+```html
+<div class="usa-form-group">
+  <label class="usa-label" id="date-picker-min-max-label" for="date-picker-min-max">
+    Select Date
   </label>
-  <input
-    class="usa-input"
-    id="date-range-input"
-    type="text"
-    name="date-range"
-    min="2024-01-01"
-    max="2024-12-31"
-    aria-label="Select a date within range"
-  />
+  <div class="usa-hint" id="date-picker-min-max-hint">mm/dd/yyyy</div>
+  
+  <div class="usa-date-picker usa-date-picker--initialized" 
+       data-min-date="2024-01-01" 
+       data-max-date="2024-12-31">
+    <input 
+      class="usa-input usa-date-picker__internal-input" 
+      aria-labelledby="date-picker-min-max-label" 
+      aria-describedby="date-picker-min-max-hint" 
+      aria-hidden="true" 
+      tabindex="-1" 
+      style="display: none;">
+    
+    <div class="usa-date-picker__wrapper">
+      <input 
+        class="usa-input usa-date-picker__external-input" 
+        id="date-picker-min-max"
+        aria-labelledby="date-picker-min-max-label" 
+        aria-describedby="date-picker-min-max-hint" 
+        placeholder="mm/dd/yyyy"
+        type="text">
+    </div>
+  </div>
 </div>
+```
 
-<!-- JavaScript initialization (required) -->
-<script>
-  const datePickers = document.querySelectorAll('.usa-date-picker input');
-  datePickers.forEach(picker => {
-    // USWDS provides initialization via component API
-    // Typical initialization (framework-dependent)
-  });
-</script>
+## Required Date Picker Example
+```html
+<div class="usa-form-group">
+  <label class="usa-label" id="date-picker-req-label" for="date-picker-req">
+    Required Date <span class="usa-label__required">*</span>
+  </label>
+  
+  <div class="usa-date-picker usa-date-picker--initialized" data-min-date="0000-01-01">
+    <input 
+      class="usa-input usa-date-picker__internal-input" 
+      aria-labelledby="date-picker-req-label" 
+      aria-hidden="true" 
+      tabindex="-1" 
+      required
+      style="display: none;">
+    
+    <div class="usa-date-picker__wrapper">
+      <input 
+        class="usa-input usa-date-picker__external-input" 
+        id="date-picker-req"
+        aria-labelledby="date-picker-req-label" 
+        placeholder="mm/dd/yyyy"
+        type="text"
+        required>
+    </div>
+  </div>
+</div>
 ```
 
 ### Context
 
-The Date Picker is part of the USWDS components integrated into MDWDS and is commonly used in forms alongside other input components like text fields and dropdowns. It ensures consistent date entry practices across Maryland state web applications and supports accessible date selection for all users.
+The Date Picker is a USWDS-based component that integrates into the MDWDS form system, composing with the form group, label, and hint text components. It provides an accessible alternative to native date inputs and enables consistent date entry across Maryland digital properties.
 
 ---
 
@@ -3202,120 +3714,200 @@ The Date Picker is part of the USWDS components integrated into MDWDS and is com
 
 *Components*
 
-The Date Range Picker is a USWDS component that allows users to select a start and end date from a calendar interface. It simplifies date range selection for forms and filters by providing an accessible, interactive date picker with keyboard navigation and screen reader support. Use this when users need to specify a time period for searches, reporting, or data filtering.
+The Date Range Picker component enables users to select a date range using two synchronized date picker widgets (start date and end date). It validates that the end date is after the start date and supports constraining the range with minimum and maximum dates. Use this when users need to specify a date interval, such as for booking, event planning, or filtering by date range.
 
 ### Key Information
 
-## Variants and Structure
-- Single calendar or dual calendar layout options
-- Supports keyboard navigation (arrow keys, Enter, Escape)
-- Preset range options (Last 7 days, Last 30 days, etc.)
+## Key Features
 
-## CSS Class Names
-- `.usa-date-range-picker`: Main container
-- `.usa-date-range-picker__calendar`: Calendar container
-- `.usa-date-range-picker__input-group`: Input field group
-- `.usa-date-range-picker__input`: Individual date input field
-- `.usa-date-range-picker__button`: Calendar trigger button
+- **Dual Date Pickers**: Two connected date picker components that work together to enforce valid date ranges
+- **Date Constraints**: Support for minimum (`minDate`) and maximum (`maxDate`) dates in YYYY-MM-DD format
+- **Default Values**: Can be pre-populated with `startDefaultValue` and `endDefaultValue` (YYYY-MM-DD format)
+- **Required State**: Boolean `required` property to make both date fields mandatory
+- **Disabled State**: Boolean `disabled` property to disable both date picker inputs
+- **Labels and Hints**: Configurable `startLabel` and `endLabel` properties; optional `hintText` for date format guidance
+- **Form Integration**: `startName` and `endName` properties for input name attributes
+- **Analytics Support**: Optional Google Analytics tracking with `enableAnalytics`, `gaCategory`, `gaAction`, and `gaLabel` properties
+- **Keyboard Navigation**: Full keyboard support across both pickers
+- **Accessibility**: Follows WCAG 2.1 AA requirements with proper ARIA labels and labelledby attributes
+
+## CSS Classes
+
+- `.usa-date-range-picker`: Main container wrapper
+- `.usa-date-range-picker__range-start`: Applied to the start date picker's date-picker container
+- `.usa-date-range-picker__range-end`: Applied to the end date picker's date-picker container (implied from pattern)
+- `.usa-form-group`: Standard form group wrapper for each date picker
+- `.usa-label`: Label element styling
+- `.usa-hint`: Hint text styling
+- `.usa-date-picker`: Individual date picker component
+- `.usa-date-picker--initialized`: Applied when date picker is fully initialized
+- `.usa-date-picker__internal-input`: Internal input field class
+- `.usa-input`: Standard input styling
+
+## Data Attributes
+
+- `data-min-date`: Minimum selectable date (format: YYYY-MM-DD)
+- `data-max-date`: Maximum selectable date (format: YYYY-MM-DD)
+- `data-range-date`: Tracks the date range state
+- `data-default-date`: Stores default date value
 
 ## Required Attributes
-- `type="date"` on input elements for native date support
-- `aria-label` or `aria-labelledby` for accessibility
-- `data-start-date` and `data-end-date` for programmatic date setting
-- Form labels associated with each date input via `<label>` elements with `for` attributes
 
-## Important Facts
-- Built on USWDS date range picker component
-- Includes built-in validation for date format
-- Supports custom date formats through configuration
-- Automatically handles leap years and month boundaries
+- `id` on input elements (unique identifiers)
+- `for` on label elements (links labels to inputs)
+- `aria-labelledby` on inputs (connects to label by ID)
+- `aria-describedby` on inputs (connects to hint text by ID)
+
+## JavaScript Requirement
+
+This component requires USWDS JavaScript to be loaded and initialized. The component uses the `.usa-date-picker--initialized` class to indicate successful initialization.
 
 ### Implementation
 
 ```html
-<div class="usa-date-range-picker">
-  <fieldset class="usa-fieldset">
-    <legend class="usa-legend">
-      <label for="start-date">Start Date</label>
-    </legend>
-    <div class="usa-date-range-picker__input-group">
-      <input 
-        class="usa-date-range-picker__input usa-input"
-        id="start-date"
-        name="start-date"
-        type="date"
-        aria-label="Start Date"
-      />
+<div class="usa-date-range-picker" data-min-date="0000-01-01">
+  <!-- Start Date Picker -->
+  <div class="usa-form-group">
+    <label class="usa-label" id="date-range-start-label-id-zfxqi06s7v8" for="date-range-start-id-zfxqi06s7v8">
+      Event start date
+    </label>
+    <div class="usa-hint" id="date-range-start-hint-id-zfxqi06s7v8">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-start" data-min-date="0000-01-01" data-max-date="" data-range-date="" data-default-date="">
+      <input class="usa-input usa-date-picker__internal-input" aria-labelledby="date-range-start-label-id-zfxqi06s7v8" aria-describedby="date-range-start-hint-id-zfxqi06s7v8" id="date-range-start-id-zfxqi06s7v8" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
     </div>
-  </fieldset>
+  </div>
 
-  <fieldset class="usa-fieldset">
-    <legend class="usa-legend">
-      <label for="end-date">End Date</label>
-    </legend>
-    <div class="usa-date-range-picker__input-group">
-      <input 
-        class="usa-date-range-picker__input usa-input"
-        id="end-date"
-        name="end-date"
-        type="date"
-        aria-label="End Date"
-      />
+  <!-- End Date Picker -->
+  <div class="usa-form-group">
+    <label class="usa-label" id="date-range-end-label-id-zfxqi06s7v8" for="date-range-end-id-zfxqi06s7v8">
+      Event end date
+    </label>
+    <div class="usa-hint" id="date-range-end-hint-id-zfxqi06s7v8">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-end" data-min-date="0000-01-01" data-max-date="" data-range-date="" data-default-date="">
+      <input class="usa-input usa-date-picker__internal-input" aria-labelledby="date-range-end-label-id-zfxqi06s7v8" aria-describedby="date-range-end-hint-id-zfxqi06s7v8" id="date-range-end-id-zfxqi06s7v8" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
     </div>
-  </fieldset>
+  </div>
 </div>
 ```
 
-## With Calendar Popup
+## With Min/Max Dates Example
+
 ```html
-<div class="usa-date-range-picker">
-  <fieldset class="usa-fieldset">
-    <legend class="usa-legend">Date Range</legend>
-    <div class="usa-date-range-picker__input-group">
-      <input 
-        class="usa-date-range-picker__input usa-input"
-        id="date-range-start"
-        name="start-date"
-        type="text"
-        placeholder="MM/DD/YYYY"
-        aria-label="Start Date"
-      />
-      <button 
-        class="usa-button usa-button--unstyled usa-date-range-picker__button"
-        type="button"
-        aria-label="Open start date calendar"
-      >
-        <svg aria-hidden="true" class="usa-icon">
-          <use xlink:href="/assets/img/sprite.svg#calendar"></use>
-        </svg>
-      </button>
+<div class="usa-date-range-picker" data-min-date="2024-01-01" data-max-date="2024-12-31">
+  <div class="usa-form-group">
+    <label class="usa-label" id="start-label" for="start-input">
+      Start Date
+    </label>
+    <div class="usa-hint" id="start-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-start" data-min-date="2024-01-01" data-max-date="2024-12-31" data-default-date="2024-01-15">
+      <input class="usa-input usa-date-picker__internal-input" aria-labelledby="start-label" aria-describedby="start-hint" id="start-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
     </div>
-    <div class="usa-date-range-picker__input-group">
-      <input 
-        class="usa-date-range-picker__input usa-input"
-        id="date-range-end"
-        name="end-date"
-        type="text"
-        placeholder="MM/DD/YYYY"
-        aria-label="End Date"
-      />
-      <button 
-        class="usa-button usa-button--unstyled usa-date-range-picker__button"
-        type="button"
-        aria-label="Open end date calendar"
-      >
-        <svg aria-hidden="true" class="usa-icon">
-          <use xlink:href="/assets/img/sprite.svg#calendar"></use>
-        </svg>
-      </button>
+  </div>
+
+  <div class="usa-form-group">
+    <label class="usa-label" id="end-label" for="end-input">
+      End Date
+    </label>
+    <div class="usa-hint" id="end-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-end" data-min-date="2024-01-01" data-max-date="2024-12-31" data-default-date="2024-12-15">
+      <input class="usa-input usa-date-picker__internal-input" aria-labelledby="end-label" aria-describedby="end-hint" id="end-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
     </div>
-  </fieldset>
+  </div>
 </div>
+```
+
+## Required State
+
+```html
+<div class="usa-date-range-picker" data-min-date="0000-01-01">
+  <div class="usa-form-group">
+    <label class="usa-label" id="req-start-label" for="req-start-input">
+      Start Date <span class="usa-label__required-mark">*</span>
+    </label>
+    <div class="usa-hint" id="req-start-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-start" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" required aria-labelledby="req-start-label" aria-describedby="req-start-hint" id="req-start-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+
+  <div class="usa-form-group">
+    <label class="usa-label" id="req-end-label" for="req-end-input">
+      End Date <span class="usa-label__required-mark">*</span>
+    </label>
+    <div class="usa-hint" id="req-end-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-end" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" required aria-labelledby="req-end-label" aria-describedby="req-end-hint" id="req-end-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+</div>
+```
+
+## Disabled State
+
+```html
+<div class="usa-date-range-picker" data-min-date="0000-01-01">
+  <div class="usa-form-group">
+    <label class="usa-label" id="dis-start-label" for="dis-start-input">
+      Start Date
+    </label>
+    <div class="usa-hint" id="dis-start-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-start" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" disabled aria-labelledby="dis-start-label" aria-describedby="dis-start-hint" id="dis-start-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+
+  <div class="usa-form-group">
+    <label class="usa-label" id="dis-end-label" for="dis-end-input">
+      End Date
+    </label>
+    <div class="usa-hint" id="dis-end-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-end" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" disabled aria-labelledby="dis-end-label" aria-describedby="dis-end-hint" id="dis-end-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+</div>
+```
+
+## With Google Analytics Attributes
+
+```html
+<div class="usa-date-range-picker" data-min-date="0000-01-01">
+  <div class="usa-form-group">
+    <label class="usa-label" id="ga-start-label" for="ga-start-input">
+      Start Date
+    </label>
+    <div class="usa-hint" id="ga-start-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-start" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" data-ga-event-category="booking" data-ga-event-action="start_date_selected" data-ga-event-label="date-range-picker" aria-labelledby="ga-start-label" aria-describedby="ga-start-hint" id="ga-start-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+
+  <div class="usa-form-group">
+    <label class="usa-label" id="ga-end-label" for="ga-end-input">
+      End Date
+    </label>
+    <div class="usa-hint" id="ga-end-hint">mm/dd/yyyy</div>
+    <div class="usa-date-picker usa-date-picker--initialized usa-date-range-picker__range-end" data-min-date="0000-01-01">
+      <input class="usa-input usa-date-picker__internal-input" data-ga-event-category="booking" data-ga-event-action="end_date_selected" data-ga-event-label="date-range-picker" aria-labelledby="ga-end-label" aria-describedby="ga-end-hint" id="ga-end-input" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" />
+    </div>
+  </div>
+</div>
+```
+
+## JavaScript Initialization
+
+```javascript
+// USWDS Date Range Picker requires USWDS JavaScript library
+// Include the USWDS JS bundle from CDN:
+<script src="https://cdn.jsdelivr.net/npm/uswds@3.x.x/dist/js/uswds.min.js"></script>
+
+// The component auto-initializes when USWDS JS loads and finds elements with the usa-date-range-picker class
+// No additional initialization code is required if using the USWDS JS bundle
 ```
 
 ### Context
 
-The Date Range Picker is a USWDS-based component integrated into MDWDS for consistent date selection across Maryland state web applications. It composes with form fieldsets and input components to provide an accessible interface for date-based filtering and data entry.
+The Date Range Picker is a USWDS component integrated into MDWDS that combines two synchronized Date Picker components to enable range selection with validation. It extends the single Date Picker component by adding cross-field validation and coordinated min/max constraints, allowing complex date-range workflows while maintaining accessibility and keyboard navigation consistency across the system.
 
 ---
 
@@ -3323,117 +3915,146 @@ The Date Range Picker is a USWDS-based component integrated into MDWDS for consi
 
 *Components*
 
-The File Input component allows users to select and upload files from their device. It provides an accessible interface for file selection with support for multiple files and file type restrictions. Use this component when you need to collect file uploads from users in forms or data entry workflows.
+The File Input component provides an accessible and user-friendly way to upload single or multiple files. It supports drag-and-drop functionality, file type restrictions, error states, and optional Google Analytics tracking. Use this component whenever users need to upload documents or other file types to a form.
 
 ### Key Information
 
-## Variants and Modifiers
+## Variants & Modifiers
+- **Default**: Single file upload with drag-and-drop
+- **Multiple Files**: Enable multiple file selection
+- **Image Only**: Restrict to image file types
+- **Error State**: Display validation error messages
+- **Disabled**: Prevent file input interaction
 
-- **Single file input**: Standard file input for uploading one file
-- **Multiple file input**: Allows users to select and upload multiple files at once
-- **Disabled state**: File input can be disabled to prevent user interaction
-- **Error state**: Displays validation errors when required files are missing or invalid
+## Key CSS Classes
+- `usa-form-group` - Form group wrapper
+- `usa-label` - Label element
+- `usa-hint` - Hint/helper text
+- `usa-file-input` - Main file input container
+- `usa-sr-only` - Screen reader only text
+- `usa-file-input__target` - Drag-and-drop target area
+- `usa-file-input__box` - Visual container for drop zone
+- `usa-file-input__instructions` - Instructions text wrapper
+- `usa-file-input__drag-text` - Drag instruction text
+- `usa-file-input__choose` - "Choose from folder" text
 
-## CSS Classes
+## Component Properties
+- `label` (string, required) - Label text for the file input
+- `hint` (string, optional) - Helper text describing file requirements
+- `multiple` (boolean) - Allow multiple file selection
+- `accept` (string) - Comma-separated file types (e.g., '.pdf,.doc,.docx' or 'image/*')
+- `disabled` (boolean) - Disable the input
+- `error` (boolean) - Show error state
+- `errorMessage` (string) - Error message to display
 
-- `.usa-file-input`: Main wrapper class for the file input component
-- `.usa-file-input__input`: The actual input element
-- `.usa-file-input__target`: Drop zone target area
+## Analytics Properties
+- `enableAnalytics` (boolean) - Enable GA tracking
+- `gaCategory` (string) - GA event category
+- `gaAction` (string) - GA event action
+- `gaLabel` (string) - GA event label
 
 ## Required Attributes
-
-- `type="file"`: Specifies the input type as file
-- `id`: Unique identifier for the input
-- `name`: Form field name for data submission
+- `for` attribute on label linked to input `id`
+- `aria-live="polite"` on status message div
+- `aria-hidden="true"` on visual instructions
 
 ## Important Facts
-
-- Supports `accept` attribute to restrict file types (e.g., `accept=".pdf,.doc,.docx"`)
-- Supports `multiple` attribute for multi-file selection
-- Provides visual feedback during file selection and upload
-- Includes accessible labels and error messages
-- Works with form validation and submission
+- Implements USWDS File Input component
+- Supports native HTML5 file input with USWDS styling
+- Drag-and-drop functionality requires USWDS JavaScript initialization
+- Status updates announced to screen readers via aria-live region
+- Built on usa-form base styling
 
 ### Implementation
 
 ```html
-<!-- Basic File Input -->
-<div class="usa-file-input">
-  <label class="usa-label" for="file-input-single">
+<form class="usa-form">
+  <div class="usa-form-group">
+    <label class="usa-label" for="id-8zrdopf1b9i">
+      Upload a file
+    </label>
+    <div class="usa-hint" id="id-4t7m3jodzqb">
+      Select PDF, Word, or text files smaller than 20MB
+    </div>
+    
+    <div class="usa-file-input">
+      <div class="usa-sr-only" aria-live="polite">
+        No file selected.
+      </div>
+      <div class="usa-file-input__target">
+        <div class="usa-file-input__box"></div>
+        <div class="usa-file-input__instructions" aria-hidden="true">
+          <span class="usa-file-input__drag-text">Drag file here or</span>
+          <span class="usa-file-input__choose">choose from folder</span>
+        </div>
+        <input 
+          class="usa-file-input__input" 
+          id="id-8zrdopf1b9i"
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          aria-describedby="id-4t7m3jodzqb"
+        />
+      </div>
+    </div>
+  </div>
+</form>
+```
+
+### Multiple Files Variant
+```html
+<input 
+  class="usa-file-input__input" 
+  id="id-multiple"
+  type="file"
+  multiple
+  accept=".pdf,.doc,.docx,.txt"
+  aria-describedby="id-hint"
+/>
+```
+
+### Error State Variant
+```html
+<div class="usa-form-group usa-form-group--error">
+  <label class="usa-label" for="id-error">
     Upload a file
   </label>
-  <input
-    class="usa-file-input__input"
-    id="file-input-single"
-    type="file"
-    name="file-input-single"
-  />
-</div>
-
-<!-- Multiple File Input -->
-<div class="usa-file-input">
-  <label class="usa-label" for="file-input-multiple">
-    Upload multiple files
-  </label>
-  <input
-    class="usa-file-input__input"
-    id="file-input-multiple"
-    type="file"
-    name="file-input-multiple"
-    multiple
-  />
-</div>
-
-<!-- File Input with File Type Restriction -->
-<div class="usa-file-input">
-  <label class="usa-label" for="file-input-restricted">
-    Upload PDF or Word document
-  </label>
-  <input
-    class="usa-file-input__input"
-    id="file-input-restricted"
-    type="file"
-    name="file-input-restricted"
-    accept=".pdf,.doc,.docx"
-  />
-</div>
-
-<!-- Disabled File Input -->
-<div class="usa-file-input">
-  <label class="usa-label" for="file-input-disabled">
-    Upload a file (disabled)
-  </label>
-  <input
-    class="usa-file-input__input"
-    id="file-input-disabled"
-    type="file"
-    name="file-input-disabled"
-    disabled
-  />
-</div>
-
-<!-- File Input with Error -->
-<div class="usa-file-input">
-  <label class="usa-label" for="file-input-error">
-    Upload a file
-  </label>
-  <input
-    class="usa-file-input__input"
-    id="file-input-error"
-    type="file"
-    name="file-input-error"
-    aria-invalid="true"
-    aria-describedby="file-input-error-message"
-  />
-  <span class="usa-error-message" id="file-input-error-message" role="alert">
+  <div class="usa-error-message" role="alert">
     Please select a valid file
-  </span>
+  </div>
+  <div class="usa-file-input">
+    <div class="usa-sr-only" aria-live="polite">
+      No file selected.
+    </div>
+    <div class="usa-file-input__target">
+      <div class="usa-file-input__box"></div>
+      <div class="usa-file-input__instructions" aria-hidden="true">
+        <span class="usa-file-input__drag-text">Drag file here or</span>
+        <span class="usa-file-input__choose">choose from folder</span>
+      </div>
+      <input 
+        class="usa-file-input__input" 
+        id="id-error"
+        type="file"
+        aria-invalid="true"
+      />
+    </div>
+  </div>
 </div>
+```
+
+### Disabled State Variant
+```html
+<input 
+  class="usa-file-input__input" 
+  id="id-disabled"
+  type="file"
+  disabled
+/>
 ```
 
 ### Context
 
-The File Input component is part of the MDWDS component library based on USWDS and provides a standardized way to collect file uploads across Maryland state web applications. It integrates with form validation patterns and works alongside labels, error messages, and other form components to create complete, accessible form experiences.
+The File Input component is part of the USWDS-based form components system in MDWDS. It integrates with the `usa-form-group` and `usa-label` components to provide complete accessible form field functionality. Pairs with hint text (usa-hint) and error messaging (usa-error-message) for comprehensive user feedback.
 
 ---
 
@@ -3441,71 +4062,99 @@ The File Input component is part of the MDWDS component library based on USWDS a
 
 *Components*
 
-The Footer component provides a consistent bottom section for Maryland state web pages, containing navigation links, contact information, and legal notices. It establishes a unified visual identity across all state websites and communicates important information to users at the end of their browsing experience.
+The Footer component is a comprehensive page footer that displays navigate links for Maryland.gov, including top services, government information, policies, connect options, and alerts. It serves as a persistent navigation and information access point at the bottom of pages and provides users with quick links to critical state services and resources.
 
 ### Key Information
 
-## Variants
+## Class Names and Structure
 
-- **Standard Footer**: Full-width footer with navigation links, social media links, contact information, and copyright notice
-- **Minimal Footer**: Simplified version with only essential information
+### Root Container
+- `maryland-footer` — main footer wrapper
+- `maryland-footer__container` — inner container for footer content
 
-## CSS Classes
+### Sections
+- `maryland-footer__section` — wraps each major section (e.g., Top services, Government)
+- Use `aria-labelledby` attribute to associate section with its heading
 
-- `.footer`: Main footer container
-- `.footer__content`: Content wrapper for footer sections
-- `.footer__section`: Individual footer section
-- `.footer__links`: Container for footer links
-- `.footer__link`: Individual footer link
-- `.footer__social`: Social media links section
-- `.footer__copyright`: Copyright and legal information area
+### Section Headers
+- `maryland-footer__title` — main section heading (H2 level)
+- Use `id` attribute to match with section's `aria-labelledby`
+
+### Link Groups
+- `maryland-footer__link-group` — navigation container for related links
+- `maryland-footer__link-group-heading` — subheading for link group (H3 level)
+- `maryland-footer__link-group-list` — unordered list `<ul>` containing link items
+
+### Content Area
+- `maryland-footer__content` — wraps multiple link groups within a section
 
 ## Key Attributes
+- Sections require `aria-labelledby` pointing to the heading `id`
+- Headings (`h2`, `h3`) must have `id` attributes that match the associated `aria-labelledby` values
+- Links are standard `<a>` elements with `href` attributes
 
-- Use semantic `<footer>` element wrapper
-- Include proper navigation structure with lists for link groups
-- Social media links should have descriptive `aria-label` attributes
-- Copyright text should be in a `<small>` or `<p>` tag
+## Content Structure
+The footer typically organizes links into sections like:
+- Top services (Vehicle services, Food assistance, Unemployment, Taxes, etc.)
+- Government (Governor, Cabinet agencies, State agencies, etc.)
+- Policies (Accessibility, Privacy & security, Terms of use)
+- Connect (Maryland Relay, Employee directory, News, etc.)
+- Alerts (Emergency alerts, Travel alerts, Cybersecurity, etc.)
 
-## Important Facts
-
-- Footer should appear on every page for consistency
-- Ensure sufficient color contrast for all text and links
-- Include contact information and agency links
-- Support responsive layout on mobile devices
+## Copyright Notice
+Footer includes a copyright statement (© 2026 State of Maryland. All rights reserved.)
 
 ### Implementation
 
 ```html
-<footer class="footer">
-  <div class="footer__content">
-    <div class="footer__section">
-      <h3>Quick Links</h3>
-      <ul class="footer__links">
-        <li><a href="#" class="footer__link">About</a></li>
-        <li><a href="#" class="footer__link">Services</a></li>
-        <li><a href="#" class="footer__link">Contact</a></li>
-      </ul>
-    </div>
-    
-    <div class="footer__section">
-      <h3>Follow Us</h3>
-      <div class="footer__social">
-        <a href="#" class="footer__link" aria-label="Facebook">Facebook</a>
-        <a href="#" class="footer__link" aria-label="Twitter">Twitter</a>
+<footer class="maryland-footer">
+  <div class="maryland-footer__container">
+    <section aria-labelledby="global-footer" class="maryland-footer__section">
+      <h2 class="maryland-footer__title" id="global-footer">
+        Explore Maryland.gov
+      </h2>
+      <div class="maryland-footer__content">
+        <nav class="maryland-footer__link-group" aria-labelledby="top-services">
+          <h3 class="maryland-footer__link-group-heading" id="top-services">
+            Top services
+          </h3>
+          <ul class="maryland-footer__link-group-list">
+            <li>
+              <a href="https://mva.maryland.gov/vehicles">Vehicle services</a>
+            </li>
+            <li>
+              <a href="https://dhs.maryland.gov/supplemental-nutrition-assistance-program/">Food assistance / SNAP</a>
+            </li>
+            <li>
+              <a href="https://www.labor.maryland.gov/employment/unemployment.shtml">Unemployment services</a>
+            </li>
+            <li>
+              <a href="https://www.marylandtaxes.gov/individual/index.php">Taxes</a>
+            </li>
+            <li>
+              <a href="https://elections.maryland.gov/voter_registration/index.html">Register to vote</a>
+            </li>
+            <li>
+              <a href="https://www.maryland.gov/pages/residents.aspx">Resident resources</a>
+            </li>
+            <li>
+              <a href="https://www.visitmaryland.org/">Visit Maryland</a>
+            </li>
+          </ul>
+        </nav>
+        <!-- Additional link groups follow the same pattern -->
       </div>
-    </div>
-  </div>
-  
-  <div class="footer__copyright">
-    <small>&copy; 2024 State of Maryland. All rights reserved.</small>
+    </section>
   </div>
 </footer>
 ```
 
+## Full Component Structure
+Multiple `maryland-footer__link-group` elements can be placed within a single `maryland-footer__content` container. Each section can contain one or more link groups. The entire footer is wrapped in `maryland-footer` and `maryland-footer__container`.
+
 ### Context
 
-The Footer is a fundamental layout component in MDWDS that anchors the bottom of state web pages and maintains visual consistency across Maryland government sites. It typically composes with the Header and main content areas to create a complete page template structure.
+The Footer component is a foundational layout component in the MDWDS system that provides consistent bottom-of-page navigation and information architecture across all Maryland.gov properties. It works in conjunction with the Header component to frame page content and uses semantic HTML (section, nav, heading hierarchy) with ARIA attributes to ensure accessibility and proper semantic structure.
 
 ---
 
@@ -3513,122 +4162,103 @@ The Footer is a fundamental layout component in MDWDS that anchors the bottom of
 
 *Components*
 
-Form is a foundational component that groups input fields and controls to collect user data. Forms are essential for user interaction and data submission on web pages. Use forms whenever you need to gather information from users in an organized, accessible manner.
+The USWDS Form component provides a consistent container and semantic markup for organizing form elements. It supports standard and large variants, fieldset grouping with legends, and optional Google Analytics tracking. Use it to create accessible, properly-structured forms with organized field groups.
 
 ### Key Information
 
-## USWDS Form Components
+## Variants and Modifiers
 
-The Form component is built on USWDS (U.S. Web Design System) standards and includes:
+- **Standard Form**: `usa-form` class applied to `<form>` element
+- **Large Form**: `usa-form--large` modifier class for emphasis
+- **With Fieldset**: Use `<fieldset>` with `<legend>` to group related fields
 
-### Key Variants & Elements:
-- **Text Inputs**: Basic text field inputs with labels
-- **Checkboxes**: Multiple selection options
-- **Radio Buttons**: Single selection from options
-- **Select Dropdowns**: Predefined option selection
-- **Textareas**: Multi-line text input
-- **Form Groups**: Wrapper for logical field grouping
+## Required HTML Structure
 
-### CSS Classes:
-- `.usa-form`: Main form wrapper class
-- `.usa-form-group`: Groups form fields with spacing
-- `.usa-label`: Styles form labels
-- `.usa-input`: Styles input fields
-- `.usa-checkbox`, `.usa-radio`: Wrapper classes for checkboxes and radio buttons
-- `.usa-select`: Styles select dropdowns
-- `.usa-textarea`: Styles textarea elements
-- `.usa-form__note`: Adds helper text or hints
-- `.usa-error`: Indicates error state
-- `.usa-hint`: Helper text styling
+- Form element with `usa-form` class
+- Labels use `usa-label` class and `for` attribute linking to input `id`
+- Inputs use `usa-input` class
+- Buttons use `usa-button` class with `type="submit"`
+- Fieldsets use standard HTML5 `<fieldset>` and `<legend>` elements
 
-### Required Attributes:
-- `<label>` with `for` attribute matching input `id`
-- Input elements must have unique `id` attributes
-- `name` attribute on all input elements
-- `type` attribute specifying input type
+## Configuration Options
 
-### Important Facts:
-- All form inputs should have associated labels for accessibility
-- Error messaging should use ARIA live regions
-- Forms support both inline and block display modes
-- USWDS forms follow 508 compliance standards
-- Form validation should provide clear user feedback
+- **large**: Boolean to enable large variant styling (usa-form--large)
+- **includeFieldset**: Boolean to include fieldset with legend
+- **legend**: String for fieldset legend text
+- **enableAnalytics**: Boolean to enable Google Analytics tracking attributes
+- **gaCategory**: GA event category string
+- **gaAction**: GA event action string
+- **gaLabel**: GA event label string
+
+## Key Features
+
+- Supports text inputs, email inputs, radio buttons, checkboxes, and textareas
+- Hint text support for field guidance
+- Nested fieldsets for complex forms
+- Autocomplete attributes (e.g., `autocomplete="given-name"`, `autocomplete="email"`)
+- `required` attribute for validation
+- Unique ID generation for all form inputs and labels
 
 ### Implementation
 
+## Basic Form
+
 ```html
-<!-- Basic Form Structure -->
-<form class="usa-form">
-  <!-- Text Input -->
-  <div class="usa-form-group">
-    <label class="usa-label" for="input-name">Name</label>
-    <input class="usa-input" id="input-name" type="text" name="name">
-  </div>
+<form class="usa-form" id="form-id">
+  <label class="usa-label" for="first-name-id">First name</label>
+  <input class="usa-input" name="first-name" type="text" autocomplete="given-name" required="" id="first-name-id">
 
-  <!-- Text Input with Error -->
-  <div class="usa-form-group usa-form-group--error">
-    <label class="usa-label" for="input-error">Field with Error</label>
-    <span class="usa-error-message" id="input-error-message" role="alert">Error message here</span>
-    <input class="usa-input usa-input--error" id="input-error" type="text" name="error-field" aria-describedby="input-error-message">
-  </div>
+  <label class="usa-label" for="last-name-id">Last name</label>
+  <input class="usa-input" name="last-name" type="text" autocomplete="family-name" required="" id="last-name-id">
 
-  <!-- Textarea -->
-  <div class="usa-form-group">
-    <label class="usa-label" for="textarea-example">Comments</label>
-    <textarea class="usa-textarea" id="textarea-example" name="comments"></textarea>
-  </div>
+  <label class="usa-label" for="email-id">Email address</label>
+  <input class="usa-input" name="email" type="email" autocomplete="email" required="" id="email-id">
 
-  <!-- Checkbox -->
-  <fieldset class="usa-fieldset">
-    <legend class="usa-legend">Checkbox Options</legend>
-    <div class="usa-checkbox">
-      <input class="usa-checkbox__input" id="checkbox-1" type="checkbox" name="checkbox-option" value="option-1">
-      <label class="usa-checkbox__label" for="checkbox-1">Option 1</label>
-    </div>
-    <div class="usa-checkbox">
-      <input class="usa-checkbox__input" id="checkbox-2" type="checkbox" name="checkbox-option" value="option-2">
-      <label class="usa-checkbox__label" for="checkbox-2">Option 2</label>
-    </div>
+  <button type="submit" class="usa-button">Submit</button>
+</form>
+```
+
+## Large Form Variant
+
+```html
+<form class="usa-form usa-form--large" id="form-id">
+  <label class="usa-label" for="first-name-id">First name</label>
+  <input class="usa-input" name="first-name" type="text" autocomplete="given-name" required="" id="first-name-id">
+
+  <label class="usa-label" for="last-name-id">Last name</label>
+  <input class="usa-input" name="last-name" type="text" autocomplete="family-name" required="" id="last-name-id">
+
+  <label class="usa-label" for="email-id">Email address</label>
+  <input class="usa-input" name="email" type="email" autocomplete="email" required="" id="email-id">
+
+  <button type="submit" class="usa-button">Submit</button>
+</form>
+```
+
+## Form with Fieldset
+
+```html
+<form class="usa-form" id="form-id">
+  <fieldset>
+    <legend>Personal Information</legend>
+
+    <label class="usa-label" for="first-name-id">First name</label>
+    <input class="usa-input" name="first-name" type="text" autocomplete="given-name" required="" id="first-name-id">
+
+    <label class="usa-label" for="last-name-id">Last name</label>
+    <input class="usa-input" name="last-name" type="text" autocomplete="family-name" required="" id="last-name-id">
+
+    <label class="usa-label" for="email-id">Email address</label>
+    <input class="usa-input" name="email" type="email" autocomplete="email" required="" id="email-id">
   </fieldset>
 
-  <!-- Radio Buttons -->
-  <fieldset class="usa-fieldset">
-    <legend class="usa-legend">Radio Options</legend>
-    <div class="usa-radio">
-      <input class="usa-radio__input" id="radio-1" type="radio" name="radio-option" value="option-1">
-      <label class="usa-radio__label" for="radio-1">Option 1</label>
-    </div>
-    <div class="usa-radio">
-      <input class="usa-radio__input" id="radio-2" type="radio" name="radio-option" value="option-2">
-      <label class="usa-radio__label" for="radio-2">Option 2</label>
-    </div>
-  </fieldset>
-
-  <!-- Select Dropdown -->
-  <div class="usa-form-group">
-    <label class="usa-label" for="select-example">Select an option</label>
-    <select class="usa-select" id="select-example" name="select-option">
-      <option>- Select -</option>
-      <option value="option-1">Option 1</option>
-      <option value="option-2">Option 2</option>
-    </select>
-  </div>
-
-  <!-- Helper Text -->
-  <div class="usa-form-group">
-    <label class="usa-label" for="input-hint">Field with Helper Text</label>
-    <span class="usa-hint" id="input-hint-text">This is helper text to guide the user</span>
-    <input class="usa-input" id="input-hint" type="text" name="hint-field" aria-describedby="input-hint-text">
-  </div>
-
-  <!-- Submit Button -->
-  <button class="usa-button" type="submit">Submit</button>
+  <button type="submit" class="usa-button">Submit</button>
 </form>
 ```
 
 ### Context
 
-Form is a core USWDS component that composes with other input components like buttons, text fields, and validation messaging. It serves as the primary pattern for data collection across the Maryland Design System and integrates with validation, error handling, and accessibility standards.
+The Form component is a foundational USWDS component in MDWDS that provides semantic, accessible containers for organizing form inputs. It combines with other form elements (labels, inputs, buttons, fieldsets) to create properly-structured, compliant forms and typically composes with input fields, fieldsets, and action buttons throughout MDWDS applications.
 
 ---
 
@@ -3636,117 +4266,65 @@ Form is a core USWDS component that composes with other input components like bu
 
 *Components*
 
-The Header component is the primary navigation and branding element at the top of Maryland state web pages. It provides consistent identification of state government properties and serves as the main entry point for site navigation.
+The Header component helps users identify where they are and provides a quick, organized way to reach the main sections of a website. It includes a utility navigation area, logo/home link, and optional primary navigation menu. Use it as the top-level navigation structure for Maryland government websites.
 
 ### Key Information
 
-The Header is a critical layout component that typically contains:
-- Maryland state branding/logo
-- Site title and description
-- Primary navigation menu
-- Possible utility links (search, language toggle, etc.)
+## Key Class Names
+- `maryland-header`: Main header container
+- `maryland-header__util-nav-container`: Container for utility navigation
+- `maryland-header__util-nav`: Utility navigation list (horizontal links/buttons)
+- `maryland-header__home`: Home/logo link element
+- `maryland-header__logo`: Logo image element
 
-**Standard variants:**
-- Full header with all branding and navigation elements
-- Compact header for space-constrained layouts
-- Sticky/fixed positioning option for persistent navigation
+## Key Properties/Options
+- **Agency Title**: Name of the agency for the site (string)
+- **Enable Utility Menu**: Adds the utility nav to header layout (boolean, default: false)
+- **Utility Menu**: JSON array representation of utility menu structure with link objects
+- **Enable Primary Menu**: Adds the primary nav to header layout (boolean, default: false)
+- **Show Maryland.gov Link**: Shows Maryland.gov link at bottom of mobile navigation (boolean, default: false)
+- **Navigation Items**: JSON array representation of nav menu structure
 
-**Key CSS classes:**
-- `.header` - Main container
-- `.header__branding` - Branding section with logo
-- `.header__navigation` - Navigation menu container
-- `.header__utility` - Utility/secondary navigation area
+## Variants
+- Utility navigation with links and buttons (uses `usa-button usa-button--small` for styled buttons)
+- Optional primary navigation menu
+- Responsive behavior with mobile navigation considerations
 
-**Required attributes:**
-- Semantic HTML5 `<header>` element
-- `role="banner"` for accessibility on header element
-- Navigation should use `<nav>` with appropriate `aria-label`
-
-**Important facts:**
-- Must meet WCAG accessibility standards
-- Responsive design adapts layout for mobile/tablet/desktop
-- Logo typically links to homepage
-- Navigation items should be keyboard accessible
+## Structure Notes
+- Utility navigation items are rendered as `<li>` elements inside a `<ul class="maryland-header__util-nav">`
+- Links within utility nav are plain `<a>` tags or `<a class="usa-button usa-button--small">` for button-styled items
+- Logo is an `<img>` with src pointing to Maryland wordmark SVG and descriptive alt text
 
 ### Implementation
 
 ```html
-<header class="header" role="banner">
-  <div class="header__container">
-    <!-- Branding Section -->
-    <div class="header__branding">
-      <a href="/" class="header__logo">
-        <img src="/images/md-logo.svg" alt="Maryland State Logo" />
-      </a>
-      <div class="header__title">
-        <h1 class="header__site-title">Site Title</h1>
-        <p class="header__site-description">Site description or tagline</p>
-      </div>
-    </div>
-
-    <!-- Main Navigation -->
-    <nav class="header__navigation" aria-label="Main navigation">
-      <ul class="header__menu">
-        <li class="header__menu-item">
-          <a href="/about" class="header__menu-link">About</a>
-        </li>
-        <li class="header__menu-item">
-          <a href="/services" class="header__menu-link">Services</a>
-        </li>
-        <li class="header__menu-item">
-          <a href="/contact" class="header__menu-link">Contact</a>
-        </li>
-      </ul>
-    </nav>
-
-    <!-- Utility Links -->
-    <div class="header__utility">
-      <button class="header__search-toggle" aria-label="Search">
-        <span class="icon-search"></span>
-      </button>
-    </div>
+<header class="maryland-header">
+  <div class="maryland-header__util-nav-container">
+    <ul class="maryland-header__util-nav">
+      <li>
+        <a href="#!">Link One</a>
+      </li>
+      <li>
+        <a href="#!">Link Two</a>
+      </li>
+      <li>
+        <a class="usa-button usa-button--small" href="#!">Button</a>
+      </li>
+    </ul>
   </div>
+
+  <a class="maryland-header__home" href="/">
+    <img class="maryland-header__logo" src="https://designsystem.maryland.gov/assets/md_wordmark_horizontal-D9RJzvGS.svg" alt="Maryland.gov home">
+  </a>
 </header>
 ```
 
-**Mobile-Responsive Variant (with hamburger menu):**
-```html
-<header class="header" role="banner">
-  <div class="header__container">
-    <div class="header__branding">
-      <a href="/" class="header__logo">
-        <img src="/images/md-logo.svg" alt="Maryland State Logo" />
-      </a>
-      <div class="header__title">
-        <h1 class="header__site-title">Site Title</h1>
-      </div>
-    </div>
-
-    <!-- Mobile Menu Toggle -->
-    <button class="header__menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="header-nav">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
-
-    <!-- Navigation (hidden on mobile) -->
-    <nav class="header__navigation" id="header-nav" aria-label="Main navigation">
-      <ul class="header__menu">
-        <li class="header__menu-item">
-          <a href="/about" class="header__menu-link">About</a>
-        </li>
-        <li class="header__menu-item">
-          <a href="/services" class="header__menu-link">Services</a>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</header>
-```
+## Utility Navigation Variant
+The utility menu renders as a list of `<li>` elements with `<a>` tags. Button-styled items use the `usa-button usa-button--small` classes applied to the anchor tag itself.
 
 ### Context
 
-The Header is a foundational structural component of MDWDS that typically wraps and composes with Navigation, Search, and Utility Link components. It establishes the visual hierarchy and state branding identity across all Maryland government web pages.
+The Header is a foundational component in the MDWDS system that serves as the primary site navigation and branding area. It composes with utility navigation controls and integrates with the USA Design System button component for styled call-to-action items in the utility menu.
 
 ---
 
@@ -3754,75 +4332,96 @@ The Header is a foundational structural component of MDWDS that typically wraps 
 
 *Components*
 
-The Hero component is a full-width banner section that creates a prominent, visually striking introduction to a page or section. It typically combines a large background image, headline, and call-to-action elements to establish context and guide user attention. Use Hero components at the top of landing pages, section introductions, or campaign pages to establish visual hierarchy and engage users immediately.
+The Hero component is a full-width banner section that displays prominent content at the top of pages, with variants supporting landing pages, agency pages, regular pages, news articles, and location pages. It solves the problem of creating visually distinctive page headers with flexible layouts supporting background images, text overlays, logos, and call-to-action buttons. Use it to establish page context and draw attention to key messaging.
 
 ### Key Information
 
-The Hero component creates a high-impact introductory section with the following characteristics:
+## Variants
 
-- **Variants**: Standard Hero (image background), Hero with overlay for text readability, Hero with gradient overlay
-- **Structure**: Container with background image, overlay layer, content area with headline and supporting text
-- **CSS Classes**: `.hero`, `.hero__overlay`, `.hero__content`, `.hero__title`, `.hero__subtitle`
-- **Modifiers**: 
-  - `.hero--light` for light overlay tint
-  - `.hero--dark` for dark overlay tint
-  - `.hero--center` for centered content alignment
-  - Height modifiers: `.hero--large`, `.hero--medium`, `.hero--small`
-- **Background**: Typically set via inline style or CSS `background-image` property; supports solid colors or images
-- **Content**: Flexible container for heading, subheading, and button groups
-- **Accessibility**: Use semantic HTML (`<h1>`, `<h2>`); ensure sufficient color contrast on overlays; provide `alt` text if background image is decorative
+The Hero component supports six main variants:
+- **Landing Main**: Full-width landscape background image with text overlay for landing pages. Title starting with "Welcome to " auto-displays the prefix as styled eyebrow text.
+- **Landing Agency**: White background variant for agency landing pages with optional agency logo support and no breadcrumbs.
+- **Landing Regular**: Standard landing page hero variant.
+- **Basic**: Basic hero variant.
+- **News**: Hero variant for news/article pages.
+- **Location**: Hero variant for location-specific pages.
+
+## Key Class Names
+
+- `maryland-hero` - Base hero section container
+- `maryland-hero--landing-main` - Modifier for landing main variant
+- `maryland-hero__background-image` - Background image element
+- `maryland-hero__container` - Inner container wrapper
+- `maryland-hero__content` - Content wrapper
+- `maryland-hero__title` - Main heading
+- `maryland-hero__title-text` - Title text span
+- `maryland-hero__eyebrow` - Eyebrow/prefix text (auto-styled for "Welcome to " titles)
+
+## Required Elements
+
+- **title** (required): Main heading text for the hero section. For Landing Main variant, titles starting with "Welcome to " will auto-style the prefix as an eyebrow.
+- **backgroundImage** (optional): Landscape background image selection (available options: forest, farmland, bridge). Only used for Landing Main Hero variant.
+- **description** (optional): Subtitle or descriptive text.
+
+## Important Notes
+
+- Background images must include the gradient overlay baked into the image itself; the component does not apply a CSS gradient overlay.
+- Background images should be exported from Figma with both the Photo and Rectangle gradient layers merged.
+- Features full-width background image positioning for scenic display.
+- Supports optional agency logo (displays above title or on right side depending on layout).
+- Some variants include no breadcrumb navigation.
 
 ### Implementation
 
 ```html
-<!-- Standard Hero with image background and overlay -->
-<section class="hero hero--dark" style="background-image: url('/path/to/image.jpg');">
-  <div class="hero__overlay"></div>
-  <div class="hero__content">
-    <h1 class="hero__title">Page Title</h1>
-    <p class="hero__subtitle">Supporting description or tagline</p>
-  </div>
-</section>
-```
-
-```html
-<!-- Hero with centered content and light overlay -->
-<section class="hero hero--center hero--light" style="background-image: url('/path/to/image.jpg');">
-  <div class="hero__overlay"></div>
-  <div class="hero__content">
-    <h1 class="hero__title">Centered Hero Section</h1>
-    <p class="hero__subtitle">Optional description text</p>
-    <div class="hero__actions">
-      <a href="#" class="btn btn--primary">Call to Action</a>
+<!-- Landing Main Hero with Auto-Detected Eyebrow -->
+<section class="maryland-hero maryland-hero--landing-main" aria-labelledby="id-nnxvk2y0ooj">
+  <img alt="" class="maryland-hero__background-image" src="https://designsystem.maryland.gov/assets/md_forest-DB-269v5.png">
+  <div class="maryland-hero__container">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+          <div class="maryland-hero__content">
+            <h1 class="maryland-hero__title" id="id-nnxvk2y0ooj">
+              <span class="maryland-hero__eyebrow">Welcome to</span>
+              <span class="maryland-hero__title-text">Maryland</span>
+            </h1>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 ```
 
+### Variant: Landing Main with Description
 ```html
-<!-- Hero with solid color background -->
-<section class="hero hero--dark" style="background-color: #003f87;">
-  <div class="hero__content">
-    <h1 class="hero__title">Color-Based Hero</h1>
-    <p class="hero__subtitle">No image background, solid color fill</p>
+<section class="maryland-hero maryland-hero--landing-main" aria-labelledby="hero-title">
+  <img alt="" class="maryland-hero__background-image" src="image-url.png">
+  <div class="maryland-hero__container">
+    <div class="grid-container">
+      <div class="grid-row">
+        <div class="grid-col-12">
+          <div class="maryland-hero__content">
+            <h1 class="maryland-hero__title" id="hero-title">
+              <span class="maryland-hero__eyebrow">Welcome to</span>
+              <span class="maryland-hero__title-text">Maryland</span>
+            </h1>
+            <p class="maryland-hero__description">Optional description text</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 ```
 
-```html
-<!-- Hero with large height modifier -->
-<section class="hero hero--large hero--dark" style="background-image: url('/path/to/image.jpg');">
-  <div class="hero__overlay"></div>
-  <div class="hero__content">
-    <h1 class="hero__title">Large Hero Section</h1>
-    <p class="hero__subtitle">Prominent page introduction</p>
-  </div>
-</section>
-```
+### Key ARIA Attributes
+- `aria-labelledby`: References the title element `id` for accessibility; required for semantic structure
 
 ### Context
 
-The Hero component is a foundational content section in MDWDS, typically appearing at the top of page layouts to establish visual identity and context. It works in conjunction with Typography, Button, and Image components and often precedes other content sections like Featured Content or Card grids to create a cohesive visual hierarchy.
+The Hero component is a foundational layout component in the MDWDS system that serves as the primary visual entry point for pages. It composes with the grid system (using `grid-container`, `grid-row`, `grid-col-12`) and integrates with optional child components like agency logos, buttons, and descriptions to create flexible, responsive page headers.
 
 ---
 
@@ -3830,53 +4429,112 @@ The Hero component is a foundational content section in MDWDS, typically appeari
 
 *Components*
 
-The Highlight component is a visual element used to draw attention to important content, text, or sections within a page. It provides a way to emphasize key information and guide users' focus to critical areas. Use it when you need to make specific content stand out from surrounding text or sections.
+The Highlight component displays up to 3 columns of featured links with an optional section header and description. Each column can contain a title, description, up to 5 links, and an optional "more" link. Use this component to feature key content areas and help users navigate to important services or information.
 
 ### Key Information
 
+## CSS Classes
 
-## Variants and Modifiers
-- Standard highlight with default styling
-- Multiple color variants for different emphasis levels
-- Inline and block-level application options
+- `maryland-highlight` — Main wrapper section element
+- `maryland-highlight__section-title` — Section heading (optional)
+- `maryland-highlight__section-description` — Section description (optional)
+- `maryland-highlight__grid` — Grid container holding columns
+- `maryland-highlight__item` — Individual column container
+- `maryland-highlight__title` — Column title
+- `maryland-highlight__links` — Unordered list of links within a column
+- `maryland-highlight__link` — Individual link item (inferred from visible structure)
 
-## CSS Class Names
-- `.highlight` - Base highlight class for text emphasis
-- Modifier classes for color variants (specific variants depend on design system palette)
+## Key Attributes & Features
 
-## Key Attributes
-- Can be applied to inline elements (span, strong) or block elements (div, section)
-- Should include appropriate semantic HTML when possible
-- Supports standard text and background color combinations
+- **Section Header**: Optional heading and description via `title` and `description` properties
+- **Column Count**: Configurable via `columnCount` property (1, 2, or 3 columns)
+- **Links per Column**: Up to 5 links per column with optional icons
+- **Icon Support**: Each link can have an optional icon type specified via `colXLinkYIconType` properties
+- **ARIA Labeling**: Section uses `aria-labelledby` to associate with the section title
+- **Responsive Grid**: Uses `maryland-highlight__grid` to manage column layout
 
-## Important Facts
-- Use sparingly to avoid overwhelming the page
-- Ensure sufficient contrast ratios for accessibility (WCAG AA minimum)
-- Works well with headings and key statistics or callouts
+## Properties
 
+- `title` — Section heading (optional, string)
+- `description` — Section description (optional, string)
+- `columnCount` — Number of columns to display (number: 1, 2, or 3)
+- `col1Title`, `col2Title`, `col3Title` — Column titles (string)
+- `col1Description`, `col2Description`, `col3Description` — Column descriptions (string)
+- `colXLinkYText` — Link text (up to 5 links per column, string)
+- `colXLinkYUrl` — Link URL (up to 5 links per column, string)
+- `colXLinkYIconType` — Icon type for each link (string, optional)
 
 ### Implementation
 
-
 ```html
-<!-- Inline text highlight -->
-<p>This is <span class="highlight">important text</span> that needs emphasis.</p>
+<section class="maryland-highlight" aria-labelledby="id-xn8b4gqzvy">
+  <h2 class="maryland-highlight__section-title" id="id-xn8b4gqzvy">
+    Benefits, services and business
+  </h2>
+  <p class="maryland-highlight__section-description">
+    Find the right information you need today in these featured areas.
+  </p>
+  <div class="maryland-highlight__grid">
+    
+    <div class="maryland-highlight__item">
+      <h3 class="maryland-highlight__title">Benefits</h3>
+      <ul class="maryland-highlight__links">
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Health and medical</a>
+        </li>
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Unemployment and jobs</a>
+        </li>
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Download benefits guide (PDF)</a>
+        </li>
+      </ul>
+    </div>
 
-<!-- Block-level highlight -->
-<div class="highlight">
-  <p>This entire section is highlighted for emphasis.</p>
-</div>
+    <div class="maryland-highlight__item">
+      <h3 class="maryland-highlight__title">Services</h3>
+      <ul class="maryland-highlight__links">
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Driving and transportation</a>
+        </li>
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Recreation licenses and permits</a>
+        </li>
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Federal education resources</a>
+        </li>
+      </ul>
+    </div>
 
-<!-- Color variant examples (adjust class names based on your palette) -->
-<span class="highlight highlight--primary">Primary highlight</span>
-<span class="highlight highlight--secondary">Secondary highlight</span>
-<span class="highlight highlight--success">Success highlight</span>
+    <div class="maryland-highlight__item">
+      <h3 class="maryland-highlight__title">Business and work</h3>
+      <ul class="maryland-highlight__links">
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Licenses and permits for professionals</a>
+        </li>
+        <li>
+          <a href="[link-url]" class="maryland-highlight__link">Doing business in Maryland</a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</section>
 ```
 
+## Notes
+
+- The section element uses `aria-labelledby` to reference the section title for accessibility
+- The grid container (`maryland-highlight__grid`) holds all column items and handles responsive column layout
+- Each column is wrapped in `maryland-highlight__item`
+- Column titles use `maryland-highlight__title` heading level (h3)
+- Links are organized in an unordered list (`maryland-highlight__links`) with individual list items containing anchor tags
+- The component supports optional section-level header and description
+- Icon support is available through component properties but rendering depends on implementation details
 
 ### Context
 
-The Highlight component is a foundational styling utility within MDWDS that enhances content emphasis across various page types. It integrates with the color system and typography components to create consistent visual hierarchy throughout Maryland state web pages.
+The Highlight component is a featured content display pattern in the MDWDS system used to organize and showcase key information areas on pages. It composes with other navigation and link components to create scannable, organized sections of related content that guide users to important services, benefits, or resources.
 
 ---
 
@@ -3884,68 +4542,87 @@ The Highlight component is a foundational styling utility within MDWDS that enha
 
 *Components*
 
-Icons are small graphical symbols used to visually represent actions, concepts, or states within the Maryland Web Design System. They enhance user interfaces by providing visual clarity and improving accessibility when paired with text labels. Use icons to reinforce navigation items, action buttons, status indicators, or to support content understanding.
+The USWDS Icon component provides inline SVG icons following USWDS design patterns. It allows developers to select from a library of icon names, configure sizes (3–9), customize colors, and add accessibility attributes. Use this component to display semantic or decorative icons throughout your application with proper ARIA support.
 
 ### Key Information
 
-## Variants & Usage
+## Icon Variants & Properties
 
-- **Decorative Icons**: Used for visual enhancement alongside text; should have `aria-hidden="true"` and not require screen reader announcement
-- **Semantic Icons**: Convey meaning and should be accessible; pair with visible text labels or descriptive ARIA attributes
-- **Icon Sizes**: Typically use standard sizing (16px, 24px, 32px) for consistency
-- **Color**: Inherit from parent text color or apply explicit color classes for status indicators
+### Icon Names
+Available USWDS icon names: `check`, `close`, `search`, `arrow_forward`, `arrow_back`, `arrow_upward`, `arrow_downward`, `add`, `remove`, `delete`, `edit`, `check_circle`, `error`, `warning`, `info`, `calendar_today`, `mail`, `phone`, `file_download`, `settings`, `menu`, `more_vert`, `more_horiz`
 
-## CSS Classes & Structure
+### Sizing
+- Size tokens: `3` (smallest) through `9` (largest)
+- Controlled via `size` property
+- Applied to CSS class: `usa-icon--size-{3|4|5|6|7|8|9}`
 
-- Base icon container typically uses `<svg>` or icon library classes
-- Icons should scale responsively and maintain aspect ratio
-- Use `aria-hidden="true"` for purely decorative icons
-- Use `aria-label` or descriptive text for functional icons
-- Apply color modifiers for status: success, warning, error, info states
+### Color
+- Custom color values supported: semantic names like `primary`, `error`, `success`, or hex values
+- Controlled via `color` property
 
-## Important Attributes
+### Accessibility
+- `ariaLabel`: Accessible label for meaningful icons (leave empty for decorative icons)
+- `ariaHidden`: Set to `true` for decorative icons (default); `false` for meaningful icons with `aria-label`
+- Decorative icons should use `aria-hidden="true"` and `role="img"`
+- Meaningful icons should have `aria-label` attribute
 
-- `role="img"` when icon conveys meaning independently
-- `aria-hidden="true"` for decorative icons
-- `aria-label` for accessibility when icon lacks visible text
-- `focusable="false"` on SVG elements to prevent keyboard focus on icon-only elements
+### Analytics Tracking (Optional)
+- `enableAnalytics`: Enable/disable GA tracking
+- `gaCategory`: Google Analytics event category
+- `gaAction`: Google Analytics event action
+- `gaLabel`: Google Analytics event label
+
+### CSS Classes
+- `usa-icon`: Base icon class
+- `usa-icon--size-5`: Standard size variant (and size-3 through size-9)
+
+### Rendered SVG Structure
+Icons render as inline `<svg>` elements with:
+- `focusable="false"` attribute (prevents tab focus on decorative icons)
+- `role="img"` for semantic icons
+- `viewBox="0 0 24 24"` coordinate system
+- `class="usa-icon usa-icon--size-{N}"` where N is the size token
+- Unique `id` attribute for multiple icon instances
+- `aria-hidden="true"` for decorative use or `aria-label="..."` for semantic use
+- `<path>` child elements with SVG path data
 
 ### Implementation
 
 ```html
-<!-- Decorative Icon (hidden from screen readers) -->
-<span class="icon-wrapper">
-  <svg class="icon" aria-hidden="true" width="24" height="24">
-    <use xlink:href="#icon-id"></use>
-  </svg>
-</span>
+<!-- Default Icon (Standard size-5) -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-5" id="icon-id-unique" aria-hidden="true">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
 
-<!-- Semantic Icon with Label -->
-<button class="btn">
-  <svg class="icon" aria-hidden="true" width="24" height="24">
-    <use xlink:href="#icon-download"></use>
-  </svg>
-  <span>Download</span>
-</button>
+<!-- Small Icon (size-3) -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-3" id="icon-id-small" aria-hidden="true">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
 
-<!-- Icon-only Button with Accessibility -->
-<button class="btn-icon" aria-label="Close dialog">
-  <svg class="icon" width="24" height="24" focusable="false">
-    <use xlink:href="#icon-close"></use>
-  </svg>
-</button>
+<!-- Large Icon (size-9) -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-9" id="icon-id-large" aria-hidden="true">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
 
-<!-- Icon with Status Color -->
-<span class="icon-status icon-status--success" role="img" aria-label="Completed">
-  <svg class="icon" width="24" height="24">
-    <use xlink:href="#icon-check"></use>
-  </svg>
-</span>
+<!-- Icon with Custom Color -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-5" style="color: success;" id="icon-id-colored" aria-hidden="true">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
+
+<!-- Meaningful Icon with Accessibility -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-5" id="icon-id-accessible" aria-label="Success: Action completed">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
+
+<!-- Icon with Google Analytics Tracking (attributes would be added by component) -->
+<svg focusable="false" role="img" viewBox="0 0 24 24" class="usa-icon usa-icon--size-5" id="icon-id-tracked" aria-hidden="true" data-ga-category="navigation" data-ga-action="click" data-ga-label="search-icon">
+  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+</svg>
 ```
 
 ### Context
 
-Icons are a foundational visual element in the Maryland Web Design System that compose with buttons, navigation, form fields, and other components to improve usability and visual communication. They follow USWDS icon patterns and integrate with the design system's color palette and spacing system.
+The Icon component is a USWDS-based utility that integrates into the MDWDS system for consistent iconography across applications. It composes seamlessly with navigation, buttons, form fields, and other UI elements that need visual indicators, while maintaining accessibility standards through ARIA attributes and proper semantic markup.
 
 ---
 
@@ -3953,86 +4630,76 @@ Icons are a foundational visual element in the Maryland Web Design System that c
 
 *Components*
 
-The Icon List component displays a list of items with accompanying icons, useful for presenting features, benefits, or key points in a scannable format. It organizes content hierarchically with visual indicators to improve readability and user engagement. Use it when you need to highlight multiple related items or concepts that benefit from visual reinforcement.
+The Icon List component presents a collection of items with Material icons, titles, optional descriptions, and optional links. Each item features a circular icon, making it ideal for highlighting services, features, or categories in a visually organized layout.
 
 ### Key Information
 
-## Variants and Options
+## Key Class Names
 
-- **Standard Icon List**: Basic list with icons and text labels
-- **Icon positioning**: Icons can appear to the left of text (default) or inline
-- **Icon sizes**: Multiple size options available to match content hierarchy
-- **List styling**: Supports ordered and unordered list variations
+- `maryland-icon-list` — Container wrapper for the entire icon list
+- `maryland-icon-list__header` — Header section containing title, description, and optional link
+- `maryland-icon-list__title` — Title/heading text element
+- `maryland-icon-list__description` — Description text for the entire list
+- `maryland-icon-list__list` — Unordered list (`<ul>`) containing icon list items
+- `maryland-link` — Optional link modifier for "view more" or similar navigation
 
-## Key Attributes
+## Variants & Modifiers
 
-- Icons are typically implemented using inline SVG or icon font classes
-- List items use semantic HTML list elements (`<ul>` or `<ol>`)
-- Each item should contain an icon and descriptive text
-- ARIA labels should be present for accessibility
+- **With Header**: Icon list can include an optional header with title, description text, and a link
+- **With Sidebar**: Icon list items can be displayed in a layout that includes a sidebar
+- **Default**: Standard icon list display
 
-## CSS Classes
+## Required Structure
 
-- `.icon-list`: Main container class
-- `.icon-list__item`: Individual list item wrapper
-- `.icon-list__icon`: Icon container
-- `.icon-list__content`: Text/content wrapper for each item
+- Main container uses `class="maryland-icon-list"`
+- Header section requires semantic headings (`<h2>`, `<h3>`) with unique `id` attributes (used in `aria-labelledby`)
+- List must be an unordered list (`<ul>`) with class `maryland-icon-list__list`
+- Each list item is an `<li>` element within the list
 
-## Important Facts
+## Accessibility
 
-- Icons should be meaningful and contextually relevant
-- Text content should be concise and scannable
-- List items should have consistent styling and spacing
-- Supports both icon and text-only content blocks
+- Section elements use `aria-labelledby` to associate with the heading `id`
+- Semantic HTML structure with proper heading hierarchy
+- Headings must have unique IDs that match the `aria-labelledby` references
 
 ### Implementation
 
 ```html
-<ul class="icon-list">
-  <li class="icon-list__item">
-    <div class="icon-list__icon">
-      <svg aria-hidden="true" role="img" viewBox="0 0 24 24">
-        <!-- SVG icon content -->
-      </svg>
-    </div>
-    <div class="icon-list__content">
-      <h3>Item Title</h3>
-      <p>Item description or supporting text</p>
-    </div>
-  </li>
-  <li class="icon-list__item">
-    <div class="icon-list__icon">
-      <svg aria-hidden="true" role="img" viewBox="0 0 24 24">
-        <!-- SVG icon content -->
-      </svg>
-    </div>
-    <div class="icon-list__content">
-      <h3>Item Title</h3>
-      <p>Item description or supporting text</p>
-    </div>
-  </li>
-</ul>
+<section class="maryland-icon-list" aria-labelledby="id-u2mote4xumc">
+  <div class="maryland-icon-list__header">
+    <h2 id="id-u2mote4xumc" class="maryland-icon-list__title">Lorem ipsum dolor sit amet</h2>
+    <div class="maryland-icon-list__description">Mollit labore anim duis sunt qui aliquip sit qui fugiat elit.</div>
+    <a class="maryland-link" href="#">
+      Nisi proident ex
+    </a>
+  </div>
+
+  <ul class="maryland-icon-list__list">
+    <li>
+      <!-- Icon list item content -->
+    </li>
+  </ul>
+</section>
 ```
 
-## Ordered List Variant
+## Variant: With Sidebar
 
 ```html
-<ol class="icon-list icon-list--ordered">
-  <li class="icon-list__item">
-    <div class="icon-list__icon">
-      <span class="icon-list__number">1</span>
-    </div>
-    <div class="icon-list__content">
-      <h3>Step Title</h3>
-      <p>Step description</p>
-    </div>
-  </li>
-</ol>
+<section class="maryland-icon-list" aria-labelledby="id-example-heading">
+  <div class="maryland-icon-list__header">
+    <h2 id="id-example-heading" class="maryland-icon-list__title">Section Title</h2>
+    <div class="maryland-icon-list__description">Optional description text</div>
+  </div>
+
+  <ul class="maryland-icon-list__list">
+    <!-- Icon list items with sidebar layout -->
+  </ul>
+</section>
 ```
 
 ### Context
 
-The Icon List component is a versatile MDWDS component that combines typography and iconography to present related information in an accessible, scannable format. It works alongside the Icon system and Typography components to create cohesive information hierarchies across Maryland state web pages.
+The Icon List component integrates with MDWDS's layout grid system (grid-container, grid-row, grid-col-12) and uses standard Maryland Design System link styling. It serves as a reusable component for organizing and presenting collections of featured items, services, or categories within page templates.
 
 ---
 
@@ -4040,87 +4707,89 @@ The Icon List component is a versatile MDWDS component that combines typography 
 
 *Components*
 
-An Icon List is a USWDS component that displays a vertical list of items, each with an accompanying icon, text, and optional description. It's used to present related information in an organized, scannable format and helps users quickly identify and understand different options or items at a glance.
+The Icon List component displays a list of items with accompanying icons, following USWDS design patterns. It supports multiple color variants, configurable sizes, and optional Google Analytics tracking. Use it when you need to present related items with visual indicators in a list format.
 
 ### Key Information
 
-## Variants and Modifiers
+## Variants & Modifiers
 
-- **Standard Icon List**: Basic list with icon, title, and description for each item
-- **Icon styling**: Icons are typically Font Awesome or system icons
-- **Item structure**: Each list item contains an icon element, title text, and optional description text
-- **Alignment options**: Icons can be vertically aligned with text content
+- **Color Variants**: `default`, `primary`, `secondary`, `accent-warm`, `accent-cool` — controls icon color theme
+- **Sizes**: `default` (standard), `lg` (large) — configurable via the component settings
+- **Content Types**: Simple text content or rich content with HTML markup
 
 ## CSS Classes
 
-- `.usa-icon-list`: Main container for the icon list
-- `.usa-icon-list__item`: Individual list item wrapper
-- `.usa-icon-list__icon`: Icon container within each item
-- `.usa-icon-list__title`: Title text within each item
-- `.usa-icon-list__description`: Optional description text within each item
+- `usa-icon-list` — main list container
+- `usa-icon-list__item` — individual list item wrapper
+- `usa-icon-list__icon` — icon container within each item
+- `usa-icon-list__content` — text/content container within each item
 
-## Key Attributes
+## Required Attributes & Properties
 
-- Uses semantic HTML with `<ul>` or `<ol>` list structure
-- Icons can be `<svg>` elements or icon font classes
-- No required JavaScript functionality
-- Supports responsive layout through USWDS grid system
+- `items` (array, required) — array of item objects, each containing:
+  - `icon` — icon identifier or SVG
+  - `content` — text or rich HTML content
+  - `title` (optional) — item title
+- `variant` (string, optional) — color variant for icons (default, primary, secondary, accent-warm, accent-cool)
+- `size` (string, optional) — list size: `default` or `lg`
+- `enableAnalytics` (boolean, optional) — enables Google Analytics tracking
+- `gaCategory`, `gaAction`, `gaLabel` (strings, optional) — GA tracking parameters when analytics enabled
 
 ## Important Facts
 
-- Part of the USWDS component library
-- Maintains accessibility standards with proper semantic HTML
-- Works with Font Awesome icons or SVG assets
-- Flexible for various use cases: features, benefits, requirements lists
+- Component is built on USWDS patterns (link: https://designsystem.digital.gov/components/icon-list/)
+- Supports multiple icon color theme options
+- Integrates with Google Analytics for event tracking
+- Can display both simple and rich content variants
 
 ### Implementation
 
 ```html
-<ul class="usa-icon-list">
+<ul class="usa-icon-list" id="icon-list-id-7tly3z5cv1t">
   <li class="usa-icon-list__item">
     <div class="usa-icon-list__icon">
-      <svg class="usa-icon" aria-hidden="true" role="img">
-        <use xlink:href="/assets/img/sprite.svg#check"></use>
+      <svg class="usa-icon" aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
       </svg>
     </div>
-    <div class="usa-icon-list__content">
-      <h3 class="usa-icon-list__title">First Item</h3>
-      <p class="usa-icon-list__description">Description of the first item goes here.</p>
+    <div class="usa-icon-list__content" id="content-id-vfuqsgby2qc">
+      Direct access to interagency teams with insight into the TBM process
     </div>
   </li>
   <li class="usa-icon-list__item">
     <div class="usa-icon-list__icon">
-      <svg class="usa-icon" aria-hidden="true" role="img">
-        <use xlink:href="/assets/img/sprite.svg#star"></use>
+      <svg class="usa-icon" aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24">
+        <path d="..."></path>
       </svg>
     </div>
     <div class="usa-icon-list__content">
-      <h3 class="usa-icon-list__title">Second Item</h3>
-      <p class="usa-icon-list__description">Description of the second item goes here.</p>
+      Unparalleled transparency into agency staffing and projects
+    </div>
+  </li>
+  <li class="usa-icon-list__item">
+    <div class="usa-icon-list__icon">
+      <svg class="usa-icon" aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24">
+        <path d="..."></path>
+      </svg>
+    </div>
+    <div class="usa-icon-list__content">
+      Opportunities for collaboration and technology sharing
     </div>
   </li>
 </ul>
 ```
 
-## Variant with Font Awesome Icons
+## Notes on SVG Icons
 
-```html
-<ul class="usa-icon-list">
-  <li class="usa-icon-list__item">
-    <div class="usa-icon-list__icon">
-      <i class="fa fa-check" aria-hidden="true"></i>
-    </div>
-    <div class="usa-icon-list__content">
-      <h3 class="usa-icon-list__title">Feature Title</h3>
-      <p class="usa-icon-list__description">Feature description text.</p>
-    </div>
-  </li>
-</ul>
-```
+- Each icon uses the `usa-icon` class
+- Icons have `aria-hidden="true"` for screen readers (content is in the adjacent text div)
+- `focusable="false"` prevents SVG from being tab-focused
+- `role="img"` provides semantic meaning
+- `viewBox` attribute scales icon appropriately
 
 ### Context
 
-Icon List is a USWDS component that integrates into the Maryland Design System for presenting grouped content with visual indicators. It composes well with other layout components and is commonly used in hero sections, feature descriptions, and informational pages to create visual hierarchy and improve scanability.
+The Icon List component is a USWDS-based component that integrates into the MDWDS system for displaying structured, icon-annotated lists. It composes with the USWDS icon set and follows accessibility patterns with proper ARIA attributes, making it suitable for presenting related items, benefits, or features in a visually organized manner.
 
 ---
 
@@ -4128,158 +4797,159 @@ Icon List is a USWDS component that integrates into the Maryland Design System f
 
 *Components*
 
-The Identifier component is a standardized header element used to identify Maryland state government websites and provide consistent branding across the MDWDS system. It establishes official state agency presence and helps users recognize legitimate state web properties.
+The Identifier component signals trust and authority at the bottom of every government website. It displays agency branding, domain, legal disclaimer, and required policy links in a footer-like section. Use this to provide mandatory legal and accessibility information along with a link to the maryland.gov state portal.
 
 ### Key Information
 
-The Identifier is a USWDS component that serves as a mandatory header for Maryland state websites. It typically includes:
+## Structure
+The Identifier is a USWDS component from the U.S. Web Design System that is implemented in MDWDS.
 
-- **Required elements**: State seal or logo, agency name, and official "An official website of the State of Maryland" text
-- **Class names**: Uses USWDS classes like `usa-identifier`, `usa-identifier__header`, `usa-identifier__container`, `usa-identifier__section`
-- **Structure**: Header section containing official state designation, followed by extended/required links sections
-- **Sections**: Can include multiple sections for different types of links (agency information, official links, contact information)
-- **Modifiers**: Supports compact and standard layouts with different link configurations
-- **ARIA attributes**: Includes semantic landmark roles and proper heading hierarchy for accessibility
-- **Links**: Typically contains links to privacy policy, accessibility statement, site feedback, and contact information
+## Key Classes
+- `usa-identifier` - Root container for the entire identifier component
+- `usa-identifier__section` - Wrapper for identifier sections
+- `usa-identifier__section--masthead` - Masthead section variant
+- `usa-identifier__container` - Inner container for section content
+- `usa-identifier__logos` - Container for agency logos
+- `usa-identifier__logo` - Logo link element
+- `usa-identifier__logo-img` - Logo image element
+- `usa-identifier__identity` - Section for agency description/identity
+- `usa-identifier__identity-domain` - Domain/URL display
+- `usa-identifier__identity-disclaimer` - Legal disclaimer text
+
+## Required Attributes
+- `aria-label` - Required on sections to describe their purpose (e.g., "Agency identifier", "Agency description")
+- `role="img"` - Should be added to logo images for proper semantic identification
+- `aria-hidden="true"` - Used on decorative text spans (e.g., "An ")
+
+## Component Properties
+The component accepts the following configuration properties:
+
+### Settings
+- `agencyName` (string) - Parent agency name for branding and legal link labels
+- `domain` (string) - Displayed domain in the identifier
+- `logoSrc` (string) - Logo image URL (accessible via alt text)
+
+### Accessibility
+- `logoAlt` (string) - Alt text for screen readers describing the logo
+
+### Analytics
+- `enableAnalytics` (boolean) - Enable Google Analytics tracking attributes
+- `gaCategory` (string) - GA category for link tracking
+- `gaAction` (string) - GA action for link tracking
+- `gaLabel` (string) - GA label for link tracking
+
+## Content Sections
+The identifier typically includes:
+- Agency logo with alt text
+- Agency name and domain
+- Legal disclaimer
+- Links to required pages (Accessibility statement, FOIA requests, No FEAR Act data, Office of the Inspector General, Performance reports, Privacy policy)
+- Link to maryland.gov state portal
 
 ### Implementation
 
 ```html
-<footer class="usa-identifier">
-  <div class="usa-identifier__section usa-identifier__header">
+<div class="usa-identifier">
+  <section class="usa-identifier__section usa-identifier__section--masthead" aria-label="Agency identifier">
     <div class="usa-identifier__container">
-      <div class="usa-identifier__logo">
-        <a href="/" title="Home">
-          <img class="usa-identifier__logo-img" src="/assets/img/logos/maryland-state-seal.svg" alt="Maryland State Seal" />
+      <div class="usa-identifier__logos">
+        <a href="#" class="usa-identifier__logo">
+          <img class="usa-identifier__logo-img" src="/assets/img/mdds-logo-wings.png" alt="Parent agency logo" role="img">
         </a>
       </div>
       <section class="usa-identifier__identity" aria-label="Agency description">
         <p class="usa-identifier__identity-domain">maryland.gov</p>
-        <p class="usa-identifier__identity-disclaimer">An official website of the State of Maryland</p>
+        <p class="usa-identifier__identity-disclaimer">
+          <span aria-hidden="true">An </span>official website of the Parent agency
+        </p>
       </section>
     </div>
-  </div>
-  
-  <nav class="usa-identifier__section usa-identifier__nav" aria-label="Footer navigation">
-    <div class="usa-identifier__container">
-      <ul class="usa-identifier__required-links">
-        <li class="usa-identifier__required-links-item">
-          <a href="/accessibility" class="usa-identifier__required-link">Accessibility</a>
-        </li>
-        <li class="usa-identifier__required-links-item">
-          <a href="/privacy" class="usa-identifier__required-link">Privacy Policy</a>
-        </li>
-        <li class="usa-identifier__required-links-item">
-          <a href="/contact" class="usa-identifier__required-link">Contact Us</a>
-        </li>
-      </ul>
-    </div>
-  </nav>
-</footer>
+  </section>
+  <!-- Additional sections for links, navigation, and footer content follow the same structural pattern -->
+</div>
 ```
 
-Alternative compact variant:
-
-```html
-<footer class="usa-identifier usa-identifier--compact">
-  <div class="usa-identifier__container">
-    <div class="usa-identifier__identity">
-      <p class="usa-identifier__identity-domain">maryland.gov</p>
-      <p class="usa-identifier__identity-disclaimer">An official website of the State of Maryland</p>
-    </div>
-    <ul class="usa-identifier__required-links">
-      <li class="usa-identifier__required-links-item">
-        <a href="/accessibility" class="usa-identifier__required-link">Accessibility</a>
-      </li>
-      <li class="usa-identifier__required-links-item">
-        <a href="/privacy" class="usa-identifier__required-link">Privacy</a>
-      </li>
-      <li class="usa-identifier__required-links-item">
-        <a href="/contact" class="usa-identifier__required-link">Contact</a>
-      </li>
-    </ul>
-  </div>
-</footer>
-```
+## Key Structural Notes
+- The root `usa-identifier` wrapper contains all identifier content
+- The masthead section (`usa-identifier__section--masthead`) contains logo and agency identity
+- The `usa-identifier__container` provides layout structure within each section
+- Logo and identity information are grouped in the masthead section
+- ARIA labels are required on all `<section>` elements for accessibility
+- Images use both `alt` attribute and `role="img"` for proper semantics
+- Decorative text spans use `aria-hidden="true"`
 
 ### Context
 
-The Identifier is a foundational USWDS component adopted by the Maryland Web Design System to ensure consistent state branding across all official Maryland government websites. It works in conjunction with the Header and Footer components to create a cohesive top-level page structure that establishes user trust and official state presence.
+The Identifier is a footer component from the U.S. Web Design System (USWDS) that MDWDS includes to ensure every Maryland government website meets federal branding and accessibility requirements. It composes as a standalone footer section that wraps around agency branding, required legal links, and the state portal reference.
 
 ---
 
-## In Page Navigation
+## In-Page Navigation
 
 *Components*
 
-In Page Navigation is a USWDS component that provides users with a way to navigate within a single page, typically using anchor links to jump to different sections. It helps users understand the page structure and quickly access relevant content, particularly useful on long pages with multiple sections.
+The USWDS In-Page Navigation component provides automatic navigation for long content pages with multiple sections. It auto-generates a navigation menu from page headings, tracks the active section as the user scrolls, and supports sticky positioning and smooth scrolling. This component helps users navigate complex documents and understand their current position within the content.
 
 ### Key Information
 
-- **Component Type**: Navigation aid for single-page navigation
-- **CSS Classes**: Uses USWDS utility classes for styling and structure
-- **Key Attributes**: Requires proper heading hierarchy and ID attributes on target sections
-- **Variants**: Can be positioned as sticky sidebar navigation or inline navigation
-- **Accessibility**: Must include proper ARIA labels and semantic HTML structure
-- **Link Structure**: Uses anchor links (href="#section-id") pointing to page section IDs
-- **Responsive**: Adapts to different screen sizes, typically collapsing on mobile devices
+## CSS Classes
+- `usa-in-page-nav-container` — Wrapper container for the component
+- `usa-in-page-nav` — Main navigation aside element
+- `usa-prose` — Prose styling for main content area
+
+## Required Attributes
+- `data-heading-elements` — Comma-separated list of heading selectors to include in navigation (e.g., "h2, h3")
+- `data-threshold` — Intersection Observer threshold for active section detection (e.g., "0.2")
+- `data-scroll-offset` — Scroll offset in pixels to adjust active section tracking (e.g., "0")
+- `aria-label="In-page navigation"` — Required for the nav element to identify its purpose
+- `id` — Unique identifier for the main content container
+
+## Key Features
+- **Automatic Generation** — Navigation is auto-generated from page headings (h2, h3)
+- **Sticky Positioning** — Navigation can remain visible while scrolling
+- **Active Tracking** — Uses Intersection Observer API to highlight the current section
+- **Keyboard Navigation** — Fully keyboard accessible with Tab and Enter keys
+- **Focus States** — Links have distinct hover and focus states
+- **WCAG 2.1 AA Compliant** — Tested for accessibility standards
+
+## Configuration Options
+- Heading elements are configurable via `data-heading-elements`
+- Threshold for active detection is adjustable
+- Scroll offset can be customized
+- Optional Google Analytics tracking support
+- Optional smooth scrolling behavior
 
 ### Implementation
 
 ```html
-<!-- Basic In Page Navigation Structure -->
-<nav class="usa-sidenav" aria-label="In-page navigation">
-  <ul class="usa-sidenav__list">
-    <li class="usa-sidenav__item">
-      <a href="#section-1" class="usa-sidenav__link">Section One</a>
-    </li>
-    <li class="usa-sidenav__item">
-      <a href="#section-2" class="usa-sidenav__link">Section Two</a>
-    </li>
-    <li class="usa-sidenav__item">
-      <a href="#section-3" class="usa-sidenav__link">Section Three</a>
-    </li>
-  </ul>
-</nav>
-
-<!-- Page Sections with anchor IDs -->
-<main>
-  <section id="section-1">
-    <h2>Section One</h2>
-    <!-- Content here -->
-  </section>
+<div class="usa-in-page-nav-container">
+  <aside class="usa-in-page-nav" 
+         data-heading-elements="h2, h3" 
+         data-threshold="0.2" 
+         data-scroll-offset="0">
+    <nav aria-label="In-page navigation">
+      <!-- Navigation will be auto-generated by USWDS JavaScript -->
+    </nav>
+  </aside>
   
-  <section id="section-2">
-    <h2>Section Two</h2>
-    <!-- Content here -->
-  </section>
-  
-  <section id="section-3">
-    <h2>Section Three</h2>
-    <!-- Content here -->
-  </section>
-</main>
+  <main class="usa-prose" id="main-content-id-y09fa749mol">
+    <h2 id="section-id-y09fa749mol-0">Introduction</h2>
+    <p>This is the introduction section. In-page navigation helps users navigate long documents by providing quick access to different sections. The navigation automatically updates to show which section is currently being viewed.</p>
+  </main>
+</div>
 ```
 
-```html
-<!-- Nested Navigation Variant -->
-<nav class="usa-sidenav" aria-label="In-page navigation">
-  <ul class="usa-sidenav__list">
-    <li class="usa-sidenav__item">
-      <a href="#parent-1" class="usa-sidenav__link">Parent Section</a>
-      <ul class="usa-sidenav__sublist">
-        <li class="usa-sidenav__item">
-          <a href="#child-1" class="usa-sidenav__link">Subsection</a>
-        </li>
-      </ul>
-    </li>
-  </ul>
-</nav>
-```
+## Notes
+- The `<nav>` element starts empty; USWDS JavaScript auto-generates navigation links from headings
+- Each heading should have a unique `id` attribute for linking
+- The component uses the Intersection Observer API to track scroll position
+- Navigation items become active based on which section is currently in the viewport
+- Keyboard users can Tab through navigation links and use Enter to jump to sections
+- Focus is moved to the target section when activated via keyboard
 
 ### Context
 
-In Page Navigation is a USWDS component adopted by MDWDS that works alongside main site navigation to help users navigate long-form content. It commonly composes with heading hierarchy and section elements to create scannable, accessible page structures across Maryland state websites.
+The In-Page Navigation component is part of the USWDS (U.S. Web Design System) component library integrated into MDWDS. It typically accompanies long-form content pages and works alongside the prose typography component to create accessible, navigable documents. The component enhances user experience by providing overview and quick access to page structure without requiring custom JavaScript implementation.
 
 ---
 
@@ -4287,130 +4957,62 @@ In Page Navigation is a USWDS component adopted by MDWDS that works alongside ma
 
 *Components*
 
-The Input component is a form field element that allows users to enter text-based data. It's a fundamental building block for collecting user information in forms and serves as the basis for various input types including text, email, password, and search fields.
+The USWDS Input component is a single-line text field used for collecting user data such as names, addresses, or short identifiers. It provides accessible form input with support for labels, placeholders, and ARIA attributes to ensure compliance with accessibility standards. Use this component whenever you need users to enter basic text information in a form.
 
 ### Key Information
 
-## Variants and Types
-- **Text Input**: Standard single-line text field
-- **Email Input**: Specialized for email addresses with appropriate keyboard
-- **Password Input**: Masks character input for security
-- **Search Input**: Optimized for search functionality
-- **Number Input**: Accepts numeric values only
-- **Tel Input**: Formatted for telephone numbers
+**Key Class Names:**
+- `usa-form`: Container for form elements
+- `usa-label`: Label element associated with the input
+- `usa-input`: The input field itself
 
-## CSS Class Names
-- `.usa-input` - Base input class
-- `.usa-input--error` - Error state modifier
-- `.usa-input--success` - Success state modifier
-- `.usa-input--disabled` - Disabled state
+**Required Attributes:**
+- `id`: Unique identifier for the input (required for label association)
+- `for` attribute on label: Must match the input's `id`
+- `name`: Input name attribute used in form submissions
 
-## Required Attributes
-- `type` - Specifies the input type (text, email, password, etc.)
-- `id` - Unique identifier for accessibility
-- `name` - Form field name for submission
-- `aria-describedby` - Links to error/help text when present
+**Optional Attributes:**
+- `placeholder`: Optional placeholder text displayed inside the input
+- `aria-label`: ARIA label when visual label is hidden (Optional)
+- `aria-describedby`: ID of an element providing additional description (Optional)
 
-## Key Features
-- Full width by default within form groups
-- Support for placeholder text
-- Error messaging integration
-- Help text support
-- Required field indicators
-- Validation states (error, success)
-- Disabled state support
+**Properties:**
+- `label`: Text label associated with the input field
+- `id`: Unique ID for input and label association
+- `name`: Input name attribute (used in form submissions)
+- `placeholder`: Optional placeholder text inside the input
+- `ariaLabel`: ARIA label (used when label is visually hidden)
+- `ariaDescribedBy`: ID of an element describing this input
 
 ### Implementation
 
-## Basic Text Input
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-text">Text input label</label>
-  <input class="usa-input" id="input-text" type="text" name="input-text" />
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="input-type-text">Text input label</label>
+  <input class="usa-input" id="input-type-text" name="input-type-text">
+</form>
 ```
 
-## Email Input
+**With Placeholder:**
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-email">Email input label</label>
-  <input class="usa-input" id="input-email" type="email" name="input-email" />
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="input-with-placeholder">Label text</label>
+  <input class="usa-input" id="input-with-placeholder" name="input-with-placeholder" placeholder="Optional placeholder text">
+</form>
 ```
 
-## Password Input
+**With ARIA Attributes:**
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-password">Password input label</label>
-  <input class="usa-input" id="input-password" type="password" name="input-password" />
-</div>
-```
-
-## Input with Error State
-```html
-<div class="usa-form-group usa-form-group--error">
-  <label class="usa-label" for="input-error">Input with error</label>
-  <span class="usa-error-message" id="input-error--error-message" role="alert">
-    <span class="usa-sr-only">Error:</span>
-    This field is required
-  </span>
-  <input 
-    class="usa-input usa-input--error" 
-    id="input-error" 
-    type="text" 
-    name="input-error"
-    aria-describedby="input-error--error-message"
-  />
-</div>
-```
-
-## Input with Help Text
-```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-help">Input with help text</label>
-  <span class="usa-hint" id="input-help--hint">
-    This is helpful text
-  </span>
-  <input 
-    class="usa-input" 
-    id="input-help" 
-    type="text" 
-    name="input-help"
-    aria-describedby="input-help--hint"
-  />
-</div>
-```
-
-## Disabled Input
-```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-disabled">Disabled input</label>
-  <input 
-    class="usa-input" 
-    id="input-disabled" 
-    type="text" 
-    name="input-disabled"
-    disabled
-  />
-</div>
-```
-
-## Search Input
-```html
-<div class="usa-form-group">
-  <label class="usa-label" for="input-search">Search</label>
-  <input 
-    class="usa-input" 
-    id="input-search" 
-    type="search" 
-    name="input-search" 
-  />
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="input-accessible">Accessible input</label>
+  <input class="usa-input" id="input-accessible" name="input-accessible" aria-label="Screen reader label" aria-describedby="input-helper-text">
+  <span id="input-helper-text">Additional description</span>
+</form>
 ```
 
 ### Context
 
-The Input component is a foundational USWDS element used throughout the Maryland Web Design System for form data collection. It works in conjunction with labels, form groups, hint text, and error messaging to create accessible and user-friendly form experiences aligned with federal design standards.
+The Input component is a core MDWDS form element built on USWDS standards, providing consistent styling and accessibility across Maryland web properties. It composes with form containers and validation components to create complete, accessible form experiences.
 
 ---
 
@@ -4418,160 +5020,334 @@ The Input component is a foundational USWDS element used throughout the Maryland
 
 *Components*
 
-Input Mask is a component that formats user input in real-time as it's being entered, typically for structured data like phone numbers, dates, or social security numbers. It improves data quality and user experience by guiding users to enter information in the correct format without requiring manual validation.
+The Input Mask component provides formatted input fields for common data patterns like phone numbers, SSN, and ZIP codes. It automatically formats user input as they type and displays hint text showing the expected format. Use this when you need to enforce structured data entry with real-time formatting and validation.
 
 ### Key Information
 
-Input Mask enforces a predefined input format by automatically inserting separators and restricting input to appropriate characters. Common variants include:
+## Variants & Mask Types
 
-- **Phone Number Mask**: Formats input as (XXX) XXX-XXXX
-- **Date Mask**: Formats input as MM/DD/YYYY
-- **Social Security Number**: Formats input as XXX-XX-XXXX
-- **Credit Card**: Formats input as XXXX XXXX XXXX XXXX
+- **Phone**: `###-###-####` (10-digit phone number)
+- **SSN**: `###-##-####` (Social Security Number)
+- **ZIP Code**: `#####` or `#####-####` (5-digit or ZIP+4)
+- **Custom**: User-defined mask pattern
 
-Key CSS classes and attributes:
-- Input field should have `type="text"` with a `data-mask` attribute specifying the format pattern
-- Use ARIA attributes like `aria-label` or `aria-describedby` to communicate the expected format to assistive technologies
-- The mask pattern can be defined via JavaScript initialization or HTML attributes
-- Common patterns use X for numeric input, A for alphabetic, and * for alphanumeric characters
+## Required Attributes & Properties
 
-Important considerations:
-- Always provide visible label text describing the expected format
-- Include helper text or placeholder text showing an example format
-- Ensure the unmasked value is captured for backend processing
-- Test with screen readers to ensure the mask doesn't interfere with accessibility
+- `data-input-mask=""` - Enables mask functionality on the input element
+- `data-mask-type=""` - Specifies which mask to apply: `phone`, `ssn`, `zip`, or `custom`
+- `type="text"` - Input type must be text
+- `pattern=""` - Validation pattern (e.g., `[0-9]{3}-[0-9]{3}-[0-9]{4}` for phone)
+- `placeholder=""` - Shows expected format with underscores (e.g., `___-___-____`)
+- `aria-describedby=""` - Links to hint text for accessibility
+
+## CSS Classes
+
+- `usa-form` - Main form container
+- `usa-form--large` - Large form variant
+- `usa-label` - Label styling
+- `usa-input` - Input field styling
+- `usa-hint` - Hint text styling for format instructions
+
+## Optional Properties
+
+- `required` (boolean) - Marks field as required
+- `disabled` (boolean) - Disables the input field
+- `enableAnalytics` (boolean) - Enables Google Analytics tracking
+- `gaCategory`, `gaAction`, `gaLabel` - GA tracking attributes when analytics enabled
+
+## Important Notes
+
+- Requires USWDS JavaScript to be loaded for live masking functionality
+- Component relies on USWDS base classes from the `usa-` namespace
+- Hint text should clearly indicate the expected format
 
 ### Implementation
 
 ```html
-<!-- Basic Phone Number Input Mask -->
-<div class="form-group">
-  <label for="phone-input">Phone Number</label>
-  <input
-    id="phone-input"
-    type="text"
-    class="usa-input"
-    data-mask="(999) 999-9999"
-    placeholder="(555) 123-4567"
-    aria-label="Phone number in the format (555) 123-4567"
-  />
-</div>
-
-<!-- Date Input Mask -->
-<div class="form-group">
-  <label for="date-input">Date of Birth</label>
-  <input
-    id="date-input"
-    type="text"
-    class="usa-input"
-    data-mask="99/99/9999"
-    placeholder="MM/DD/YYYY"
-    aria-describedby="date-help-text"
-  />
-  <span id="date-help-text" class="usa-hint">Format: MM/DD/YYYY</span>
-</div>
-
-<!-- Social Security Number Mask -->
-<div class="form-group">
-  <label for="ssn-input">Social Security Number</label>
-  <input
-    id="ssn-input"
-    type="text"
-    class="usa-input"
-    data-mask="999-99-9999"
-    placeholder="XXX-XX-XXXX"
-    aria-label="Social security number"
-  />
-</div>
+<!-- Phone Number Input Mask (Default) -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-id-k4bemcxqq">
+    Phone number
+  </label>
+  <span class="usa-hint" id="hint-id-k4bemcxqq">###-###-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-id-k4bemcxqq" 
+    name="input-mask-id-k4bemcxqq" 
+    data-mask-type="phone" 
+    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" 
+    placeholder="___-___-____" 
+    aria-describedby="hint-id-k4bemcxqq"
+  >
+</form>
 ```
 
-**JavaScript Initialization (if using IMask library):**
+```html
+<!-- Social Security Number Input Mask -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-ssn">
+    Social Security Number
+    <span aria-label="required">*</span>
+  </label>
+  <span class="usa-hint" id="hint-ssn">###-##-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-ssn" 
+    name="ssn" 
+    data-mask-type="ssn" 
+    pattern="[0-9]{3}-[0-9]{2}-[0-9]{4}" 
+    placeholder="___-__-____" 
+    aria-describedby="hint-ssn"
+    required
+  >
+</form>
+```
 
-```javascript
-import IMask from 'imask';
+```html
+<!-- ZIP Code Input Mask -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-zip">
+    ZIP code
+  </label>
+  <span class="usa-hint" id="hint-zip">##### or #####-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-zip" 
+    name="zip" 
+    data-mask-type="zip" 
+    placeholder="_____" 
+    aria-describedby="hint-zip"
+  >
+</form>
+```
 
-// Phone mask
-IMask(document.getElementById('phone-input'), {
-  mask: '(000) 000-0000',
-  definitions: {
-    '0': /[0-9]/
-  }
-});
+```html
+<!-- Required Field Variant -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-required">
+    Phone number
+    <span aria-label="required">*</span>
+  </label>
+  <span class="usa-hint" id="hint-required">###-###-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-required" 
+    name="phone-required" 
+    data-mask-type="phone" 
+    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" 
+    placeholder="___-___-____" 
+    aria-describedby="hint-required"
+    required
+  >
+</form>
+```
 
-// Date mask
-IMask(document.getElementById('date-input'), {
-  mask: '00/00/0000',
-  definitions: {
-    '0': /[0-9]/
-  }
-});
+```html
+<!-- Disabled Variant -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-disabled">
+    Phone number
+  </label>
+  <span class="usa-hint" id="hint-disabled">###-###-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-disabled" 
+    name="phone-disabled" 
+    data-mask-type="phone" 
+    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" 
+    placeholder="___-___-____" 
+    aria-describedby="hint-disabled"
+    disabled
+  >
+</form>
+```
+
+```html
+<!-- With Google Analytics Tracking -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <label class="usa-label" for="input-mask-analytics">
+    Phone number
+  </label>
+  <span class="usa-hint" id="hint-analytics">###-###-####</span>
+  <input 
+    type="text" 
+    data-input-mask="" 
+    class="usa-input" 
+    id="input-mask-analytics" 
+    name="phone-analytics" 
+    data-mask-type="phone" 
+    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" 
+    placeholder="___-___-____" 
+    aria-describedby="hint-analytics"
+    data-ga-category="Contact Form"
+    data-ga-action="Phone Input"
+    data-ga-label="Phone Number Entry"
+  >
+</form>
 ```
 
 ### Context
 
-Input Mask is a specialized component that wraps standard form inputs from the USWDS input library, adding real-time formatting behavior. It composes with the form group structure and label system to provide enhanced user experience for structured data entry while maintaining accessibility standards.
+The Input Mask component is a USWDS-based utility for structured data capture in forms. It integrates with the Maryland Web Design System by inheriting standard form styling (usa-form, usa-label, usa-input, usa-hint) and works alongside other form components to ensure consistent, accessible data input across state applications.
 
 ---
 
-## Input Prefix/Suffix
+## Input Prefix Suffix
 
 *Components*
 
-Input Prefix/Suffix components add decorative or informational text before or after form input fields. They help clarify the type of input expected (e.g., currency symbols, units of measurement) and improve form clarity and user understanding.
+The Input Prefix Suffix component adds contextual information before or after an input field, such as currency symbols, units of measurement, or domain extensions. It solves the problem of providing clear input context and validation in a single visual unit. Use this when users need to understand the expected input format or unit type.
 
 ### Key Information
 
 ## Variants
-- **Prefix**: Text or icon displayed before the input field
-- **Suffix**: Text or icon displayed after the input field
-- **Combined**: Both prefix and suffix on the same input
+- **Default**: Input with a single prefix indicator (e.g., "$" for currency)
+- **With Suffix**: Input with a suffix indicator (e.g., "lbs" for weight)
+- **Prefix and Suffix Combined**: Input with both prefix and suffix (e.g., "https://" prefix and ".gov" suffix for URLs)
+- **Error State**: Input with prefix displaying error styling and error message
+- **Disabled State**: Input with prefix that is disabled
 
-## CSS Classes
-- `.usa-input-group`: Wrapper for input with prefix/suffix
-- `.usa-input-prefix`: Container for prefix content
-- `.usa-input-suffix`: Container for suffix content
-- `.usa-input`: The actual input field (when used with prefix/suffix)
+## Key Class Names
+- `usa-form`: Form container
+- `usa-form-group`: Form group wrapper
+- `usa-label`: Label element
+- `usa-input`: The input field itself
+- `usa-input-group`: Wrapper container for input with prefix/suffix
+- `usa-input-prefix`: Container for prefix text (use `aria-hidden="true"`)
 
-## Key Attributes
-- Input fields should have appropriate `type` attributes (text, number, email, etc.)
-- Use semantic HTML with label associations via `for` and `id`
-- Prefix/suffix elements should not be interactive (or use `aria-hidden="true"` if decorative)
+## Properties
+- **label**: Label text for the input field (string)
+- **prefix**: Text to display before the input, e.g., "$", "https://" (string)
+- **suffix**: Text to display after the input, e.g., "lbs", ".gov" (string)
+- **hint**: Optional hint text to help users (string)
+- **placeholder**: Placeholder text inside the input (string)
+- **disabled**: Disable the input if true (boolean)
+- **error**: Show error state (boolean)
+- **errorMessage**: Error message to display when error state is active (string)
+- **enableAnalytics**: Enable or disable GA tracking attributes (boolean)
+- **gaCategory**: Google Analytics event category (string)
+- **gaAction**: Google Analytics event action (string)
+- **gaLabel**: Google Analytics event label (string)
 
-## Important Facts
-- Prefixes and suffixes are typically read-only text, not interactive elements
-- They help with international inputs, currency, phone numbers, and measurements
-- Ensure sufficient color contrast if using icons
-- Works with all standard input types
+## Important Details
+- The prefix element must have `aria-hidden="true"` to prevent screen reader repetition
+- Input ID is auto-generated (e.g., "id-6otjads46ny")
+- Input name follows pattern "input-id-{generatedId}"
+- Supports Google Analytics tracking via optional GA attributes
+- Supports ARIA attributes for accessibility
 
 ### Implementation
 
+## Default: Currency Input with Prefix
+
 ```html
-<!-- Input with Prefix -->
-<div class="usa-input-group">
-  <span class="usa-input-prefix" aria-hidden="true">$</span>
-  <label for="input-prefix" class="usa-label">Amount</label>
-  <input class="usa-input" id="input-prefix" type="text" name="amount" />
-</div>
+<form class="usa-form">
+  <div class="usa-form-group">
+    <label class="usa-label" for="id-6otjads46ny">
+      Price
+    </label>
+    <div class="usa-input-group">
+      <div class="usa-input-prefix" aria-hidden="true">
+        $
+      </div>
+      <input class="usa-input" type="text" id="id-6otjads46ny" name="input-id-6otjads46ny" placeholder="0.00">
+    </div>
+  </div>
+</form>
+```
 
-<!-- Input with Suffix -->
-<div class="usa-input-group">
-  <label for="input-suffix" class="usa-label">Distance</label>
-  <input class="usa-input" id="input-suffix" type="text" name="distance" />
-  <span class="usa-input-suffix" aria-hidden="true">miles</span>
-</div>
+## With Suffix: Weight Input
 
-<!-- Input with Both Prefix and Suffix -->
-<div class="usa-input-group">
-  <span class="usa-input-prefix" aria-hidden="true">+1</span>
-  <label for="input-both" class="usa-label">Phone Number</label>
-  <input class="usa-input" id="input-both" type="text" name="phone" />
-  <span class="usa-input-suffix" aria-hidden="true">ext.</span>
-</div>
+```html
+<form class="usa-form">
+  <div class="usa-form-group">
+    <label class="usa-label" for="id-weight">
+      Weight
+    </label>
+    <div class="usa-input-group">
+      <input class="usa-input" type="text" id="id-weight" name="input-weight" placeholder="">
+      <div class="usa-input-suffix" aria-hidden="true">
+        lbs
+      </div>
+    </div>
+  </div>
+</form>
+```
+
+## Combined Prefix and Suffix: URL Input
+
+```html
+<form class="usa-form">
+  <div class="usa-form-group">
+    <label class="usa-label" for="id-url">
+      Website
+    </label>
+    <div class="usa-form-hint" id="hint-url">Enter your government website domain</div>
+    <div class="usa-input-group">
+      <div class="usa-input-prefix" aria-hidden="true">
+        https://
+      </div>
+      <input class="usa-input" type="text" id="id-url" name="input-url" placeholder="" aria-describedby="hint-url">
+      <div class="usa-input-suffix" aria-hidden="true">
+        .gov
+      </div>
+    </div>
+  </div>
+</form>
+```
+
+## Error State
+
+```html
+<form class="usa-form">
+  <div class="usa-form-group usa-form-group--error">
+    <label class="usa-label" for="id-price-error">
+      Price
+    </label>
+    <span class="usa-error-message" id="error-price" role="alert">
+      Please enter a valid price
+    </span>
+    <div class="usa-input-group">
+      <div class="usa-input-prefix" aria-hidden="true">
+        $
+      </div>
+      <input class="usa-input usa-input--error" type="text" id="id-price-error" name="input-price-error" placeholder="" aria-describedby="error-price">
+    </div>
+  </div>
+</form>
+```
+
+## Disabled State
+
+```html
+<form class="usa-form">
+  <div class="usa-form-group">
+    <label class="usa-label" for="id-price-disabled">
+      Price
+    </label>
+    <div class="usa-input-group">
+      <div class="usa-input-prefix" aria-hidden="true">
+        $
+      </div>
+      <input class="usa-input" type="text" id="id-price-disabled" name="input-price-disabled" placeholder="0.00" disabled>
+    </div>
+  </div>
+</form>
 ```
 
 ### Context
 
-Input Prefix/Suffix is a USWDS component integrated into MDWDS that enhances form inputs by providing visual context. It works alongside Form Group, Label, and other form components to create complete, accessible form interfaces for Maryland state applications.
+The Input Prefix Suffix component is part of the USWDS (U.S. Web Design System) component library and is implemented in MDWDS. It builds on the standard form input component by wrapping it with optional prefix/suffix containers, extending input functionality without requiring additional HTML form controls. This component is commonly used alongside other form elements like text inputs, selects, and checkboxes in multi-field forms.
 
 ---
 
@@ -4579,241 +5355,254 @@ Input Prefix/Suffix is a USWDS component integrated into MDWDS that enhances for
 
 *Components*
 
-The Language Selector is a UI component that allows users to switch between different language options on a website. It provides accessibility and inclusivity by enabling non-English speakers to view content in their preferred language. This component is essential for government websites serving diverse populations.
+The Language Selector provides a dropdown interface for users to select content in different languages. It supports both dropdown (for headers) and menu variants, with proper accessibility attributes and optional Google Analytics tracking. This component helps serve multilingual audiences by offering an intuitive language choice mechanism with native language names.
 
 ### Key Information
 
-The Language Selector typically includes:
+## Variants & Modifiers
 
-- **Purpose**: Allows users to change the current page/site language
-- **Placement**: Usually positioned in the header or toolbar area for easy access
-- **Common variants**: 
-  - Dropdown selector with language codes or names
-  - Flag icons with language names
-  - Text-based language links
-- **Accessibility**: Should include proper ARIA labels and semantic HTML
-- **Required attributes**: 
-  - Language option values (e.g., "en", "es", "fr")
-  - Current language indication
-  - Clear labeling for screen readers
-- **Composition**: Often part of a header or navigation toolbar component
-- **USWDS Integration**: This component follows USWDS (U.S. Web Design System) patterns and standards
+- **Dropdown variant**: Primary variant for use in site headers
+- **Small variant**: Compact size modifier via `size` property set to "small"
+- **Menu variant**: Alternative for footers
+- **With Additional Link**: Optional link for additional language resources (controlled via `includeAdditionalLink` boolean)
+- **Custom Languages**: Supports custom language arrays with `{ native, english, lang, url }` structure
+- **Maryland State Languages**: Preconfigured language set for Maryland
 
-### Implementation
+## CSS Class Names
 
-```html
-<!-- Language Selector - Dropdown Pattern -->
-<div class="language-selector">
-  <label for="language-select" class="language-selector__label">
-    Select Language
-  </label>
-  <select id="language-select" class="language-selector__select" aria-label="Select page language">
-    <option value="en" selected>English</option>
-    <option value="es">Español</option>
-    <option value="fr">Français</option>
-    <option value="zh">中文</option>
-  </select>
-</div>
-
-<!-- Language Selector - Link Pattern -->
-<div class="language-selector" role="navigation" aria-label="Language selection">
-  <span class="language-selector__current" aria-current="page">English</span>
-  <ul class="language-selector__list">
-    <li><a href="?lang=es" hreflang="es">Español</a></li>
-    <li><a href="?lang=fr" hreflang="fr">Français</a></li>
-    <li><a href="?lang=zh" hreflang="zh">中文</a></li>
-  </ul>
-</div>
-
-<!-- Language Selector - Button Pattern with Menu -->
-<div class="language-selector">
-  <button 
-    id="language-toggle" 
-    class="language-selector__button" 
-    aria-haspopup="menu" 
-    aria-expanded="false"
-    aria-label="Change language">
-    English
-  </button>
-  <ul id="language-menu" class="language-selector__menu" role="menu" hidden>
-    <li role="none"><a href="?lang=en" role="menuitem">English</a></li>
-    <li role="none"><a href="?lang=es" role="menuitem">Español</a></li>
-    <li role="none"><a href="?lang=fr" role="menuitem">Français</a></li>
-  </ul>
-</div>
-```
-
-### Context
-
-The Language Selector is a USWDS-based component that integrates into Maryland state websites to provide multilingual support. It typically appears in the header or toolbar alongside other navigation elements and works in conjunction with site-wide internationalization infrastructure to dynamically change page content.
-
----
-
-## Link Collection
-
-*Components*
-
-Link Collection is a component that groups related links together in an organized, scannable layout. It helps users quickly find and navigate to related pages or resources within a section of content. Use it to display sets of related links, navigation groups, or resource lists in a visually organized manner.
-
-### Key Information
-
-## Variants and Modifiers
-- Standard link collection with title and description support
-- Multiple link items within a collection
-- Optional descriptions or labels for each link
-- Support for internal and external links
-
-## CSS Classes
-- `.link-collection` - Main container class
-- `.link-collection__title` - For collection heading/title
-- `.link-collection__item` - Individual link item wrapper
-- `.link-collection__link` - Link element styling
+- `usa-language-container`: Main container wrapper
+- `usa-language__primary`: Primary language list
+- `usa-language__primary-item`: Individual primary item
+- `usa-button`: Button element styling
+- `usa-language__link`: Language selector trigger button
+- `usa-language__submenu`: Dropdown menu container
+- `usa-language__submenu-item`: Individual submenu item
+- `usa-accordion`: USWDS accordion class for functionality
 
 ## Required Attributes
-- Each link should have proper `href` attribute
-- Use semantic HTML with `<a>` elements
-- Consider ARIA labels for complex collections
 
-## Important Facts
-- Collections should be logically grouped by topic or section
-- Maintains consistent link styling across the system
-- Responsive and accessible by default
+- `aria-expanded`: Boolean attribute on trigger button (false when closed, true when open)
+- `aria-controls`: Points to the ID of the submenu element it controls
+- `lang` and `xml:lang`: Language code attributes on language name spans (e.g., `lang="ar"` for Arabic)
+- `title`: Descriptive title on language links (e.g., "عربى | Arabic")
+
+## Key Properties
+
+- **triggerLabel**: Text displayed on the language selector button (default: "Languages")
+- **languages**: Array of language objects with native name, English name, language code, and URL
+- **size**: Controls variant size ("default" or "small")
+- **includeAdditionalLink**: Boolean to show/hide additional resources link
+- **additionalLinkText**: Custom text for additional resources link
+- **additionalLinkUrl**: URL for additional resources link
+- **ariaLabel**: ARIA label for accessibility
+- **enableAnalytics**: Toggle Google Analytics tracking
+- **gaCategory**, **gaAction**, **gaLabel**: Analytics event parameters
+
+## Important Notes
+
+- Requires USWDS JavaScript for accordion/dropdown functionality
+- Provides full WCAG 2.1 AA accessibility compliance
+- Language names should display in their native script/language (e.g., "عربى", "中文", "Español")
+- Supports keyboard navigation when JS is loaded
 
 ### Implementation
 
 ```html
-<div class="link-collection">
-  <h2 class="link-collection__title">Collection Title</h2>
-  
-  <ul class="link-collection__items">
-    <li class="link-collection__item">
-      <a href="#" class="link-collection__link">First Related Link</a>
-    </li>
-    <li class="link-collection__item">
-      <a href="#" class="link-collection__link">Second Related Link</a>
-    </li>
-    <li class="link-collection__item">
-      <a href="#" class="link-collection__link">Third Related Link</a>
+<div class="usa-language-container" id="id-3qpn7xnds3n">
+  <ul class="usa-language__primary usa-accordion">
+    <li class="usa-language__primary-item">
+      <button 
+        class="usa-button usa-language__link" 
+        aria-expanded="false" 
+        aria-controls="id-1uh9m8vxtmy">
+        Languages
+      </button>
+      <ul 
+        class="usa-language__submenu" 
+        hidden 
+        id="id-1uh9m8vxtmy">
+        <li class="usa-language__submenu-item">
+          <a 
+            href="javascript:void(0)" 
+            title="عربى | Arabic">
+            <span lang="ar" xml:lang="ar">
+              <strong>عربى</strong>
+            </span>
+          </a>
+        </li>
+        <!-- Additional language items follow same pattern -->
+        <li class="usa-language__submenu-item">
+          <a 
+            href="javascript:void(0)" 
+            title="[Language Name] | [English Name]">
+            <span lang="[language-code]" xml:lang="[language-code]">
+              <strong>[Native Language Name]</strong>
+            </span>
+          </a>
+        </li>
+      </ul>
     </li>
   </ul>
 </div>
 ```
 
-## With Descriptions
+**Small Variant Structure** (same HTML structure, controlled via `size="small"` property that applies appropriate CSS)
+
+**With Additional Link Variant** (adds footer link when `includeAdditionalLink` is true):
 ```html
-<div class="link-collection">
-  <h2 class="link-collection__title">Related Resources</h2>
-  
-  <ul class="link-collection__items">
-    <li class="link-collection__item">
-      <a href="#" class="link-collection__link">Link Title</a>
-      <p class="link-collection__description">Brief description of the link destination</p>
-    </li>
-  </ul>
+<div class="usa-language-container">
+  <!-- Primary selector as above -->
+  <div class="usa-language__additional">
+    <a href="[additionalLinkUrl]">[additionalLinkText]</a>
+  </div>
 </div>
 ```
+
+**Key Structural Details:**
+- Container element has unique ID for identification
+- Primary list uses `usa-accordion` class for USWDS JavaScript integration
+- Trigger button must have `aria-expanded` and `aria-controls` for accessibility
+- Submenu must have `hidden` attribute and matching ID referenced in `aria-controls`
+- Each language link includes `lang` and `xml:lang` attributes matching the language code
+- Language names wrapped in `<strong>` tags for emphasis
+- Title attribute provides fallback with format: "[Native Name] | [English Name]"
 
 ### Context
 
-Link Collection is a reusable component within MDWDS that helps organize related navigational elements and can be composed with other components like cards, sections, or page layouts to create cohesive information hierarchies.
+The Language Selector is a USWDS-based component that integrates into the Maryland Design System for multilingual site support. It typically appears in site headers or footers and works in conjunction with site navigation and regional settings to provide comprehensive accessibility for non-English speakers.
 
 ---
 
-## Links
+## Link
 
 *Components*
 
-Links are interactive text elements that navigate users to different pages, sections, or external resources. They provide a fundamental way for users to traverse the web and access related content. Links should be semantically meaningful, properly styled, and accessible to all users including those using assistive technologies.
+The USWDS Link component provides multiple visual styles for various use cases including inline links, decorative links, and button-styled links. It solves the problem of creating consistent, accessible link experiences across different contexts. Use it for standard text navigation, emphasis, or strong calls-to-action.
 
 ### Key Information
 
-## Variants and Modifiers
+**Link Types/Variants:**
+- Inline Links: Standard text links used within paragraph content
+- Decorative Links: Enhanced links for emphasis or external navigation
+- Button Links: Links styled as buttons for strong call-to-action behavior
 
-- **Standard Link**: Basic hyperlink with underline and color styling
-- **Visited Link**: Changes appearance after being visited by the user
-- **Hover State**: Interactive feedback when user hovers over the link
-- **Active/Focus State**: Visible focus indicator for keyboard navigation
-- **Disabled Link**: Non-interactive link state (when applicable)
+**Key CSS Classes:**
+- `usa-link`: Base class for all link components
 
-## Important Attributes
+**Key Properties:**
+- `label`: Text displayed for the link (string, required)
+- `href`: Destination URL for the link (string, required)
+- `external`: Boolean indicating if the link leaves the current site (optional)
+- `target`: Controls link target behavior - supports "Current Tab" or "New Tab" (optional)
 
-- `href`: Required attribute that specifies the link destination (URL or anchor)
-- `target`: Optional attribute for link behavior (e.g., `_blank` for new tab)
-- `rel`: Important for external links (e.g., `rel="noopener noreferrer"`)
-- `aria-label`: Provide descriptive labels when link text is ambiguous
-- `aria-current`: Use for current page in navigation (e.g., `aria-current="page"`)
-
-## CSS Classes
-
-- Standard link styling should be applied through semantic HTML (`<a>` tags)
-- Links inherit color and underline decoration from component or utility classes
-- Focus states must provide sufficient contrast and be keyboard-accessible
-
-## Accessibility Considerations
-
-- Links must have descriptive, meaningful text
-- Avoid generic text like "Click here" or "Read more"
-- Ensure sufficient color contrast between link and background
-- Provide visible focus indicators for keyboard navigation
-- Use `rel` attribute appropriately for security on external links
+**ARIA & Accessibility:**
+- Optional ARIA label can be added for improved screen reader context
+- External links should be indicated via the `external` property
+- Use appropriate `target` attributes when needed
 
 ### Implementation
 
-## Basic Link
-
 ```html
-<a href="/destination-page">Link Text</a>
+<!-- Inline Link (default variant) -->
+<a class="usa-link" href="#">Inline link</a>
 ```
 
-## External Link
+**Variants with modifiers:**
+- Inline link with external indicator
+- Decorative/enhanced link styling
+- Button-styled link variant
+
+**Props/Attributes:**
+- `href`: URL destination (required)
+- `label`: Link text content (required)
+- `external`: Boolean to mark external links
+- `target`: Set to indicate new tab behavior (e.g., "_blank")
+
+### Context
+
+The Link component is part of the USWDS component library and provides foundational navigation elements used throughout the MDWDS system. It composes with other content components and serves as the basis for navigation patterns, breadcrumbs, and call-to-action elements.
+
+---
+
+## LinkCollection
+
+*Components*
+
+The LinkCollection component presents a curated list of related links with an optional description and call-to-action. It helps organize and promote related content in a structured, scannable format. Use it when you need to group related links together with additional context and a "learn more" option.
+
+### Key Information
+
+## Variants
+- **Default**: Basic link collection with title, description, and multiple links
+- **With Item Descriptions**: Links include optional descriptions beneath each title
+- **Without More Link**: Link collection without the optional "learn more" call-to-action link
+- **Mixed Descriptions**: Some links have descriptions, others do not
+- **Stacked**: Layout variation (appears to be for vertical stacking of items)
+
+## CSS Class Names
+- `maryland-link-collection`: Main container wrapper
+- `maryland-link-collection__container`: Inner container for content
+- `maryland-link-collection__header`: Header section containing title and description
+- `maryland-link-collection__title`: Heading for the collection (required, should be H2)
+- `maryland-link-collection__header-bottom`: Bottom section of header
+- `maryland-link-collection__description`: Optional description text
+
+## Props/Attributes
+- **Title** (required): Clear, concise, descriptive heading text for the collection
+- **Description** (optional): Brief message providing context for the links
+- **More Link Text** (optional): Text for the optional "Learn more" link
+- **More Link URL** (optional): URL for the optional "Learn more" link
+- **Links** (required): Array of link objects with `title`, `url`, and optional `description` properties
+
+## Important Facts
+- The section uses `aria-labelledby` to reference the title ID for accessibility
+- Each link collection should have a unique ID for the title element
+- The component supports both simple links and links with descriptions
+
+### Implementation
 
 ```html
-<a href="https://external-site.com" target="_blank" rel="noopener noreferrer">
-  External Link
-</a>
+<section class="maryland-link-collection" aria-labelledby="id-eqnz93yq2ah">
+  <div class="maryland-link-collection__container">
+    <div class="maryland-link-collection__header">
+      <h2 class="maryland-link-collection__title" id="id-eqnz93yq2ah">
+        Grow your career in Maryland
+      </h2>
+      
+      <div class="maryland-link-collection__header-bottom">
+        <div class="maryland-link-collection__description">
+          Discover how Maryland works for you. Find a job, volunteer, or start your own business.
+        </div>
+      </div>
+    </div>
+    <!-- Links follow in list structure -->
+    <!-- Optional "More/Learn more" link can be included -->
+  </div>
+</section>
 ```
 
-## Link with Descriptive Label
-
+### With Item Descriptions
 ```html
-<a href="/page" aria-label="Read more about topic name">
-  Read more
-</a>
-```
-
-## Link with Current Page Indicator (Navigation)
-
-```html
-<a href="/current-page" aria-current="page">
-  Current Page
-</a>
-```
-
-## Link with Focus Styling (CSS)
-
-```css
-a {
-  color: #0066cc;
-  text-decoration: underline;
-}
-
-a:hover {
-  color: #004b99;
-}
-
-a:focus {
-  outline: 3px solid #ffd700;
-  outline-offset: 2px;
-}
-
-a:visited {
-  color: #663366;
-}
+<section class="maryland-link-collection" aria-labelledby="collection-title">
+  <div class="maryland-link-collection__container">
+    <div class="maryland-link-collection__header">
+      <h2 class="maryland-link-collection__title" id="collection-title">
+        Collection Title
+      </h2>
+      <div class="maryland-link-collection__header-bottom">
+        <div class="maryland-link-collection__description">
+          Optional description providing context for the links.
+        </div>
+      </div>
+    </div>
+    <!-- Each link item can include a description beneath the title -->
+  </div>
+</section>
 ```
 
 ### Context
 
-Links are foundational interactive elements used throughout the MDWDS system in navigation components, content areas, and utility patterns. They compose with navigation systems (menus, breadcrumbs) and are essential for building accessible, user-friendly Maryland state websites.
+LinkCollection is a presentational component that helps organize related links with context. It integrates with the broader MDWDS system by providing a consistent way to highlight curated link sets across pages, often used alongside other content components to guide users through related topics or actions.
 
 ---
 
@@ -4821,135 +5610,81 @@ Links are foundational interactive elements used throughout the MDWDS system in 
 
 *Components*
 
-Links are interactive elements that navigate users to different pages, sections, or external resources. They are fundamental navigation components that help users move through content and access related information. Use links for inline text navigation, primary actions, or to guide users to different pages within your application.
+Maryland Design System links provide enhanced styling and accessibility features for various link types, including standard links, document links, labelled links, external links, and skip links. Links solve the problem of providing consistent, accessible navigation throughout the design system with support for different contexts and use cases. Use links for navigation, file downloads, external site references, and keyboard-accessible skip navigation.
 
 ### Key Information
 
 ## Variants
 
-- **Default/Text Link**: Standard hyperlink with underline, typically blue with hover states
-- **External Link**: Link to external websites, often indicated with an icon
-- **Disabled Link**: Non-interactive link state when navigation is unavailable
-- **Visited Link**: Indicates a previously visited link with different styling
+- **default**: Standard links with Maryland styling
+- **document**: Links for downloadable files with file type and size indicators
+- **document-heading**: Document links within heading elements for listings and cards
+- **document-card**: Document links in card context without hover underline
+- **labelled**: Links with descriptive labels displayed above the link
+- **skipnav**: Accessibility skip links for keyboard users to bypass navigation
+
+## Modifiers & Controls
+
+- **external**: Boolean flag to indicate the link navigates away from current site (adds external icon)
+- **fileType**: File type indicator for document variants (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ZIP)
+- **fileSize**: File size display for document variants
+- **description**: Label text displayed above the link (labelled variant only)
+- **target**: Where to open the link (current tab or new tab)
+- **skipTo**: Navigation target for skip links ("main" or "sidebar")
 
 ## CSS Class Names
 
-- `.usa-link`: Base class for styled links
-- `.usa-link--external`: Modifier for external links with icon indicator
-- `.usa-link--unstyled`: Removes default link styling
-- `.usa-link--hover`: Defines hover state styling
+- `maryland-link`: Base link class applied to anchor elements
 
-## Attributes
+## Required Attributes
 
-- `href`: Required - specifies the link destination
-- `title`: Optional - provides tooltip or additional context
-- `aria-label`: Optional - accessible label for screen readers
-- `target="_blank"`: Opens link in new tab/window
-- `rel="noopener noreferrer"`: Security attribute for external links opening in new tab
-
-## Important Facts
-
-- Links should have descriptive text that indicates the destination or action
-- Use semantic HTML `<a>` elements for accessibility
-- Ensure sufficient color contrast for readability
-- Provide visual indication for visited, hover, and focus states
-- External links should be clearly distinguished from internal links
-- Links should be keyboard accessible (focus visible)
+- `href`: Destination URL for the link (required)
+- `label`: Text displayed for the link (required)
 
 ### Implementation
 
+## Default Link
 ```html
-<!-- Basic Link -->
-<a href="https://maryland.gov" class="usa-link">Maryland Home</a>
-
-<!-- External Link -->
-<a href="https://example.com" class="usa-link usa-link--external" target="_blank" rel="noopener noreferrer">
-  External Resource
-</a>
-
-<!-- Unstyled Link -->
-<a href="/page" class="usa-link usa-link--unstyled">Unstyled Link</a>
-
-<!-- Link with Aria Label -->
-<a href="/services" class="usa-link" aria-label="Go to Services page">
-  Services
-</a>
-
-<!-- Disabled Link (using span or aria-disabled) -->
-<a href="#" class="usa-link" aria-disabled="true" tabindex="-1">
-  Disabled Link
+<a class="maryland-link" href="#">
+  Maryland Link
 </a>
 ```
 
-### Context
-
-Links are core navigation components in MDWDS that enable user movement through content. They work alongside the navigation components and are used extensively throughout templates and page layouts to create hierarchical navigation structures.
-
----
-
-## Listing Page
-
-*Components*
-
-A listing page component is a layout template used to display collections of items, content, or data in an organized grid or list format. It provides a structured way to present multiple related items with consistent styling and spacing. Use this component when you need to display searchable, filterable, or paginated collections of content on Maryland state web pages.
-
-### Key Information
-
-The Listing Page component is a template-level component that serves as a container for presenting multiple items in a consistent format. Key features include:
-
-- **Purpose**: Displays collections of items (articles, services, documents, etc.) in a structured layout
-- **Variants**: Can support grid or list view layouts
-- **Composition**: Typically includes a header section, optional filtering/search controls, and item containers
-- **Spacing**: Uses consistent margin and padding utilities for visual rhythm
-- **Responsive**: Adapts to different screen sizes with appropriate grid columns
-- **Item Structure**: Each item can include image, title, description, metadata, and call-to-action elements
-- **Optional Features**: May include sorting, filtering, search, and pagination controls
-
-### Implementation
-
+## Document Link
 ```html
-<!-- Basic Listing Page Structure -->
-<div class="listing-page">
-  <header class="listing-page__header">
-    <h1 class="listing-page__title">Page Title</h1>
-    <p class="listing-page__description">Optional description or introductory text</p>
-  </header>
+<a class="maryland-link" href="#" data-file-type="PDF" data-file-size="2MB">
+  FY2025 Annual Report - PDF 2MB
+</a>
+```
 
-  <section class="listing-page__controls">
-    <!-- Optional search and filter controls -->
-    <input type="search" placeholder="Search items..." class="listing-page__search" />
-  </section>
-
-  <div class="listing-page__items">
-    <!-- Grid of items -->
-    <article class="listing-item">
-      <div class="listing-item__image">
-        <img src="image.jpg" alt="Item image" />
-      </div>
-      <div class="listing-item__content">
-        <h2 class="listing-item__title">Item Title</h2>
-        <p class="listing-item__description">Item description</p>
-        <div class="listing-item__metadata">
-          <span class="listing-item__date">Date</span>
-        </div>
-      </div>
-      <div class="listing-item__actions">
-        <a href="#" class="button">Learn More</a>
-      </div>
-    </article>
-    <!-- Additional items repeat -->
-  </div>
-
-  <!-- Optional pagination -->
-  <nav class="listing-page__pagination" aria-label="Pagination">
-    <!-- Pagination controls -->
-  </nav>
+## Labelled Link
+```html
+<div>
+  <label>Download</label>
+  <a class="maryland-link" href="#">
+    Maryland Link
+  </a>
 </div>
 ```
 
+## External Link
+```html
+<a class="maryland-link" href="#" rel="external">
+  Visit Maryland.gov 
+  <svg aria-hidden="true"><!-- external icon --></svg>
+</a>
+```
+
+## Skip Navigation Link
+```html
+<a class="maryland-link" href="#main">
+  Skip to main content
+</a>
+```
+
 ### Context
 
-The Listing Page is a template-level component in MDWDS that combines smaller components (cards, buttons, search inputs) to create a complete page layout for presenting collections. It follows MDWDS spacing, typography, and color utilities while providing a flexible structure for various content types.
+Links are a fundamental navigation component in the Maryland Design System that compose with other components like navigation bars, cards, and lists. They provide consistent styling and accessibility features across the design system and support various use cases from standard navigation to document downloads and keyboard accessibility.
 
 ---
 
@@ -4957,85 +5692,82 @@ The Listing Page is a template-level component in MDWDS that combines smaller co
 
 *Components*
 
-Lists are fundamental content structures used to organize and present related items in a logical sequence. They help users quickly scan and understand grouped information, making content more digestible and improving readability. Use lists when you need to present multiple related items, steps, or information points in a structured format.
+The USWDS List component provides consistent styling for ordered, unordered, and unstyled lists. It allows you to dynamically define list items and configure accessibility attributes (ARIA) for improved screen reader support. Use this component to create semantically correct, accessible lists with predefined USWDS styling.
 
 ### Key Information
 
-## List Types
-
-- **Unordered Lists (`<ul>`)**: Used for items without a required sequence or priority
-- **Ordered Lists (`<ol>`)**: Used for sequential steps, rankings, or items requiring a specific order
-- **Description Lists (`<dl>`)**: Used for term-definition pairs or label-value relationships
+## Variants
+- **Unordered list**: Standard bulleted list (default)
+- **Ordered list**: Numbered list
+- **Unstyled list**: List without visual markers
 
 ## CSS Classes
+- `usa-list`: Base class for styled lists (unordered and ordered variants)
 
-- `usa-list`: Standard USWDS list styling class
-- Applied to `<ul>`, `<ol>`, or `<dl>` elements
+## HTML Elements
+- `<ul>`: For unordered lists
+- `<ol>`: For ordered lists
+- `<li>`: For list items (required children)
 
-## Variants
+## Configurable Properties
+- **variant**: Choose between "unordered", "ordered", or "unstyled" list types
+- **items**: Array of strings representing list item content
+- **ariaLabel**: Optional accessible name for the list
+- **ariaDescribedBy**: Optional ID of element that describes the list
 
-- **Unstyled Lists**: Remove default list styling with utility classes
-- **Nested Lists**: Lists can contain other lists for hierarchical organization
-- **Plain Lists**: Basic semantic HTML without additional styling
-
-## Important Notes
-
-- Always use semantic HTML list elements (`<ul>`, `<ol>`, `<dl>`)
-- Lists should contain `<li>` items (or `<dt>`/`<dd>` for description lists)
-- Lists improve accessibility and SEO when properly structured
-- Proper nesting maintains logical document structure
+## Accessibility
+- Lists support ARIA attributes (`aria-label`, `aria-describedby`) for improved screen reader support
+- Semantic HTML elements (`<ul>`, `<ol>`, `<li>`) provide native accessibility
 
 ### Implementation
 
 ## Unordered List
-
 ```html
 <ul class="usa-list">
-  <li>Item one</li>
-  <li>Item two</li>
-  <li>Item three</li>
+  <li>List item 1</li>
+  <li>List item 2</li>
+  <li>List item 3</li>
 </ul>
 ```
 
 ## Ordered List
-
 ```html
 <ol class="usa-list">
-  <li>First step</li>
-  <li>Second step</li>
-  <li>Third step</li>
+  <li>List item 1</li>
+  <li>List item 2</li>
+  <li>List item 3</li>
 </ol>
 ```
 
-## Description List
-
+## Unstyled List
 ```html
-<dl class="usa-list">
-  <dt>Term</dt>
-  <dd>Definition or description</dd>
-  <dt>Another term</dt>
-  <dd>Another definition</dd>
-</dl>
+<ul>
+  <li>List item 1</li>
+  <li>List item 2</li>
+  <li>List item 3</li>
+</ul>
 ```
 
-## Nested Lists
+## With Accessibility Attributes
+```html
+<ul class="usa-list" aria-label="Main navigation">
+  <li>List item 1</li>
+  <li>List item 2</li>
+  <li>List item 3</li>
+</ul>
+```
 
 ```html
-<ul class="usa-list">
-  <li>
-    Main item
-    <ul>
-      <li>Nested item one</li>
-      <li>Nested item two</li>
-    </ul>
-  </li>
-  <li>Another main item</li>
+<ul class="usa-list" aria-describedby="list-description">
+  <li>List item 1</li>
+  <li>List item 2</li>
+  <li>List item 3</li>
 </ul>
 ```
 
 ### Context
 
-Lists are a foundational content component in MDWDS built on USWDS standards, providing semantic HTML structure for organizing information. They compose with other components like cards and sections to structure page content and improve content hierarchy and accessibility.
+The Lists component is a foundational USWDS element that provides consistent, accessible styling for list content throughout the MDWDS system. It integrates with the broader design system's typography and spacing utilities, and serves as a building block for navigation menus, step lists, and other list-based components.
 
 ---
 
@@ -5043,168 +5775,143 @@ Lists are a foundational content component in MDWDS built on USWDS standards, pr
 
 *Components*
 
-The Memorable Date component is a date input pattern that helps users enter dates in an easy-to-remember format by breaking the date into separate fields for month, day, and year. It solves the problem of ambiguous date entry and improves accessibility for users entering date information. Use this component whenever you need to collect date information from users in a clear, memorable, and accessible way.
+The Memorable Date component provides an accessible way to collect dates from users using three separate inputs: a month dropdown, day text field, and year text field. It solves the problem of date entry by breaking the input into semantic parts, reducing user errors and improving accessibility. Use this when you need users to enter dates like birth dates, application dates, or other specific calendar dates in a structured format.
 
 ### Key Information
 
-## Variants and Structure
-- Three separate input fields for month (MM), day (DD), and year (YYYY)
-- Each field is individually labeled and can be focused
-- Supports keyboard navigation between fields with auto-advance on maximum characters
-- Built on USWDS date input patterns
+## Variants and Configuration
 
-## CSS Classes
-- `.usa-input` - Applied to each date input field
-- `.usa-form-group` - Container for the date fieldset
-- `.usa-fieldset` - Wrapper for the entire memorable date input group
-- `.usa-legend` - Label for the fieldset
+- **Basic memorable date**: Month dropdown with day and year text inputs
+- **With hint text**: Displays helper text (e.g., "For example: 4 28 1986")
+- **With required field marking**: Indicates required status on the fieldset
+- **Error states**: Shows error messages when validation fails
+- **Disabled state**: All date input fields can be disabled
+- **Analytics-enabled**: Supports Google Analytics tracking attributes (gaCategory, gaAction, gaLabel)
 
-## Attributes and ARIA
-- `aria-label` or `aria-describedby` for accessibility context
-- `inputmode="numeric"` - Appropriate input mode for date fields
-- `maxlength` attributes to limit character input (2 for MM/DD, 4 for YYYY)
-- `type="text"` - Use text input with numeric input mode for better browser support
-- `name` attribute should follow pattern: `[name]-month`, `[name]-day`, `[name]-year`
+## CSS Class Names
 
-## Modifiers and Options
-- Error state: Apply `.usa-input--error` class when validation fails
-- Disabled state: `disabled` attribute on input fields
-- Required fields: Mark with `required` attribute and visual indicator
-- Hint text support for format guidance (e.g., "MM/DD/YYYY")
+- `usa-form`: Main form wrapper
+- `usa-form--large`: Large form variant
+- `usa-fieldset`: Fieldset container for the date group
+- `usa-legend`: Legend text for the fieldset
+- `usa-hint`: Hint text styling
+- `usa-memorable-date`: Wrapper for the date input group
+- `usa-form-group`: Individual form group wrapper
+- `usa-form-group--month`: Month field-specific wrapper
+- `usa-form-group--select`: Select dropdown wrapper
+- `usa-label`: Label styling for each field (month, day, year)
+- `usa-select`: Select dropdown element for month
 
-## Important Facts
-- Provides better UX than single date input field for date entry
-- Supports tab navigation and auto-focus to next field when maximum characters entered
-- Compatible with screen readers when properly labeled
-- Should include error messages for invalid dates
+## Key Attributes and Requirements
+
+- **fieldset** with **legend**: Required for semantic grouping of date inputs
+- **aria-describedby**: Links hint text to the fieldset (e.g., `aria-describedby="hint-id-..."`)
+- **id** and **name** attributes**: Each input (month, day, year) requires unique id and name
+- **label** elements: Each input field must have an associated label with `for` attribute
+- **select** for month**: Month is a dropdown (select) element with options 1-12
+- **type="text"** for day and year**: Day and year use text inputs (assumed from component description)
+
+## Configuration Properties
+
+- `label` (string): Legend text for the memorable date fieldset
+- `hintText` (string): Optional hint text to help users format the date
+- `required` (boolean): Whether the date fields are required
+- `disabled` (boolean): Disable all date input fields
+- `errorMessage` (string): Error message to display when validation fails
+- `monthValue` (string): Default value for month (1-12)
+- `dayValue` (string): Default value for day (1-31)
+- `yearValue` (string): Default value for year (4 digits)
+- `enableAnalytics` (boolean): Enable or disable GA tracking
+- `gaCategory` (string): Google Analytics event category
+- `gaAction` (string): Google Analytics event action
+- `gaLabel` (string): Google Analytics event label
 
 ### Implementation
 
-## Basic Memorable Date Input
-
 ```html
-<fieldset class="usa-fieldset">
-  <legend class="usa-legend">
-    <span class="usa-label">Date of birth</span>
-    <span class="usa-hint">For example: 12/31/1999</span>
-  </legend>
-  
-  <div class="usa-memorable-date">
-    <div class="usa-form-group usa-form-group--month">
-      <label class="usa-label" for="birth-month">Month</label>
-      <input
-        class="usa-input"
-        id="birth-month"
-        name="birth-month"
-        type="text"
-        inputmode="numeric"
-        maxlength="2"
-        placeholder="MM"
-        aria-label="Month"
-        required
-      />
-    </div>
+<form class="usa-form usa-form--large">
+  <fieldset class="usa-fieldset">
+    <legend class="usa-legend">Date of birth</legend>
+    <span class="usa-hint" id="hint-id-l4nmqjb4n7b">For example: 4 28 1986</span>
     
-    <div class="usa-form-group usa-form-group--day">
-      <label class="usa-label" for="birth-day">Day</label>
-      <input
-        class="usa-input"
-        id="birth-day"
-        name="birth-day"
-        type="text"
-        inputmode="numeric"
-        maxlength="2"
-        placeholder="DD"
-        aria-label="Day"
-        required
-      />
+    <div class="usa-memorable-date">
+      <div class="usa-form-group usa-form-group--month usa-form-group--select">
+        <label class="usa-label" for="month-id-l4nmqjb4n7b">Month</label>
+        <select class="usa-select" id="month-id-l4nmqjb4n7b" name="date-of-birth-month" aria-describedby="hint-id-l4nmqjb4n7b">
+          <option value="">-Select-</option>
+          <option value="1">01 - January</option>
+          <option value="2">02 - February</option>
+          <option value="3">03 - March</option>
+          <option value="4">04 - April</option>
+          <option value="5">05 - May</option>
+          <option value="6">06 - June</option>
+          <option value="7">07 - July</option>
+          <option value="8">08 - August</option>
+          <option value="9">09 - September</option>
+          <option value="10">10 - October</option>
+          <option value="11">11 - November</option>
+          <option value="12">12 - December</option>
+        </select>
+      </div>
+
+      <div class="usa-form-group usa-form-group--day">
+        <label class="usa-label" for="day-id-l4nmqjb4n7b">Day</label>
+        <input class="usa-input" id="day-id-l4nmqjb4n7b" type="text" name="date-of-birth-day" aria-describedby="hint-id-l4nmqjb4n7b" />
+      </div>
+
+      <div class="usa-form-group usa-form-group--year">
+        <label class="usa-label" for="year-id-l4nmqjb4n7b">Year</label>
+        <input class="usa-input" id="year-id-l4nmqjb4n7b" type="text" name="date-of-birth-year" aria-describedby="hint-id-l4nmqjb4n7b" />
+      </div>
     </div>
-    
-    <div class="usa-form-group usa-form-group--year">
-      <label class="usa-label" for="birth-year">Year</label>
-      <input
-        class="usa-input"
-        id="birth-year"
-        name="birth-year"
-        type="text"
-        inputmode="numeric"
-        maxlength="4"
-        placeholder="YYYY"
-        aria-label="Year"
-        required
-      />
-    </div>
-  </div>
-</fieldset>
+  </fieldset>
+</form>
 ```
 
 ## With Error State
 
 ```html
-<fieldset class="usa-fieldset">
-  <legend class="usa-legend">
-    <span class="usa-label">Date of birth</span>
-  </legend>
-  
-  <span class="usa-error-message" role="alert">
-    <span class="usa-sr-only">Error:</span> Please enter a valid date
-  </span>
-  
-  <div class="usa-memorable-date">
-    <div class="usa-form-group usa-form-group--month">
-      <label class="usa-label" for="birth-month-error">Month</label>
-      <input
-        class="usa-input usa-input--error"
-        id="birth-month-error"
-        name="birth-month-error"
-        type="text"
-        inputmode="numeric"
-        maxlength="2"
-        placeholder="MM"
-        aria-invalid="true"
-        aria-describedby="birth-error-message"
-        required
-      />
-    </div>
+<form class="usa-form usa-form--large">
+  <fieldset class="usa-fieldset">
+    <legend class="usa-legend">Date of birth</legend>
+    <span class="usa-hint" id="hint-id-error">For example: 4 28 1986</span>
+    <span class="usa-error-message">Please enter a valid date</span>
     
-    <div class="usa-form-group usa-form-group--day">
-      <label class="usa-label" for="birth-day-error">Day</label>
-      <input
-        class="usa-input usa-input--error"
-        id="birth-day-error"
-        name="birth-day-error"
-        type="text"
-        inputmode="numeric"
-        maxlength="2"
-        placeholder="DD"
-        aria-invalid="true"
-        aria-describedby="birth-error-message"
-        required
-      />
+    <div class="usa-memorable-date">
+      <div class="usa-form-group usa-form-group--month usa-form-group--select">
+        <label class="usa-label" for="month-id-error">Month</label>
+        <select class="usa-select" id="month-id-error" name="date-of-birth-month" aria-describedby="hint-id-error">
+          <option value="">-Select-</option>
+          <!-- month options -->
+        </select>
+      </div>
+      <!-- day and year inputs -->
     </div>
+  </fieldset>
+</form>
+```
+
+## With Required Marking
+
+```html
+<form class="usa-form usa-form--large">
+  <fieldset class="usa-fieldset">
+    <legend class="usa-legend">
+      Date of birth
+      <abbr title="required">*</abbr>
+    </legend>
+    <span class="usa-hint" id="hint-id-required">For example: 4 28 1986</span>
     
-    <div class="usa-form-group usa-form-group--year">
-      <label class="usa-label" for="birth-year-error">Year</label>
-      <input
-        class="usa-input usa-input--error"
-        id="birth-year-error"
-        name="birth-year-error"
-        type="text"
-        inputmode="numeric"
-        maxlength="4"
-        placeholder="YYYY"
-        aria-invalid="true"
-        aria-describedby="birth-error-message"
-        required
-      />
+    <div class="usa-memorable-date">
+      <!-- form groups with required attribute on inputs -->
     </div>
-  </div>
-</fieldset>
+  </fieldset>
+</form>
 ```
 
 ### Context
 
-The Memorable Date component is part of MDWDS's form components built on U.S. Web Design System (USWDS) patterns. It composes with other form components like fieldsets, labels, and error messages to create accessible date input experiences for Maryland state web applications.
+The Memorable Date component is part of the USWDS (U.S. Web Design System) component library adopted by MDWDS. It works in conjunction with form validation utilities and error messaging patterns. It composes with fieldsets, labels, and hints to create accessible date input forms that meet WCAG 2.1 AA standards.
 
 ---
 
@@ -5212,148 +5919,94 @@ The Memorable Date component is part of MDWDS's form components built on U.S. We
 
 *Components*
 
-A Modal is a dialog component that displays content in a layer above the main page, typically requiring user interaction before dismissing. It prevents interaction with the page behind it and is commonly used for confirmations, alerts, or focused user tasks. Use modals when you need to capture user attention for important decisions or information that requires immediate action.
+The USWDS Modal is a fully accessible modal dialog component that works with or without JavaScript. It uses the native `<dialog>` element with focus trap, ESC close support, and keyboard accessibility. Use it to display important messages, confirmations, or user interactions that require focused attention.
 
 ### Key Information
 
-## Modal Variants and Modifiers
+## Key Information
 
-- **Basic Modal**: Standard dialog with title, body content, and action buttons
-- **Alert Modal**: Emphasizes important information or warnings
-- **Confirmation Modal**: Requests user confirmation before an action
-- **Full-screen Modal**: Expands to fill the viewport on smaller screens
+**Core Features:**
+- Works with or without JavaScript (CSS `:target` fallback for non-JS environments)
+- Uses native `<dialog>` HTML element
+- Full keyboard accessibility and screen reader support
+- Focus trap and ESC key close functionality
 
-## Key CSS Classes
-- `.usa-modal`: Main modal container
-- `.usa-modal__backdrop`: Semi-transparent overlay behind the modal
-- `.usa-modal__dialog`: The modal dialog box itself
-- `.usa-modal__header`: Header section containing title and close button
-- `.usa-modal__title`: Title text
-- `.usa-modal__close`: Close button
-- `.usa-modal__body`: Main content area
-- `.usa-modal__footer`: Footer section for action buttons
+**CSS Classes:**
+- `usa-button` - Trigger button class
+- `usa-modal` - Main modal container class
+- `usa-modal--undefined` - Size variant (other options: `usa-modal--large`, default)
 
-## ARIA Attributes
-- `role="dialog"`: Required on modal dialog element
-- `aria-labelledby="[id]"`: Links dialog to its title element
-- `aria-modal="true"`: Indicates element is a modal dialog
-- `aria-hidden="true"`: Applied to page content when modal is open (handled by JS)
+**HTML Attributes:**
+- `data-open-modal=""` - Trigger button attribute to open modal
+- `href="#id"` - Links trigger to modal by ID
+- `aria-controls="id"` - Associates button with modal it controls
+- `role="button"` - Semantic role on trigger link
+- `aria-labelledby="id"` - Associates modal with its heading
+- `aria-describedby="id"` - Associates modal with descriptive text
+- `data-placeholder-for="id"` - Placeholder wrapper for modal
 
-## Required Attributes
-- Modal must have a unique `id`
-- Close button should have `aria-label="Close modal"`
-- Title should have unique `id` referenced in `aria-labelledby`
+**Component Properties:**
+- `heading` - Heading text shown in the modal (string)
+- `description` - Descriptive body text inside modal (string)
+- `triggerLabel` - Label text for modal trigger button (string)
+- `confirmLabel` - Text for confirm/primary action button (string)
+- `cancelLabel` - Text for cancel/secondary action button (string)
+- `size` - Modal size options: Default or Large
+- `forcedAction` - Boolean to force an action (prevents closing without interaction)
 
-## JavaScript Initialization
-- Modal requires JavaScript to handle open/close functionality
-- Escape key should close the modal
-- Focus should trap within the modal when open
-- Focus should return to trigger element when modal closes
+**JavaScript Requirement:**
+Include `<script src="modal.js"></script>` once globally to enable enhanced JS behavior and full interactivity.
 
 ### Implementation
 
 ```html
-<!-- Basic Modal Structure -->
-<div class="usa-modal" id="example-modal" aria-labelledby="modal-title" aria-modal="true" role="dialog">
-  <div class="usa-modal__backdrop"></div>
-  <div class="usa-modal__dialog">
-    <header class="usa-modal__header">
-      <h2 class="usa-modal__title" id="modal-title">Modal Title</h2>
-      <button class="usa-modal__close" aria-label="Close modal">
-        <svg class="usa-icon" aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"></path>
-        </svg>
-      </button>
-    </header>
-    <div class="usa-modal__body">
-      <p>Modal content goes here. This is the main body of the modal dialog.</p>
-    </div>
-    <footer class="usa-modal__footer">
-      <button class="usa-button usa-button--secondary">Cancel</button>
-      <button class="usa-button">Confirm</button>
-    </footer>
-  </div>
+<!-- Basic Modal Trigger Button -->
+<a class="usa-button" data-open-modal="" href="#id-9292bhk5xrn" aria-controls="id-9292bhk5xrn" role="button">
+  Open Modal
+</a>
+
+<!-- Modal Placeholder Container -->
+<div 
+  data-placeholder-for="id-9292bhk5xrn" 
+  aria-hidden="true" 
+  data-original-class="usa-modal usa-modal--undefined" 
+  data-original-id="id-9292bhk5xrn" 
+  data-original-aria-labelledby="id-9cjl94j5cr" 
+  data-original-aria-describedby="id-ir1x8z396ph" 
+  style="display: none;">
 </div>
 
-<!-- Alert Modal -->
-<div class="usa-modal usa-modal--alert" id="alert-modal" aria-labelledby="alert-title" aria-modal="true" role="dialog">
-  <div class="usa-modal__backdrop"></div>
-  <div class="usa-modal__dialog">
-    <header class="usa-modal__header">
-      <h2 class="usa-modal__title" id="alert-title">Alert</h2>
-      <button class="usa-modal__close" aria-label="Close modal">
-        <svg class="usa-icon" aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"></path>
-        </svg>
-      </button>
-    </header>
-    <div class="usa-modal__body">
-      <p>This is an important alert message that requires user attention.</p>
-    </div>
-    <footer class="usa-modal__footer">
-      <button class="usa-button">OK</button>
-    </footer>
-  </div>
+<!-- Full Modal Structure (for reference) -->
+<div class="usa-modal" id="id-9292bhk5xrn" aria-labelledby="id-9cjl94j5cr" aria-describedby="id-ir1x8z396ph">
+  <h2 id="id-9cjl94j5cr">Modal Heading</h2>
+  <p id="id-ir1x8z396ph">Modal description text</p>
+  <button>Confirm</button>
+  <button>Cancel</button>
+</div>
+
+<!-- Large Modal Variant -->
+<div class="usa-modal usa-modal--large" id="modal-id" aria-labelledby="modal-heading" aria-describedby="modal-description">
+  <h2 id="modal-heading">Large Modal Heading</h2>
+  <p id="modal-description">Large modal description text</p>
+  <button>Confirm</button>
+  <button>Cancel</button>
 </div>
 ```
 
-## JavaScript Initialization Example
-
-```javascript
-// Open modal
-function openModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.add('is-visible');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    // Trap focus within modal
-    const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-  }
-}
-
-// Close modal
-function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.remove('is-visible');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-  }
-}
-
-// Handle close button
-document.querySelectorAll('.usa-modal__close').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const modal = this.closest('.usa-modal');
-    closeModal(modal.id);
-  });
-});
-
-// Handle backdrop click
-document.querySelectorAll('.usa-modal__backdrop').forEach(backdrop => {
-  backdrop.addEventListener('click', function() {
-    const modal = this.closest('.usa-modal');
-    closeModal(modal.id);
-  });
-});
-
-// Handle Escape key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.usa-modal.is-visible').forEach(modal => {
-      closeModal(modal.id);
-    });
-  }
-});
+**JavaScript Initialization:**
+```html
+<script src="modal.js"></script>
 ```
+
+This enables:
+- Automatic focus trap on modal open
+- ESC key to close modal
+- Automatic focus return to trigger element on close
+- Click outside to close (when not forced action)
 
 ### Context
 
-The Modal component is part of the MDWDS built on the U.S. Web Design System (USWDS) and provides accessible dialog functionality for Maryland state web pages. It composes with Button components for actions and works alongside the overall page layout system to manage focus and accessibility when overlaying content.
+The Modal component is part of the USWDS foundation and integrates with MDWDS for displaying critical information and user interactions. It composes with the Button component (`usa-button`) for triggers and works seamlessly with other layout components while maintaining accessibility standards across the design system.
 
 ---
 
@@ -5361,73 +6014,65 @@ The Modal component is part of the MDWDS built on the U.S. Web Design System (US
 
 *Components*
 
-Navigation is a core component that provides users with a way to move between pages and sections of a website. It establishes the information hierarchy and helps users understand where they are within the site structure. Navigation is essential for usability and is typically placed at the top or side of a page to ensure discoverability.
+Navigation is a component that provides search functionality and navigation links for Maryland government websites. It includes a statewide search form and displays navigation items with optional Maryland.gov link integration in mobile view. This component serves as a primary navigation interface for state websites.
 
 ### Key Information
 
-The Navigation component serves as the primary way for users to traverse the website. Key variants and options include:
+## Key Classes and Structure
 
-- **Primary Navigation**: Main site navigation typically displayed in a horizontal bar or vertical sidebar
-- **Breadcrumb Navigation**: Secondary navigation showing the user's current location in the hierarchy
-- **Footer Navigation**: Additional navigation links placed in the footer
-- **Mobile Navigation**: Responsive navigation that collapses into a menu on smaller screens
-- **Active State**: Visual indicator showing the current page or section
-- **Sub-navigation/Dropdowns**: Nested menu items for organizing related links
-- **ARIA Attributes**: Uses `role="navigation"`, `aria-label`, and `aria-current="page"` for accessibility
-- **CSS Classes**: Typically includes classes like `nav`, `nav-item`, `nav-link`, `nav-active`, `nav-submenu`
-- **Mobile Menu Toggle**: Button with `aria-expanded` and `aria-controls` for toggling navigation visibility on mobile
+- **Root container**: `maryland-search-form` — wraps the entire navigation component
+- **Form element**: `maryland-search-form__form` — semantic search form with `role="search"`
+- **Label**: `maryland-search-form__label` — hidden from view using `usa-sr-only` class
+- **Widget container**: `maryland-search-form__widget` — wraps input and submit button
+- **Input field**: `maryland-search-form__input` — search input with `type="text"` and `autocomplete="on"`
+- **Submit button**: `maryland-search-form__submit` — search action button
+
+## Properties
+
+- **items**: Array property (default empty) — defines navigation menu items
+- **showMarylandGovLink**: Boolean property (default False) — controls visibility of Maryland.gov link in mobile navigation
+
+## Required Attributes
+
+- Form requires `role="search"` for semantic HTML and accessibility
+- Input requires `type="text"` and `autocomplete="on"`
+- Labels should use `usa-sr-only` class for screen reader visibility when hidden
+- Input should have a `placeholder` attribute (e.g., "How do I...")
+- Input and label must be connected via `for` and `id` attributes
 
 ### Implementation
 
 ```html
-<!-- Primary Navigation -->
-<nav role="navigation" aria-label="Main navigation">
-  <ul class="nav">
-    <li class="nav-item">
-      <a href="/" class="nav-link nav-active" aria-current="page">Home</a>
-    </li>
-    <li class="nav-item">
-      <a href="/about" class="nav-link">About</a>
-    </li>
-    <li class="nav-item nav-submenu-parent">
-      <a href="/services" class="nav-link" aria-expanded="false" aria-haspopup="true">Services</a>
-      <ul class="nav-submenu" hidden>
-        <li class="nav-item">
-          <a href="/services/design" class="nav-link">Design</a>
-        </li>
-        <li class="nav-item">
-          <a href="/services/development" class="nav-link">Development</a>
-        </li>
-      </ul>
-    </li>
-    <li class="nav-item">
-      <a href="/contact" class="nav-link">Contact</a>
-    </li>
-  </ul>
-</nav>
-
-<!-- Mobile Navigation Toggle -->
-<button class="nav-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle navigation menu">
-  <span class="nav-toggle-icon"></span>
-</button>
-
-<!-- Breadcrumb Navigation -->
-<nav role="navigation" aria-label="Breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item">
-      <a href="/">Home</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="/services">Services</a>
-    </li>
-    <li class="breadcrumb-item" aria-current="page">Design</li>
-  </ol>
-</nav>
+<div class="maryland-search-form">
+  <form role="search" class="maryland-search-form__form" action="/search" id="search-form-id">
+    <label class="maryland-search-form__label usa-sr-only" for="search-input-id">Search</label>
+    <div class="maryland-search-form__widget">
+      <input 
+        class="maryland-search-form__input" 
+        type="text" 
+        autocomplete="on" 
+        name="q" 
+        placeholder="How do I..." 
+        id="search-input-id">
+      <button type="submit" class="maryland-search-form__submit">
+        Search
+      </button>
+    </div>
+  </form>
+</div>
 ```
+
+## Navigation with Items and Maryland.gov Link
+
+The component accepts an `items` array to populate navigation links and can display a Maryland.gov link in mobile view when `showMarylandGovLink` is set to true.
+
+**Example with properties:**
+- `items`: Array of navigation item objects
+- `showMarylandGovLink`: Boolean (True to show Maryland.gov link on mobile)
 
 ### Context
 
-Navigation is a foundational component in MDWDS that provides the primary means of moving through Maryland state websites. It typically integrates with the header and footer components and works across responsive breakpoints to ensure accessibility and usability for all users.
+The Navigation component provides essential site-wide search and navigation functionality within the MDWDS system. It typically appears at the top of pages and integrates with other header/banner components to create a cohesive statewide navigation experience for Maryland government websites.
 
 ---
 
@@ -5435,89 +6080,89 @@ Navigation is a foundational component in MDWDS that provides the primary means 
 
 *Components*
 
-Pagination provides navigation for users to move between pages of content. It allows users to quickly jump to different sections of multi-page results or content. Use pagination when displaying large datasets or content that needs to be broken into manageable pages.
+The Pagination component provides semantic, accessible, and responsive navigation for long datasets or multi-page content. It displays numbered page links with previous/next navigation arrows and optional ellipses to indicate non-visible pages. Use it when you need to help users navigate through multi-page datasets or paginated content.
 
 ### Key Information
 
-## Variants
-- Standard pagination with previous/next buttons and numbered page links
-- First/last page buttons available in extended versions
-- Active page indicator shows current position
-- Disabled state for buttons at boundaries (first/last page)
-
 ## CSS Classes
-- `.usa-pagination` - Main pagination container
-- `.usa-pagination__list` - List wrapper for page items
-- `.usa-pagination__item` - Individual page item
-- `.usa-pagination__button` - Page button (link or button element)
-- `.usa-pagination__button--previous` - Previous button variant
-- `.usa-pagination__button--next` - Next button variant
-- `.usa-pagination__button--active` - Active/current page indicator
 
-## Attributes & Options
-- Link-based or button-based implementation
-- Previous/next arrows or text labels
-- Number of visible page links is configurable
-- Current page should be marked with `aria-current="page"`
-- Disabled buttons should have `disabled` attribute
-- Uses semantic `<nav>` element with descriptive label
+- `.usa-pagination` - Main pagination container (requires `aria-label="Pagination"`)
+- `.usa-pagination__list` - Unordered list wrapper
+- `.usa-pagination__item` - Individual pagination item
+- `.usa-pagination__arrow` - Modifier for previous/next arrow buttons
+- `.usa-pagination__page-no` - Modifier for numbered page items
+- `.usa-pagination__overflow` - Modifier for ellipsis items
+- `.usa-pagination__link` - Link element within pagination
+- `.usa-pagination__link-text` - Text wrapper for link text
+- `.usa-pagination__previous-page` - Modifier for previous page link
+- `.usa-pagination__button` - Button-style page number link
 
-## Required Structure
-- Navigation role or semantic `<nav>` element
-- Unordered list (`<ul>`) for page items
-- Links or buttons for navigation targets
-- Proper ARIA labels and descriptions for accessibility
+## Attributes & Properties
+
+- `aria-label="Pagination"` - Required on the `<nav>` container
+- `aria-label="Previous page"` - Required on previous navigation link
+- `aria-label="Page N"` - Required on numbered page links (where N is the page number)
+- `aria-label="ellipsis indicating non-visible pages"` - Required on ellipsis container items
+
+## Variants
+
+- **default** - Standard pagination with numbered pages
+- **unbounded** - Alternative pagination style variant
+
+## Properties
+
+- `variant` - Choose pagination style variant (default or unbounded)
+- `currentPage` - Current active page number (number)
+- `totalPages` - Total number of available pages (number)
+- `showEllipses` - Display ellipses between distant page numbers (boolean, default: false)
+- `ariaLabelPagination` - Overrides the ARIA label for the pagination container (string)
 
 ### Implementation
 
 ```html
-<nav aria-label="Pagination" class="usa-pagination">
+<nav class="usa-pagination" aria-label="Pagination">
   <ul class="usa-pagination__list">
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button usa-pagination__button--previous">
+    <!-- Previous page button -->
+    <li class="usa-pagination__item usa-pagination__arrow">
+      <a href="#" class="usa-pagination__link usa-pagination__previous-page" aria-label="Previous page">
         <span class="usa-pagination__link-text">Previous</span>
       </a>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button">
-        <span class="usa-pagination__link-text">1</span>
-      </a>
+    
+    <!-- Numbered page links -->
+    <li class="usa-pagination__item usa-pagination__page-no">
+      <a href="#" class="usa-pagination__button" aria-label="Page 1">1</a>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button usa-pagination__button--active" aria-current="page">
-        <span class="usa-pagination__link-text">2</span>
-      </a>
+    
+    <!-- Ellipsis for non-visible pages -->
+    <li class="usa-pagination__item usa-pagination__overflow" aria-label="ellipsis indicating non-visible pages">
+      <span>…</span>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button">
-        <span class="usa-pagination__link-text">3</span>
-      </a>
+    
+    <!-- Additional page numbers (example showing pages 9, 10, 11) -->
+    <li class="usa-pagination__item usa-pagination__page-no">
+      <a href="#" class="usa-pagination__button" aria-label="Page 9">9</a>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button usa-pagination__button--next">
-        <span class="usa-pagination__link-text">Next</span>
-      </a>
+    <li class="usa-pagination__item usa-pagination__page-no">
+      <a href="#" class="usa-pagination__button" aria-label="Page 10">10</a>
     </li>
-  </ul>
-</nav>
-```
-
-## Disabled State Example
-```html
-<nav aria-label="Pagination" class="usa-pagination">
-  <ul class="usa-pagination__list">
-    <li class="usa-pagination__item">
-      <button disabled class="usa-pagination__button usa-pagination__button--previous">
-        <span class="usa-pagination__link-text">Previous</span>
-      </button>
+    <li class="usa-pagination__item usa-pagination__page-no">
+      <a href="#" class="usa-pagination__button" aria-label="Page 11">11</a>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button usa-pagination__button--active" aria-current="page">
-        <span class="usa-pagination__link-text">1</span>
-      </a>
+    
+    <!-- Ellipsis for more non-visible pages -->
+    <li class="usa-pagination__item usa-pagination__overflow" aria-label="ellipsis indicating non-visible pages">
+      <span>…</span>
     </li>
-    <li class="usa-pagination__item">
-      <a href="#" class="usa-pagination__button usa-pagination__button--next">
+    
+    <!-- Final page number -->
+    <li class="usa-pagination__item usa-pagination__page-no">
+      <a href="#" class="usa-pagination__button" aria-label="Page 24">24</a>
+    </li>
+    
+    <!-- Next page button -->
+    <li class="usa-pagination__item usa-pagination__arrow">
+      <a href="#" class="usa-pagination__link" aria-label="Next page">
         <span class="usa-pagination__link-text">Next</span>
       </a>
     </li>
@@ -5527,7 +6172,7 @@ Pagination provides navigation for users to move between pages of content. It al
 
 ### Context
 
-Pagination is a USWDS component integrated into MDWDS that aids in content navigation for large datasets on Maryland state web pages. It works with data tables, search results, and list views to help users traverse multi-page content efficiently.
+Pagination is a foundational USWDS component within the MDWDS system used to break up large datasets into manageable page views. It works alongside data tables and search results to provide users with clear navigation options when content spans multiple pages.
 
 ---
 
@@ -5535,87 +6180,59 @@ Pagination is a USWDS component integrated into MDWDS that aids in content navig
 
 *Components*
 
-A Process List displays a series of steps or stages in a sequential order, typically used to guide users through multi-step processes, workflows, or procedural information. It helps users understand where they are in a process and what comes next, improving clarity and navigation through complex procedures.
+The Process List component visually guides users through a sequence of steps in a process. It is ideal for workflows such as multi-step forms, onboarding instructions, and application processes. Use this component when you need to display a linear progression of steps with titles and descriptions.
 
 ### Key Information
 
-## Variants and Structure
-- **Sequential display**: Steps are shown in numerical or visual order
-- **Step indicators**: Uses numbering or progress markers to show sequence
-- **Descriptive text**: Each step includes a heading and description
-- **Current state indication**: Can highlight the active or current step
-- **Completed steps**: Can visually distinguish completed steps from pending ones
+## Variants
+- **Default**: Standard process list layout
+- **No-text**: Process list without descriptive text
+- **Custom-sizing**: Process list with customizable sizing
 
-## CSS Class Names
-- `.usa-process-list`: Main container class
-- `.usa-process-list__item`: Individual step/list item
-- `.usa-process-list__heading`: Step heading
-- `.usa-process-list__description`: Step description text
+## CSS Classes
+- `usa-process-list`: Container wrapper (ordered list)
+- `usa-process-list__item`: Individual step item (list item)
+- `usa-process-list__heading`: Step title/heading (h4 element)
+- `usa-margin-top-05`: Utility class for top margin spacing on description text
 
-## Key Attributes
-- Semantic structure using `<ol>` for ordered lists
-- Each step should have clear heading hierarchy (h2, h3, etc.)
-- ARIA labels and roles for accessibility if needed
-- Data attributes for tracking active/completed states
+## Structure
+Each step is a list item containing:
+- A heading using `usa-process-list__heading`
+- Optional descriptive text with `usa-margin-top-05` utility class
 
-## Important Facts
-- Part of USWDS component library integrated into MDWDS
-- Works best for 3-10 steps (too many steps may need pagination)
-- Can be styled for horizontal or vertical orientation
-- Pairs well with buttons or CTAs at each step
+## Properties
+- **variant**: Allows selection between default, no-text, and custom-sizing styles
+- **steps**: Array of step objects, each containing a title and optional text
 
 ### Implementation
 
 ```html
 <ol class="usa-process-list">
   <li class="usa-process-list__item">
-    <h2 class="usa-process-list__heading">
-      Step 1: Apply
-    </h2>
-    <p class="usa-process-list__description">
-      Submit your application with required documentation to begin the process.
-    </p>
+    <h4 class="usa-process-list__heading">Start a process</h4>
+    <p class="usa-margin-top-05">Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Morbi commodo, ipsum sed pharetra gravida, orci magna rhoncus neque.</p>
   </li>
   <li class="usa-process-list__item">
-    <h2 class="usa-process-list__heading">
-      Step 2: Review
-    </h2>
-    <p class="usa-process-list__description">
-      Our team reviews your submission and may request additional information.
-    </p>
+    <h4 class="usa-process-list__heading">Proceed to the second step</h4>
+    <p class="usa-margin-top-05">Suspendisse id velit vitae ligula volutpat condimentum. Aliquam erat volutpat. Sed quis velit. Nulla facilisi.</p>
   </li>
   <li class="usa-process-list__item">
-    <h2 class="usa-process-list__heading">
-      Step 3: Approval
-    </h2>
-    <p class="usa-process-list__description">
-      Once approved, you will receive confirmation and next steps via email.
-    </p>
+    <h4 class="usa-process-list__heading">Complete the step-by-step process</h4>
+    <p class="usa-margin-top-05">Vivamus pharetra posuere sapien. Nulla libero. Nulla facilisi.</p>
   </li>
 </ol>
 ```
 
-## Variant: With Current Step Indicator
-```html
-<ol class="usa-process-list">
-  <li class="usa-process-list__item">
-    <h2 class="usa-process-list__heading">Step 1: Apply</h2>
-    <p class="usa-process-list__description">Complete and submit your application.</p>
-  </li>
-  <li class="usa-process-list__item" aria-current="step">
-    <h2 class="usa-process-list__heading">Step 2: Review (Current)</h2>
-    <p class="usa-process-list__description">We are currently reviewing your submission.</p>
-  </li>
-  <li class="usa-process-list__item">
-    <h2 class="usa-process-list__heading">Step 3: Approval</h2>
-    <p class="usa-process-list__description">Final approval pending.</p>
-  </li>
-</ol>
-```
+**Notes:**
+- Use semantic `<ol>` (ordered list) for the container
+- Each step is wrapped in `<li>` with `usa-process-list__item` class
+- Headings should use `<h4>` with `usa-process-list__heading` class
+- Description text uses utility class `usa-margin-top-05` for consistent spacing
+- Steps are displayed in a linear, numbered progression
 
 ### Context
 
-The Process List is a foundational USWDS component integrated into MDWDS for guiding users through state services workflows and procedures. It works alongside buttons, form components, and other instructional elements to create clear, step-by-step user experiences on Maryland state web pages.
+The Process List component is part of the USWDS component library and fits into the MDWDS as a foundational component for guiding users through workflows. It composes with heading and utility spacing classes to create clear, accessible multi-step processes.
 
 ---
 
@@ -5623,81 +6240,73 @@ The Process List is a foundational USWDS component integrated into MDWDS for gui
 
 *Components*
 
-The Promo component is a prominent content showcase used to highlight featured content, announcements, or key messages within a page. It combines eye-catching visuals with clear calls-to-action to engage users and direct them toward important information or actions. Use promos to feature program announcements, upcoming events, or significant updates that deserve prominent placement.
+The Promo component visually highlights a single call-to-action link with a title, optional description, and link action. It's used to draw attention to important messages or feedback opportunities and comes in multiple style variants including plain, image-based, and illustration-based options.
 
 ### Key Information
 
 ## Variants & Modifiers
-- Standard promo with background image and overlay text
-- Promo with left-aligned content
-- Promo with right-aligned content
-- Promo with call-to-action button
-- Optional dark overlay for text contrast
-- Responsive design that adapts from multi-column on desktop to single-column on mobile
 
-## CSS Classes
-- `.promo` - Main container
-- `.promo-image` - Background image container
-- `.promo-content` - Text content wrapper
-- `.promo-title` - Heading element
-- `.promo-description` - Descriptive text
-- `.promo-cta` - Call-to-action button or link area
+- **Plain Promo** (default): No image or background illustration, text-focused layout
+- **Contained**: A bordered or contained variant of the plain promo style
+- **Stacked**: Vertical stacking layout for the promo elements
+- **Image Promo**: Includes an image alongside the content
+- **Multiple Image Promo**: Multiple images can be included in the promo
+- **Illustration Promo**: Uses a background illustration instead of a photograph
 
-## Key Attributes
-- Use semantic HTML (`<section>`, `<h2>`, `<p>`)
-- Include alt text for background images if used as `<img>` element
-- CTA should use `<a>` or `<button>` with appropriate link/action attributes
-- Consider `aria-label` for icon-only CTAs
+## Key CSS Classes
 
-## Important Facts
-- Promos are typically full-width or constrained-width components
-- Can be placed in hero sections, feature sections, or mid-page
-- Should include a clear visual hierarchy with heading, description, and CTA
-- Aspect ratio typically 16:9 or 4:3 depending on layout preference
+- `maryland-promo`: Base container class for the promo component
+- `maryland-promo--plain`: Modifier class for plain promo style (no image)
+- `maryland-promo__container`: Inner wrapper that contains the promo content
+- `maryland-promo__row`: Row wrapper for layout
+- `maryland-promo__title-container`: Container for the title element
+- `maryland-promo__title`: The heading element (h2) with the promo title
+- `maryland-promo__content-container`: Container for description and link content
+- `maryland-promo__description`: Wrapper for the optional description text
+- `maryland-promo_`: Link element class (prefix visible, full class name cut off in HTML)
+
+## Required & Optional Attributes
+
+- **Title** (required): Clear, concise, descriptive title relevant to the content
+- **Description** (optional): Brief message providing context for the link
+- **Link Title** (required): Call-to-action link text using active verbs
+- **Link URL** (required): URL destination for the promo link
+- **Promo style** (required selector): Choose between "No image", "With image", or "With background illustration"
+- `aria-labelledby`: Links the section to the title element for accessibility
+- `id`: Unique identifier on the title element for aria-labelledby reference
 
 ### Implementation
 
 ```html
-<!-- Standard Promo Component -->
-<section class="promo">
-  <div class="promo-image" style="background-image: url('path/to/image.jpg'); background-size: cover; background-position: center;">
-    <div class="promo-overlay"></div>
-  </div>
-  <div class="promo-content">
-    <h2 class="promo-title">Featured Program Title</h2>
-    <p class="promo-description">Compelling description of the featured content or announcement goes here.</p>
-    <a href="#" class="promo-cta btn btn-primary">Learn More</a>
-  </div>
-</section>
-```
-
-```html
-<!-- Promo with Left-Aligned Content -->
-<section class="promo promo-left">
-  <div class="promo-image"></div>
-  <div class="promo-content">
-    <h2 class="promo-title">Title</h2>
-    <p class="promo-description">Description text.</p>
-    <a href="#" class="promo-cta btn btn-primary">Action</a>
+<!-- Plain Promo (Default) -->
+<section class="maryland-promo maryland-promo--plain" aria-labelledby="id-5fqrogjwoa3">
+  <div class="maryland-promo__container">
+    <div class="maryland-promo__row">
+      <div class="maryland-promo__title-container">
+        <h2 class="maryland-promo__title" id="id-5fqrogjwoa3">Your voice, your state: building a better tomorrow</h2>
+      </div>
+      <div class="maryland-promo__content-container">
+        <div class="maryland-promo__description">
+          <p>We're committed to serving you. Whether you're looking for help, have a suggestion, or want to share your thoughts, we want to hear from you.</p>
+        </div>
+        <a class="maryland-promo__link" href="/feedback">Share your feedback</a>
+      </div>
+    </div>
   </div>
 </section>
 ```
 
-```html
-<!-- Promo with Right-Aligned Content -->
-<section class="promo promo-right">
-  <div class="promo-content">
-    <h2 class="promo-title">Title</h2>
-    <p class="promo-description">Description text.</p>
-    <a href="#" class="promo-cta btn btn-primary">Action</a>
-  </div>
-  <div class="promo-image"></div>
-</section>
-```
+**Key Structure Notes:**
+- The `<section>` element uses `aria-labelledby` to reference the h2 title by its `id`
+- Title must be wrapped in `maryland-promo__title-container` with the h2 having the class `maryland-promo__title`
+- Content (description and link) must be in `maryland-promo__content-container`
+- Description text is wrapped in `maryland-promo__description`
+- Link element receives the promo-specific link styling class
+- All content flows within `maryland-promo__row` and `maryland-promo__container`
 
 ### Context
 
-The Promo component is a key visual component in the MDWDS used alongside other content containers to create engaging page layouts. It often works with Button components for calls-to-action and integrates with the spacing and layout utilities to maintain consistency across Maryland state web pages.
+The Promo component is a featured callout component within the MDWDS that emphasizes important messages or user actions. It integrates with the overall content hierarchy and typically appears as a prominent section on pages where user feedback or engagement is needed. The component supports multiple visual treatments (plain, image, illustration) to fit different content and design contexts.
 
 ---
 
@@ -5705,46 +6314,57 @@ The Promo component is a key visual component in the MDWDS used alongside other 
 
 *Components*
 
-Prose is a typographic component for rendering readable, accessible body text and narrative content. It applies consistent styling to semantic HTML elements like paragraphs, lists, blockquotes, and tables to ensure proper hierarchy and readability across Maryland state web pages.
+The USWDS Prose component wraps blocks of running text and automatically applies USWDS typography styles to child elements. It is particularly useful for content from markdown or CMS systems where adding custom classes to individual elements is impractical, as well as for blog posts, articles, documentation, and user-generated content that require consistent automatic formatting.
 
 ### Key Information
 
-The Prose component provides semantic styling for text-based content. It includes styles for:
+## Key Class Names
+- `usa-prose`: Main wrapper class that applies typography styling to direct-child elements
 
-- **Paragraphs**: Proper line-height and spacing for readability
-- **Headings**: Semantic h1-h6 elements with appropriate sizing and hierarchy
-- **Lists**: Both ordered (ol) and unordered (ul) lists with proper indentation
-- **Blockquotes**: Styled quotation elements
-- **Links**: Properly styled and accessible hyperlinks
-- **Tables**: Readable table layouts with borders and padding
-- **Code blocks**: Monospace text styling for technical content
-- **Emphasis**: Bold (strong) and italic (em) text
+## Measure Tokens (Line Length Control)
+The component supports measure tokens to control line length for optimal readability:
+- `measure-1` to `measure-5`: 45-90 characters
+- `measure-2` (66 characters): **Recommended** for extended reading
+- `measure-6`: Shorter text blocks like captions
 
-The component uses the USWDS typography system and applies classes from the MDWDS design tokens to ensure consistency. The prose styling automatically applies to all nested semantic elements without requiring additional classes on individual items.
+## Styled Child Elements
+The `usa-prose` class automatically applies styling to:
+- **Headings**: h1 through h6
+- **Paragraphs**: p
+- **Lists**: ul, ol, and child li elements
+- **Blockquotes**: blockquote with cite
+- **Tables**: table with thead, th, td, and caption
+- **Figures**: figure with figcaption
+
+## Accessibility Features
+- Proper heading hierarchy maintained
+- Focus indicators on interactive elements
+- Semantic HTML structure preserved
+- WCAG 2.1 AA compliance support
 
 ### Implementation
 
 ```html
-<div class="prose">
-  <h1>Main Heading</h1>
-  <p>This is a paragraph with <strong>bold text</strong> and <em>italic text</em>.</p>
+<section class="usa-prose measure-2" id="prose-id-[unique-id]">
+  <h2>Heading Level 2</h2>
+  <p>Paragraph text content goes here.</p>
   
-  <h2>Subheading</h2>
-  <p>Paragraphs are automatically styled with proper spacing and line-height.</p>
-  
+  <h3>Key Points</h3>
   <ul>
-    <li>Unordered list item</li>
-    <li>Another list item</li>
+    <li>List item one</li>
+    <li>List item two</li>
+    <li>List item three</li>
   </ul>
   
-  <ol>
-    <li>Ordered list item</li>
-    <li>Another ordered item</li>
-  </ol>
-  
   <blockquote>
-    <p>This is a blockquote with semantic styling applied automatically.</p>
+    <p>Blockquote content</p>
+    <cite>Source attribution</cite>
   </blockquote>
+  
+  <figure>
+    <img src="image.jpg" alt="description" />
+    <figcaption>Figure caption text</figcaption>
+  </figure>
   
   <table>
     <thead>
@@ -5755,19 +6375,27 @@ The component uses the USWDS typography system and applies classes from the MDWD
     </thead>
     <tbody>
       <tr>
-        <td>Data cell</td>
-        <td>Data cell</td>
+        <td>Data 1</td>
+        <td>Data 2</td>
       </tr>
     </tbody>
+    <caption>Table caption</caption>
   </table>
-  
-  <a href="#">Links are styled for accessibility</a>
-</div>
+</section>
 ```
+
+## Measure Variants
+The section wrapper can use any of the measure classes:
+- `class="usa-prose measure-1"` (narrow)
+- `class="usa-prose measure-2"` (recommended, ~66 characters)
+- `class="usa-prose measure-3"`
+- `class="usa-prose measure-4"`
+- `class="usa-prose measure-5"` (wide)
+- `class="usa-prose measure-6"` (short)
 
 ### Context
 
-Prose is a foundational text styling component in MDWDS that works in conjunction with the typography system and other content components. It ensures that narrative content maintains consistent readability and accessibility across all Maryland state websites by automatically applying the design system's typography standards to semantic HTML elements.
+The Prose component is part of the USWDS component library integrated into MDWDS. It provides automatic typography styling for content blocks, making it especially useful when composing with content management systems or markdown-based content where applying individual styling classes is impractical.
 
 ---
 
@@ -5775,129 +6403,122 @@ Prose is a foundational text styling component in MDWDS that works in conjunctio
 
 *Components*
 
-Radio buttons allow users to select a single option from a set of mutually exclusive choices. They are used in forms when only one answer from a group should be selected at a time. Use radios when there are 2-5 options; consider a select dropdown for longer lists.
+Radio buttons allow users to select only one option from a list. The Maryland Design System offers both default and tile-style radio button variants. Use radio groups when you need mutually exclusive selections with clear accessibility attributes for screen reader compatibility.
 
 ### Key Information
 
-## Variants and Options
+## Variants
+- **Default**: Standard radio button style
+- **Tile**: Tile-style radio button presentation
 
-- **Default radio**: Single selectable button with label
-- **Disabled state**: Non-interactive radio with `disabled` attribute
-- **Checked state**: Pre-selected radio using `checked` attribute
-- **Tile variant**: Radio styled as a clickable card/tile with optional description
-- **Legend and fieldset**: Group of radios wrapped in `<fieldset>` with `<legend>`
+## CSS Classes
+- `usa-form`: Form wrapper
+- `usa-fieldset`: Groups related radio inputs
+- `usa-legend`: Legend text for the fieldset
+- `usa-radio`: Container for each radio option
+- `usa-radio__input`: The actual radio input element
+- `usa-radio__label`: Label associated with the radio input
 
-## CSS Classes and Attributes
+## Options Array Structure
+Each radio option object supports:
+- `label` (string): Display text for the radio option
+- `value` (string): The value submitted when selected
+- `description` (string, optional): Additional context text
+- `checked` (boolean, optional): Pre-selected state
+- `disabled` (boolean, optional): Disabled state
 
-- `.usa-radio`: Container wrapper for each radio option
-- `.usa-radio__input`: The actual `<input type="radio">` element
-- `.usa-radio__label`: Label text associated with radio
-- `.usa-radio-group`: Applied to `<fieldset>` containing radio group
-- `.usa-fieldset-legend`: Applied to `<legend>` element
-- `name` attribute: Same for all radios in a group (required for grouping)
-- `id` attribute: Unique identifier for each radio
-- `for` attribute: Label's `for` attribute must match radio's `id`
-- `aria-label` or `aria-labelledby`: For accessibility on the fieldset
-- `disabled`: Disables individual radio
+## Required Attributes
+- `name`: Shared by all radio inputs in the group (required)
+- `id`: Unique identifier for each radio input (auto-generated: `{name}-{label}-{index}`)
+- `type="radio"`: HTML input type
+- `for` attribute on labels: Links label to input via id
 
-## Modifiers
+## Accessibility Attributes
+- `aria-describedby` (optional but recommended): ID of element describing the group
+- `aria-label` (optional): Screen reader override for the label
 
-- Tile variant uses `.usa-radio__label--tile` on the label wrapper
-- Disabled appearance uses `[disabled]` selector in CSS
+## Properties
+- `variant`: "default" or "tile"
+- `legend`: Fieldset legend text
+- `name`: Shared name attribute for the radio group
+- `options`: Array of radio option objects
+- `ariaDescribedBy`: ID for aria-describedby attribute
+- `ariaLabel`: Screen reader label override
+- `enableAnalytics`: Enable/disable GA tracking (boolean)
+- `gaCategory`: Google Analytics event category
+- `gaAction`: Google Analytics event action
+- `gaLabel`: Google Analytics event label
 
 ### Implementation
 
-## Basic Radio Group
-
 ```html
-<fieldset class="usa-fieldset">
-  <legend class="usa-legend">Select one option</legend>
-  
-  <div class="usa-radio">
-    <input
-      class="usa-radio__input"
-      id="radio-option-1"
-      type="radio"
-      name="options"
-      value="option-1"
-    />
-    <label class="usa-radio__label" for="radio-option-1">
-      Option 1
-    </label>
-  </div>
-
-  <div class="usa-radio">
-    <input
-      class="usa-radio__input"
-      id="radio-option-2"
-      type="radio"
-      name="options"
-      value="option-2"
-    />
-    <label class="usa-radio__label" for="radio-option-2">
-      Option 2
-    </label>
-  </div>
-
-  <div class="usa-radio">
-    <input
-      class="usa-radio__input"
-      id="radio-option-3"
-      type="radio"
-      name="options"
-      value="option-3"
-      checked
-    />
-    <label class="usa-radio__label" for="radio-option-3">
-      Option 3 (pre-selected)
-    </label>
-  </div>
-</fieldset>
+<!-- Default Radio Button Group -->
+<form class="usa-form">
+  <fieldset class="usa-fieldset">
+    <legend class="usa-legend">Select one historical figure</legend>
+    
+    <div class="usa-radio">
+      <input 
+        class="usa-radio__input" 
+        id="historical-figures-sojourner-truth-0" 
+        type="radio" 
+        name="historical-figures" 
+        value="sojourner-truth" 
+        checked="">
+      <label class="usa-radio__label" for="historical-figures-sojourner-truth-0">
+        Sojourner Truth
+      </label>
+    </div>
+    
+    <div class="usa-radio">
+      <input 
+        class="usa-radio__input" 
+        id="historical-figures-frederick-douglass-1" 
+        type="radio" 
+        name="historical-figures" 
+        value="frederick-douglass">
+      <label class="usa-radio__label" for="historical-figures-frederick-douglass-1">
+        Frederick Douglass
+      </label>
+    </div>
+    
+    <div class="usa-radio">
+      <input 
+        class="usa-radio__input" 
+        id="historical-figures-booker-t-washington-2" 
+        type="radio" 
+        name="historical-figures" 
+        value="booker-t-washington">
+      <label class="usa-radio__label" for="historical-figures-booker-t-washington-2">
+        Booker T. Washington
+      </label>
+    </div>
+    
+    <div class="usa-radio">
+      <input 
+        class="usa-radio__input" 
+        id="historical-figures-george-washington-carver-3" 
+        type="radio" 
+        name="historical-figures" 
+        value="george-washington-carver">
+      <label class="usa-radio__label" for="historical-figures-george-washington-carver-3">
+        George Washington Carver
+      </label>
+    </div>
+  </fieldset>
+</form>
 ```
 
-## Disabled Radio
-
-```html
-<div class="usa-radio">
-  <input
-    class="usa-radio__input"
-    id="radio-disabled"
-    type="radio"
-    name="options"
-    value="disabled"
-    disabled
-  />
-  <label class="usa-radio__label" for="radio-disabled">
-    Disabled option
-  </label>
-</div>
-```
-
-## Tile Variant
-
-```html
-<div class="usa-radio">
-  <input
-    class="usa-radio__input"
-    id="radio-tile"
-    type="radio"
-    name="tile-options"
-    value="tile-1"
-  />
-  <label class="usa-radio__label usa-radio__label--tile" for="radio-tile">
-    <span class="usa-radio__label-text">
-      Tile Option
-    </span>
-    <span class="usa-radio__label-description">
-      Description of this tile option
-    </span>
-  </label>
-</div>
-```
+## Structure Notes
+- Each radio input and its label are wrapped in a `div` with class `usa-radio`
+- The `id` attribute on the input must match the `for` attribute on the label
+- All inputs in a group share the same `name` attribute
+- The `checked` attribute (empty string or present) marks the selected option
+- The `usa-fieldset` and `usa-legend` structure the group semantically
 
 ### Context
 
-Radios are a fundamental USWDS form component used throughout Maryland state web pages for single-select options. They integrate with form validation patterns and work alongside other form controls like checkboxes, text inputs, and select dropdowns as part of the MDWDS form system.
+Radio buttons are core form components in the MDWDS system, built on USWDS patterns. They compose with fieldsets and legends to create accessible, mutually-exclusive option groups and integrate with form layouts and validation patterns across the design system.
 
 ---
 
@@ -5905,229 +6526,239 @@ Radios are a fundamental USWDS form component used throughout Maryland state web
 
 *Components*
 
-The Range Slider is an input component that allows users to select a value or range of values from a continuous scale by dragging a handle along a track. It provides an intuitive way for users to specify numeric values within a defined range and is commonly used for filtering, setting thresholds, or adjusting parameters in forms and interactive interfaces.
+Range Slider allows users to select a numeric value by dragging a handle along a horizontal track. This component is ideal for choosing a value from a continuous or stepped numeric range, such as volume, brightness, or price. It supports customizable ranges (min, max), step values, accessibility attributes, and optional Google Analytics tracking.
+
+### Key Information
+
+## Variants & Options
+
+The Range Slider component supports the following configuration options:
+
+### Settings
+- **label** (string): Visible label for the slider input
+- **id** (string): Unique ID used to link label and input
+- **name** (string): The name attribute of the slider input
+- **min** (number): Minimum selectable value
+- **max** (number): Maximum selectable value
+- **step** (number): Step increment between values
+- **value** (number): Default selected value
+
+### Accessibility
+- **ariaLabel** (string): Label for screen readers (optional if visible label is sufficient)
+- **ariaDescribedBy** (string): ID of an element that provides additional descriptive context
+
+### Analytics
+- **enableAnalytics** (boolean): Enable Google Analytics tracking on this component
+- **gaCategory** (string): GA event category (e.g., 'Slider')
+- **gaAction** (string): GA event action (e.g., 'Adjust')
+- **gaLabel** (string): GA event label (e.g., 'Price Range')
+
+## CSS Class Names
+- **usa-form**: Wrapper form class
+- **usa-label**: Label styling
+- **usa-range**: Primary class for the range input element
+
+## Required Attributes
+- `type="range"`: HTML5 range input type
+- `min`: Minimum value attribute
+- `max`: Maximum value attribute
+- `step`: Step increment attribute
+- `value`: Default value attribute
+
+### Implementation
+
+```html
+<form class="usa-form">
+  <label class="usa-label" for="usa-range">Range slider</label>
+  <input id="usa-range" name="usa-range" class="usa-range" type="range" min="0" max="100" step="5" value="20">
+</form>
+```
+
+## Component Structure
+
+- **Form wrapper** (`.usa-form`): Contains the entire range slider component
+- **Label** (`.usa-label`): Associated with input via `for` attribute matching the input `id`
+- **Input** (`.usa-range`): The actual range control with required HTML5 attributes:
+  - `type="range"`: Specifies this as a range input
+  - `min="0"`: Minimum selectable value
+  - `max="100"`: Maximum selectable value
+  - `step="5"`: Increment between values
+  - `value="20"`: Default selected value
+  - `id`: Must match the label's `for` attribute
+  - `name`: Form field name for submission
+
+### Context
+
+The Range Slider is a USWDS component that provides an accessible, HTML5-native input control for numeric value selection. It integrates with the Maryland Web Design System form styling through the usa-form and usa-label classes, and supports optional Google Analytics event tracking for monitoring user interactions.
+
+---
+
+## Search
+
+*Components*
+
+The Search component provides a reusable form interface for site-wide search functionality. It supports multiple display variants (pop-out, static, hero, and results) and can be configured with keywords and scope parameters. Use this component to enable users to search across Maryland government sites or specific subdomains.
 
 ### Key Information
 
 ## Variants
-- Single value range slider
-- Dual handle range slider (for min/max selection)
+- **Pop Out**: Hidden form that toggles open via a button (aria-expanded controls visibility)
+- **Static**: Permanently visible search form
+- **Hero**: Large search form with scope selection dropdown
+- **Results**: Search results display with sorting and result items
+
+## CSS Class Names
+- `maryland-search-form`: Main container
+- `maryland-search-form--toggleable`: Modifier for pop-out/toggle behavior
+- `maryland-search-form__form`: Form element with `role="search"`
+- `maryland-search-form__widget`: Input wrapper
+- `maryland-search-form__input`: Text input field
+- `maryland-search-form__submit`: Submit button
+- `maryland-search-form__toggle`: Toggle button for pop-out variant
+
+## Required Attributes
+- `role="search"` on form element
+- `aria-label` on submit and toggle buttons
+- `aria-expanded` on toggle button (indicates open/closed state)
+- `aria-controls` on toggle button (references form ID)
+- `autocomplete="on"` on input for browser-supported suggestions
+- Unique `id` attributes on form and input for accessibility linking
+
+## Important Facts
+- Component uses a hidden attribute to toggle visibility in pop-out mode
+- Input has `type="text"` and `name="q"` for search queries
+- Toggle button uses `aria-expanded="false"` when form is hidden
+- Form action can be customized (currently set to "#")
+- Supports `keywords` and `scope` properties for filtering searches
+- Results variant shows result count, timestamp, and individual result items
+
+### Implementation
+
+```html
+<!-- Pop Out / Toggleable Variant -->
+<div class="maryland-search-form maryland-search-form--toggleable">
+  <form class="maryland-search-form__form" role="search" action="#" hidden="" id="id-e7h34o2celc">
+    <label class="usa-sr-only" for="id-axg80xk8sko">Search</label>
+    <div class="maryland-search-form__widget">
+      <input class="maryland-search-form__input" type="text" name="q" autocomplete="on" id="id-axg80xk8sko">
+      <button type="submit" aria-label="Submit Search" class="maryland-search-form__submit"></button>
+    </div>
+  </form>
+  <button class="maryland-search-form__toggle" aria-label="Open header search" aria-expanded="false" aria-controls="id-e7h34o2celc"></button>
+</div>
+```
+
+```html
+<!-- Static Variant (form always visible, no toggle button) -->
+<div class="maryland-search-form">
+  <form class="maryland-search-form__form" role="search" action="#" id="search-form-static">
+    <label class="usa-sr-only" for="search-input-static">Search</label>
+    <div class="maryland-search-form__widget">
+      <input class="maryland-search-form__input" type="text" name="q" autocomplete="on" id="search-input-static">
+      <button type="submit" aria-label="Submit Search" class="maryland-search-form__submit"></button>
+    </div>
+  </form>
+</div>
+```
+
+```html
+<!-- Hero Variant (with scope dropdown) -->
+<div class="maryland-search-form">
+  <form class="maryland-search-form__form" role="search" action="#">
+    <label class="usa-sr-only" for="search-input-hero">Search</label>
+    <div class="maryland-search-form__widget">
+      <input class="maryland-search-form__input" type="text" name="q" autocomplete="on" id="search-input-hero" placeholder="Search">
+      <select class="maryland-search-form__scope">
+        <option>Select a search scope</option>
+        <option>subdomain.maryland.gov</option>
+        <option>All Maryland.gov sites</option>
+      </select>
+      <button type="submit" aria-label="Submit Search" class="maryland-search-form__submit"></button>
+    </div>
+  </form>
+</div>
+```
+
+### Context
+
+The Search component is a foundational UI element in the MDWDS that integrates with Maryland government sites to enable site-wide and cross-domain search functionality. It can be embedded in headers (as a toggleable pop-out), used as a persistent search interface, or displayed prominently as a hero element on search landing pages.
+
+---
+
+## Search
+
+*Components*
+
+The Maryland Design System Search component allows users to perform queries across site content or datasets. It provides multiple size variants (default, big, small), Spanish localization support, optional Google Analytics tracking, and custom icon support. Use this component when you need a search input interface with accessibility compliance and optional analytics capabilities.
+
+### Key Information
+
+## Variants
+- **Size variants**: `default`, `big`, `small`
+- **Language support**: `english`, `spanish`
+
+## Key Properties
+- **variant**: Select the size of the search bar (string) — options: default, big, small
+- **language**: Language for screen reader text and button label (string) — options: english, spanish
+- **placeholder**: Placeholder text inside the search input field (string)
+- **buttonText**: Visible text on the submit button; ignored in Spanish mode (string)
+- **id**: ID for the search input, used with the label (string)
+- **name**: The name attribute of the search input (string)
+- **iconUrl**: Custom icon URL for the search button (string)
+
+## Accessibility
+- **ariaDescribedBy**: ID of an element describing the input field (optional, string)
+
+## Analytics (Optional)
+- **enableAnalytics**: Enable or disable GA tracking attributes on the input (boolean; default: False)
+- **gaCategory**: Google Analytics event category (string)
+- **gaAction**: Google Analytics event action (string)
+- **gaLabel**: Google Analytics event label (string)
 
 ## CSS Classes
-- `.usa-range`: Base container class for the range slider
-- `.usa-range__input`: The actual input element (type="range")
-- `.usa-range__track`: Visual track element showing the range
-- `.usa-range__track-fill`: Filled portion of the track
-
-## Attributes
-- `type="range"`: Required input type
-- `min`: Minimum value of the range
-- `max`: Maximum value of the range
-- `value`: Current value
-- `step`: Increment step (optional)
-- `aria-label`: Accessible label for the input
-- `aria-describedby`: Reference to description text
-
-## Modifiers
-- Single handle for single value selection
-- Multiple inputs for range selection (min and max)
-
-## Important Notes
-- Native HTML5 range input with USWDS styling
-- Cross-browser compatible
-- Keyboard accessible (arrow keys for adjustment)
-- Mobile touch-friendly
+- `usa-search`: Main search form container
+- `usa-sr-only`: Screen reader only label
+- `usa-search__input`: Input field class
+- `usa-input`: General input styling
+- `usa-button`: Submit button class
+- `usa-search__submit-text`: Text label inside submit button
+- `usa-search__submit-icon`: Icon image element inside submit button
 
 ### Implementation
 
 ```html
-<!-- Single Range Slider -->
-<div class="usa-range">
-  <label class="usa-label" for="range-single">Select a value</label>
-  <input 
-    class="usa-range__input" 
-    type="range" 
-    id="range-single"
-    name="range-single"
-    min="0" 
-    max="100" 
-    value="50"
-    aria-label="Select a value between 0 and 100"
-  />
-</div>
-
-<!-- Dual Range Slider (Min/Max) -->
-<div class="usa-range">
-  <label class="usa-label" for="range-min">Price range</label>
-  <div>
+<section aria-label="Search component">
+  <form class="usa-search" role="search">
+    <label class="usa-sr-only" for="search-field">Search</label>
     <input 
-      class="usa-range__input" 
-      type="range" 
-      id="range-min"
-      name="price-min"
-      min="0" 
-      max="1000" 
-      value="100"
-      aria-label="Minimum price"
-    />
-    <input 
-      class="usa-range__input" 
-      type="range" 
-      id="range-max"
-      name="price-max"
-      min="0" 
-      max="1000" 
-      value="900"
-      aria-label="Maximum price"
-    />
-  </div>
-  <div class="usa-hint" id="range-hint">Enter minimum and maximum prices</div>
-</div>
+      class="usa-search__input usa-input" 
+      id="search-field" 
+      type="search" 
+      name="search" 
+      placeholder="Search"
+    >
+    <button class="usa-button" type="submit">
+      <span class="usa-search__submit-text">Search</span>
+      <img 
+        src="https://cdn.maryland.gov/mdwds/latest/img/search--white.svg" 
+        class="usa-search__submit-icon" 
+        alt="Search"
+      >
+    </button>
+  </form>
+</section>
 ```
+
+## Structure Notes
+- The form element uses `role="search"` for semantic HTML and accessibility
+- The label is marked with `usa-sr-only` to hide it visually while keeping it available to screen readers
+- The input field combines both `usa-search__input` and `usa-input` classes
+- The submit button contains both text (`usa-search__submit-text`) and an icon (`usa-search__submit-icon`)
+- The form wrapper has `aria-label="Search component"` for screen reader context
 
 ### Context
 
-The Range Slider is part of the USWDS Components library integrated into MDWDS, providing a standard input control for numeric selection. It follows USWDS patterns and works alongside other form components like text inputs, buttons, and validation messages to create complete form experiences on Maryland state web pages.
-
----
-
-## Search
-
-*Components*
-
-The Search component provides users with a way to discover and access content within a Maryland state web application. It enables users to query site-specific or application-specific information, improving content discoverability and user navigation. Use this component to help users find relevant information quickly across your site or application.
-
-### Key Information
-
-The Search component includes the following variants and features:
-
-- **Basic Search**: A simple input field with a search button or submit functionality
-- **CSS Classes**: Uses standard form input styling with `.search-input` or similar class names
-- **ARIA Attributes**: Includes `role="search"` on the container and `aria-label` on the input field for accessibility
-- **Modifiers**: May support sizing variants (small, default, large) and states (default, focused, filled, disabled)
-- **Placeholder Text**: Typically includes placeholder text like "Search..." to guide user input
-- **Required Attributes**: 
-  - `type="search"` on the input element
-  - `aria-label` or associated `<label>` element
-  - `name` attribute for form submission
-- **Optional Features**: Search suggestions, filtering options, and result count indicators
-- **State Variations**: Default, active/focused, filled with content, disabled, and error states
-
-### Implementation
-
-```html
-<!-- Basic Search Component -->
-<form role="search" class="search-form">
-  <input 
-    type="search" 
-    class="search-input" 
-    placeholder="Search..." 
-    aria-label="Search this site"
-    name="q"
-  />
-  <button type="submit" class="search-button">
-    Search
-  </button>
-</form>
-```
-
-```html
-<!-- Search with Icon Button -->
-<form role="search" class="search-form">
-  <input 
-    type="search" 
-    class="search-input" 
-    placeholder="Enter search term..."
-    aria-label="Search"
-    name="query"
-  />
-  <button type="submit" class="search-button" aria-label="Submit search">
-    <svg class="icon" aria-hidden="true">
-      <!-- Search icon SVG content -->
-    </svg>
-  </button>
-</form>
-```
-
-```html
-<!-- Search with Results Count -->
-<form role="search" class="search-form">
-  <input 
-    type="search" 
-    class="search-input" 
-    placeholder="Search..." 
-    aria-label="Search this site"
-    name="q"
-    aria-describedby="search-results-count"
-  />
-  <button type="submit" class="search-button">Search</button>
-  <span id="search-results-count" class="search-results-count">0 results</span>
-</form>
-```
-
-### Context
-
-The Search component is a core utility component within MDWDS that helps users navigate and discover content across Maryland state web applications. It integrates with form systems and follows accessibility standards, working alongside navigation components and site structure patterns to enhance user experience.
-
----
-
-## Search
-
-*Components*
-
-The Search component provides a form input field for users to enter and submit search queries on Maryland state web pages. It enables users to find relevant content, services, or information quickly across a website or application. Use this component in headers, page sections, or dedicated search interfaces to improve discoverability and user navigation.
-
-### Key Information
-
-The Search component is built on USWDS (U.S. Web Design System) foundation patterns. Key variants and features include:
-
-- **Basic search input**: Simple text input field with search functionality
-- **CSS Classes**: Uses USWDS utility classes for styling and layout
-- **Form structure**: Implements standard HTML form element with proper semantic markup
-- **Required attributes**: Input should have appropriate `name` and `id` attributes; form should have `method` and `action` attributes
-- **Accessibility**: Includes ARIA labels and roles for screen reader compatibility; clear visual focus indicators
-- **Modifiers**: Can be combined with buttons, autocomplete suggestions, filters, or advanced search options
-- **Placeholder text**: Commonly includes "Search..." or contextual placeholder
-- **Submission**: Can submit via form submission or JavaScript handlers
-
-### Implementation
-
-```html
-<form class="usa-search usa-search--big" role="search">
-  <label class="usa-sr-only" for="search-field">Search</label>
-  <input
-    class="usa-input"
-    id="search-field"
-    type="search"
-    name="search"
-    placeholder="Search..."
-  />
-  <button class="usa-button" type="submit">
-    <span class="usa-search__submit-text">Search</span>
-  </button>
-</form>
-```
-
-**Small variant:**
-```html
-<form class="usa-search" role="search">
-  <label class="usa-sr-only" for="search-small">Search</label>
-  <input
-    class="usa-input"
-    id="search-small"
-    type="search"
-    name="search"
-    placeholder="Search..."
-  />
-  <button class="usa-button" type="submit">
-    <span class="usa-search__submit-text">Search</span>
-  </button>
-</form>
-```
-
-### Context
-
-The Search component integrates with Maryland's USWDS-based design system, allowing for consistent search functionality across state web properties. It can be incorporated into header layouts, paired with filtering or faceted search patterns, and combined with other navigation components to support user information discovery.
+The Search component is a USWDS-based component that integrates into the Maryland Design System for site-wide search functionality. It composes with standard form elements and button components while adding search-specific styling, accessibility labels, and optional analytics tracking attributes.
 
 ---
 
@@ -6135,199 +6766,76 @@ The Search component integrates with Maryland's USWDS-based design system, allow
 
 *Components*
 
-The Select component is a dropdown form element that allows users to choose one option from a predefined list. It provides an accessible way to present multiple choices in a compact, controlled manner. Use Select when you have a list of 3 or more related options and need to save vertical space while keeping the interface clean.
-
-### Key Information
-
-## Variants & Options
-
-- **Basic Select**: Standard dropdown menu with text options
-- **Disabled State**: Select element can be disabled to prevent user interaction
-- **Required Attribute**: Use the `required` attribute to mark as mandatory form field
-- **Grouped Options**: Use `<optgroup>` to organize related options
-
-## CSS Class Names
-
-- `usa-select`: Main class for the select element (applies USWDS styling)
-
-## Important Attributes
-
-- `name`: Identifies the form field
-- `id`: For label association via `for` attribute
-- `required`: Marks field as mandatory
-- `disabled`: Disables the select element
-- `aria-label` or associated `<label>`: Provides accessible label
-- `aria-describedby`: References additional help text if present
-
-## ARIA Requirements
-
-- Must have an associated `<label>` element with matching `for` attribute OR an `aria-label`
-- Use `aria-describedby` to link error messages or hint text
-- `aria-disabled` may be used instead of `disabled` in some contexts
-
-### Implementation
-
-## Basic Select
-
-```html
-<label for="select-basic">Select an option</label>
-<select id="select-basic" name="options" class="usa-select">
-  <option>- Select -</option>
-  <option value="option-1">Option 1</option>
-  <option value="option-2">Option 2</option>
-  <option value="option-3">Option 3</option>
-</select>
-```
-
-## Required Select
-
-```html
-<label for="select-required">Select an option (Required)</label>
-<select id="select-required" name="options" class="usa-select" required>
-  <option>- Select -</option>
-  <option value="option-1">Option 1</option>
-  <option value="option-2">Option 2</option>
-</select>
-```
-
-## Disabled Select
-
-```html
-<label for="select-disabled">Select an option</label>
-<select id="select-disabled" name="options" class="usa-select" disabled>
-  <option>- Select -</option>
-  <option value="option-1">Option 1</option>
-</select>
-```
-
-## Grouped Options
-
-```html
-<label for="select-grouped">Select a category</label>
-<select id="select-grouped" name="category" class="usa-select">
-  <option>- Select -</option>
-  <optgroup label="Group 1">
-    <option value="1-1">Option 1-1</option>
-    <option value="1-2">Option 1-2</option>
-  </optgroup>
-  <optgroup label="Group 2">
-    <option value="2-1">Option 2-1</option>
-    <option value="2-2">Option 2-2</option>
-  </optgroup>
-</select>
-```
-
-### Context
-
-The Select component is part of the MDWDS form elements built on USWDS foundations, providing consistent, accessible dropdown functionality across Maryland state websites. It integrates with form layouts, validation patterns, and fieldset groupings to create complete, user-friendly forms.
-
----
-
-## Side Navigation
-
-*Components*
-
-The Side Navigation component provides a persistent, hierarchical navigation menu positioned alongside main content, enabling users to browse page sections and navigate between related content. It helps organize complex information architecture and improves discoverability of related pages within a section or application.
+The Select component is a native HTML `<select>` element enhanced with consistent Maryland Design System visual styling. It allows users to choose a single option from a predefined list and supports accessibility, mobile responsiveness, and optional Google Analytics tracking out-of-the-box.
 
 ### Key Information
 
 ## Variants
-- **Collapsed State**: Side navigation can collapse to save space on smaller viewports or per user preference
-- **Nested Navigation**: Supports multi-level hierarchical menu structures with expandable/collapsible sub-items
-- **Active States**: Current page or section is highlighted to indicate user's location
-- **Link Types**: Supports both internal links and anchor links to page sections
-
-## Key Features
-- Uses semantic list markup (`<ul>` and `<li>` elements) for proper document structure
-- Expandable/collapsible sections for managing deep hierarchies
-- ARIA labels and roles for screen reader accessibility
-- Responsive behavior adapting to mobile/tablet/desktop viewports
-- Keyboard navigation support through natural tab order and arrow keys
+- Standard dropdown select with placeholder option
 
 ## CSS Classes
-- Primary container classes for layout and styling
-- Active/selected state indicators for current page
-- Modifier classes for collapsed state and responsive behaviors
-- Indent classes for nested level indication
+- `usa-form` — wrapper form element
+- `usa-label` — label styling for form inputs
+- `usa-select` — main select element styling
 
-## Important Attributes
-- `aria-current` or `aria-selected` on active navigation items
-- `aria-expanded` on collapsible menu items
-- `role="navigation"` on the navigation container
-- `aria-label` for descriptive navigation purpose
+## Required Attributes
+- `id` — associates the select element with its label via `for` attribute
+- `name` — name attribute for form submission
+- `for` (on label) — must match the select's `id`
 
-## Responsive Considerations
-- Mobile: May collapse or convert to drawer pattern on small screens
-- Tablet/Desktop: Displays as persistent sidebar
-- Toggle button typically required for mobile collapse/expand functionality
+## Options Structure
+- Options configured as array of objects with:
+  - `label` — displayed option text
+  - `value` — submitted form value
+  - `selected?` — optional, marks option as pre-selected
+  - `disabled?` — optional, disables individual options
+
+## Accessibility
+- Screen reader-friendly labeling via label-select association
+- `ariaDescribedBy` prop supports optional element ID for additional descriptions
+
+## Analytics
+- `enableAnalytics` — boolean to enable/disable GA tracking
+- `gaCategory` — GA event category string
+- `gaAction` — GA event action string
+- `gaLabel` — GA event label string
+
+## Props Summary
+- `label` (string) — visible label text
+- `id` (string) — select element ID
+- `name` (string) — form submission name
+- `placeholder` (string) — first option prompt text
+- `options` (array) — list of option objects
+- `ariaDescribedBy` (string) — ID of describing element
+- `enableAnalytics` (boolean) — GA tracking toggle
+- `gaCategory` (string) — analytics category
+- `gaAction` (string) — analytics action
+- `gaLabel` (string) — analytics label
 
 ### Implementation
 
 ```html
-<!-- Basic Side Navigation Structure -->
-<nav role="navigation" aria-label="Side Navigation">
-  <ul class="side-navigation">
-    <li>
-      <a href="/section1" aria-current="page">Current Page</a>
-    </li>
-    <li>
-      <a href="/section2">Other Section</a>
-    </li>
-  </ul>
-</nav>
-
-<!-- With Nested/Expandable Items -->
-<nav role="navigation" aria-label="Side Navigation">
-  <ul class="side-navigation">
-    <li>
-      <button 
-        aria-expanded="false" 
-        aria-controls="submenu-1"
-        class="side-navigation__toggle"
-      >
-        Parent Item
-      </button>
-      <ul id="submenu-1" class="side-navigation__submenu" hidden>
-        <li>
-          <a href="/parent/child1">Child Item 1</a>
-        </li>
-        <li>
-          <a href="/parent/child2">Child Item 2</a>
-        </li>
-      </ul>
-    </li>
-    <li>
-      <a href="/section2">Standalone Item</a>
-    </li>
-  </ul>
-</nav>
-
-<!-- Collapsed/Responsive State -->
-<div class="side-navigation-wrapper">
-  <button 
-    class="side-navigation__toggle-main"
-    aria-controls="side-nav"
-    aria-label="Toggle navigation menu"
-  >
-    Menu
-  </button>
-  <nav 
-    id="side-nav" 
-    role="navigation" 
-    aria-label="Side Navigation"
-    class="side-navigation side-navigation--collapsed"
-  >
-    <ul class="side-navigation">
-      <li><a href="/section1" aria-current="page">Current Page</a></li>
-      <li><a href="/section2">Section 2</a></li>
-    </ul>
-  </nav>
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="options">Dropdown label</label>
+  <select class="usa-select" name="options" id="options">
+    <option value="">- Select -</option>
+    <option value="value1">Option A</option>
+    <option value="value2">Option B</option>
+    <option value="value3">Option C</option>
+  </select>
+</form>
 ```
+
+## Structure Notes
+- Label must precede the select element
+- Label's `for` attribute must match select's `id`
+- First option can serve as placeholder with empty value
+- All options rendered as standard HTML `<option>` elements
+- Select wrapped in `usa-form` class container
 
 ### Context
 
-The Side Navigation component is a key structural element in MDWDS page layouts, typically paired with main content areas and headers to create complete page templates. It composes with typography and link styles from the Foundation system while maintaining consistent interaction patterns with other navigation components like breadcrumbs and top navigation.
+The Select component extends native HTML form elements with MDWDS styling and follows U.S. Web Design System (USWDS) patterns. It composes with form labels and integrates with optional accessibility descriptors and analytics tracking, making it suitable for use within larger form layouts and templates across the Maryland Design System.
 
 ---
 
@@ -6335,119 +6843,196 @@ The Side Navigation component is a key structural element in MDWDS page layouts,
 
 *Components*
 
-Side Navigation is a vertical menu component that displays a hierarchical list of navigation links, typically positioned on the left side of a page. It helps users understand the structure of a website and navigate between related pages and sections. Use it for organizing content in multi-page applications, documentation sites, or complex information hierarchies.
+Side Navigation is a hierarchical, vertical navigation component designed to be placed at the side of a page. It provides a structured menu for organizing and displaying page sections and content hierarchy. Use it to help users navigate through nested content levels and understand the current page context within a site structure.
 
 ### Key Information
 
-## Variants
-- **Default/Simple**: Flat list of navigation items
-- **Nested/Hierarchical**: Multi-level navigation with expandable sections
-- **With Icons**: Navigation items can include icon accompaniment
-- **Active State**: Current page or section is highlighted
-- **Collapsed State**: Side navigation can collapse to show only icons (responsive behavior)
+**Core Class Names:**
+- `maryland-sidenav` - Main container element
+- `maryland-sidenav__toggle` - Toggle button for collapsing/expanding (mobile)
+- `maryland-sidenav__title` - Navigation section title
+- `maryland-sidenav__list` - List container for menu items
+- `maryland-sidenav__list--level-1` - Level modifier for nested lists
+- `maryland-sidenav__item` - Individual menu item
+- `maryland-sidenav__item--level-1` - Level modifier for items
+- `maryland-sidenav__link` - Menu link/text
+- `maryland-sidenav__link--level-1` - Level modifier for links
+- `is-open` - State class indicating expanded/open state
+- `usa-sr-only` - Screen reader only text class
 
-## CSS Class Names
-- `.usa-sidenav`: Main wrapper container
-- `.usa-sidenav__list`: List container for navigation items
-- `.usa-sidenav__item`: Individual navigation item
-- `.usa-sidenav__link`: Navigation link element
-- `.usa-current`: Marks the currently active link
-- `.usa-sidenav__sublist`: Nested list for multi-level navigation
-- `.usa-sidenav__subnav`: Container for nested navigation items
+**ARIA Attributes:**
+- `aria-labelledby` - Links nav to its title element ID
+- `aria-controls` - Button controls which list to expand/collapse
+- `aria-current="page"` - Marks the current page link
 
-## Modifiers & Options
-- **Aria-current="page"**: Applied to the active link to indicate current page
-- **aria-expanded**: Used on parent items to indicate if submenu is open/closed
-- **aria-controls**: Links toggle buttons to submenu sections
-- **aria-label**: Provides accessible label for navigation sections
-
-## Important Facts
-- Semantic HTML structure with proper list elements
-- Full keyboard navigation support
-- Screen reader friendly with proper ARIA landmarks
-- Responsive behavior (may collapse on mobile)
-- Customizable with CSS for styling and spacing
+**Variants:**
+- Default: Full sidenav display with hierarchy
+- In Sidebar: Sidenav rendered within a sidebar context alongside page content
+- Show as top-level page: Boolean toggle to display navigation as if current page is top-level (no menu parent)
 
 ### Implementation
 
 ```html
-<!-- Basic Side Navigation -->
-<nav class="usa-sidenav" aria-label="Side navigation">
-  <ul class="usa-sidenav__list">
-    <li class="usa-sidenav__item">
-      <a href="#" class="usa-sidenav__link usa-current" aria-current="page">
-        Current Page
-      </a>
-    </li>
-    <li class="usa-sidenav__item">
-      <a href="#" class="usa-sidenav__link">
-        Other Page
-      </a>
-    </li>
-    <li class="usa-sidenav__item">
-      <a href="#" class="usa-sidenav__link">
-        Another Page
-      </a>
+<nav class="maryland-sidenav" aria-labelledby="id-i7hfxybfk6">
+  <button class="maryland-sidenav__toggle" aria-controls="id-jrxhk5esar">
+    <span class="usa-sr-only"></span>
+    <h2 class="maryland-sidenav__title" id="id-i7hfxybfk6">Section menu</h2>
+  </button>
+  <ul class="maryland-sidenav__list maryland-sidenav__list--level-1 is-open" id="id-jrxhk5esar">
+    <li class="maryland-sidenav__item maryland-sidenav__item--level-1">
+      <span class="maryland-sidenav__link maryland-sidenav__link--level-1" aria-current="page">Your Government</span>
+      <ul class="maryland-sidenav__list">
+        <li class="maryland-sidenav__item">
+          <a href="#" class="maryland-sidenav__link">State government</a>
+        </li>
+        <li class="maryland-sidenav__item">
+          <a href="#" class="maryland-sidenav__link">Elections and voting</a>
+        </li>
+        <li class="maryland-sidenav__item">
+          <a href="#" class="maryland-sidenav__link">State agencies and departments</a>
+        </li>
+      </ul>
     </li>
   </ul>
 </nav>
 ```
 
+**Structure Notes:**
+- Root `<nav>` element with `maryland-sidenav` class
+- Toggle button controls visibility of the list via `aria-controls` attribute
+- Main `<ul>` list with level modifier classes for styling nested levels
+- List items use `<li>` with `maryland-sidenav__item` class
+- Links can be `<a>` or `<span>` elements with `maryland-sidenav__link` class
+- Current page uses `aria-current="page"` attribute
+- `is-open` state class indicates expanded state
+- Nested lists follow the same structure with appropriate level modifiers
+
+### Context
+
+Side Navigation is a core navigation component in MDWDS that provides hierarchical organization of site content. It typically pairs with page layouts and header components to create complete page navigation patterns, allowing users to understand site structure and move between related content sections.
+
+---
+
+## Side Navigation
+
+*Components*
+
+The Side Navigation component provides a hierarchical, accessible way to guide users through complex website sections. It supports 1–3 levels of navigation hierarchy with current page highlighting and semantic nested list structure. Use this component to organize multi-level site navigation with clear visual hierarchy and accessibility support.
+
+### Key Information
+
+## Variants
+- **Single-level**: Basic flat list of navigation items
+- **Two-level**: Parent items with nested children
+- **Three-level**: Parent items with nested children and grandchildren
+
+## CSS Class Names
+- `usa-sidenav` — Main navigation container
+- `usa-sidenav__item` — Individual navigation list item
+- `usa-sidenav__sublist` — Nested child/grandchild list container
+- `usa-current` — Applied to links representing the current active page
+
+## Required Attributes
+- `aria-label` — Custom label for the nav element (defaults to 'Side navigation')
+- `aria-describedby` — Optional ID of element that describes the navigation region
+
+## Key Properties
+- **currentLabel** — Label for the current active page
+- **parentLabels** — Array of parent link labels (optional)
+- **childLabels** — Array of child links (used for two- or three-level variants)
+- **grandchildLabels** — Array of grandchild links (used only for three-level variant)
+- **ariaLabel** — Customizable aria-label for the nav element
+- **ariaDescribedBy** — Optional aria-describedby attribute for additional description
+
+## Important Facts
+- Supports semantic structure using properly nested `<ul>` and `<li>` elements
+- The `usa-current` class marks the page the user is currently viewing
+- Supports up to 3 levels of hierarchy
+- Fully accessible with ARIA labels and semantic HTML
+
+### Implementation
+
 ```html
-<!-- Side Navigation with Nested Items -->
-<nav class="usa-sidenav" aria-label="Side navigation">
-  <ul class="usa-sidenav__list">
+<!-- Three-level Side Navigation Example -->
+<nav aria-label="Side navigation">
+  <ul class="usa-sidenav">
     <li class="usa-sidenav__item">
-      <a href="#" class="usa-sidenav__link usa-current" aria-current="page">
-        Parent Link
-      </a>
+      <a href="#" class="usa-current">Current page</a>
       <ul class="usa-sidenav__sublist">
         <li class="usa-sidenav__item">
-          <a href="#" class="usa-sidenav__link">
-            Child Link 1
-          </a>
+          <a href="#">Child link A</a>
+          <ul class="usa-sidenav__sublist">
+            <li class="usa-sidenav__item">
+              <a href="#">Grandchild link A</a>
+            </li>
+            <li class="usa-sidenav__item">
+              <a href="#" class="usa-current">Grandchild link B</a>
+            </li>
+            <li class="usa-sidenav__item">
+              <a href="#">Grandchild link C</a>
+            </li>
+          </ul>
         </li>
         <li class="usa-sidenav__item">
-          <a href="#" class="usa-sidenav__link">
-            Child Link 2
-          </a>
+          <a href="#">Child link B</a>
+        </li>
+        <li class="usa-sidenav__item">
+          <a href="#">Child link C</a>
         </li>
       </ul>
-    </li>
-    <li class="usa-sidenav__item">
-      <a href="#" class="usa-sidenav__link">
-        Sibling Link
-      </a>
     </li>
   </ul>
 </nav>
 ```
 
+## Two-level Variant
 ```html
-<!-- Side Navigation with Expandable Sections -->
-<nav class="usa-sidenav" aria-label="Side navigation">
-  <ul class="usa-sidenav__list">
+<nav aria-label="Side navigation">
+  <ul class="usa-sidenav">
     <li class="usa-sidenav__item">
-      <button class="usa-sidenav__link" 
-              aria-expanded="false" 
-              aria-controls="submenu-1">
-        Expandable Section
-      </button>
-      <ul class="usa-sidenav__sublist" id="submenu-1" hidden>
+      <a href="#" class="usa-current">Current page</a>
+      <ul class="usa-sidenav__sublist">
         <li class="usa-sidenav__item">
-          <a href="#" class="usa-sidenav__link">
-            Nested Item
-          </a>
+          <a href="#">Child link A</a>
+        </li>
+        <li class="usa-sidenav__item">
+          <a href="#">Child link B</a>
         </li>
       </ul>
     </li>
   </ul>
 </nav>
+```
+
+## Single-level Variant
+```html
+<nav aria-label="Side navigation">
+  <ul class="usa-sidenav">
+    <li class="usa-sidenav__item">
+      <a href="#" class="usa-current">Current page</a>
+    </li>
+    <li class="usa-sidenav__item">
+      <a href="#">Other page</a>
+    </li>
+  </ul>
+</nav>
+```
+
+## With Custom aria-label and aria-describedby
+```html
+<nav aria-label="Main site sections" aria-describedby="nav-description">
+  <ul class="usa-sidenav">
+    <li class="usa-sidenav__item">
+      <a href="#" class="usa-current">Current page</a>
+    </li>
+  </ul>
+</nav>
+<p id="nav-description">Use this navigation to explore main sections of the website.</p>
 ```
 
 ### Context
 
-Side Navigation is a core USWDS component adapted for Maryland's design system and complements other navigation patterns like the top banner navigation. It works in conjunction with main content areas to provide consistent, accessible page structure across Maryland state websites.
+Side Navigation is a USWDS component integrated into MDWDS for organizing hierarchical site navigation. It composes well with page layouts and header components to provide users with a clear navigation path through complex content areas. The component follows USWDS standards for accessibility and semantic structure.
 
 ---
 
@@ -6455,84 +7040,116 @@ Side Navigation is a core USWDS component adapted for Maryland's design system a
 
 *Components*
 
-The Site Alert component displays important, high-priority messages that span the full width of a page to notify users of critical information, emergency updates, or system status changes. It should be used when you need to communicate information that requires immediate user attention before they interact with page content.
+The Site Alert component provides a consistent way to inform users of critical site-wide information. It supports multiple variants (info, warning, emergency, success) that reflect the importance and urgency of the message. Use it to communicate important site-wide notices, emergencies, or status updates with full accessibility customization.
 
 ### Key Information
 
-## Variants and Types
-- **Alert (Default)**: Standard informational alert
-- **Success**: Communicates successful completion of actions
-- **Warning**: Highlights cautionary information requiring user attention
-- **Error**: Indicates problems, failures, or critical issues
+## Variants
+- **info** (default): General messages and updates
+- **warning**: Important non-emergency warnings
+- **emergency**: Emergency alerts requiring immediate attention
+- **success**: Confirmation or success notifications
 
 ## CSS Classes
-- `.usa-alert`: Main container class
-- `.usa-alert--success`: Success variant modifier
-- `.usa-alert--warning`: Warning variant modifier
-- `.usa-alert--error`: Error/emergency variant modifier
-- `.usa-alert--info`: Information variant (default)
-- `.usa-alert__heading`: For the alert title/heading
-- `.usa-alert__body`: Container for alert content and text
+- `usa-site-alert`: Main wrapper element
+- `usa-site-alert--info`: Modifier for info variant (default)
+- `usa-site-alert--warning`: Modifier for warning variant
+- `usa-site-alert--emergency`: Modifier for emergency variant
+- `usa-site-alert--success`: Modifier for success variant
+- `usa-alert`: Container for alert content
+- `usa-alert__body`: Wrapper for alert heading and text
+- `usa-alert__heading`: The alert heading element (h3)
+- `usa-alert__text`: The alert message content
 
-## ARIA Attributes
-- `role="region"`: Identifies the element as a landmark region
-- `aria-live="polite"`: Announces alert updates to screen readers
-- `aria-label`: Describes the alert purpose/type
+## Customization Options
+- **variant**: Style variant of the alert box (info, warning, emergency, success)
+- **heading**: The heading text inside the alert
+- **content**: The main message content of the alert
+- **role**: ARIA role for screen readers (can be left blank for default, or set to `status` or `alert`)
+- **ariaLive**: ARIA live region behavior (polite, assertive, off)
+- **ariaLabel**: Label for the entire alert region, read by screen readers
 
-## Important Facts
-- Site alerts are typically placed at the top of the page, above main content
-- Use semantic HTML with appropriate heading levels within the alert
-- Each alert type uses distinct styling for visual differentiation
-- Alerts persist on the page and should not auto-dismiss for critical information
-- Use with appropriate icon or visual indicator matching the alert type
+## Key Attributes
+- Supports full accessibility customization including ARIA roles and live regions
+- Based on USWDS Site Alert component
 
 ### Implementation
 
 ```html
-<!-- Default/Info Alert -->
-<div class="usa-alert usa-alert--info" role="region" aria-live="polite">
-  <div class="usa-alert__heading">
-    <h4>Informational heading</h4>
+<!-- Info variant (default) -->
+<section class="usa-site-alert usa-site-alert--info">
+  <div class="usa-alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">This is a site alert</h3>
+      <p class="usa-alert__text">
+        Here is some helpful information for your users.
+      </p>
+    </div>
   </div>
-  <div class="usa-alert__body">
-    <p>This is an informational alert.</p>
-  </div>
-</div>
+</section>
+```
 
-<!-- Success Alert -->
-<div class="usa-alert usa-alert--success" role="region" aria-live="polite">
-  <div class="usa-alert__heading">
-    <h4>Success heading</h4>
-  </div>
-  <div class="usa-alert__body">
-    <p>This is a success alert.</p>
-  </div>
-</div>
+## Variants with ARIA Attributes
 
-<!-- Warning Alert -->
-<div class="usa-alert usa-alert--warning" role="region" aria-live="polite">
-  <div class="usa-alert__heading">
-    <h4>Warning heading</h4>
+```html
+<!-- With status role and polite live region -->
+<section class="usa-site-alert usa-site-alert--info" role="status" aria-live="polite" aria-label="Alert">
+  <div class="usa-alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">This is a site alert</h3>
+      <p class="usa-alert__text">
+        Here is some helpful information for your users.
+      </p>
+    </div>
   </div>
-  <div class="usa-alert__body">
-    <p>This is a warning alert.</p>
-  </div>
-</div>
+</section>
+```
 
-<!-- Error/Emergency Alert -->
-<div class="usa-alert usa-alert--error" role="region" aria-live="polite">
-  <div class="usa-alert__heading">
-    <h4>Emergency heading</h4>
+```html
+<!-- Warning variant -->
+<section class="usa-site-alert usa-site-alert--warning">
+  <div class="usa-alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Warning Alert</h3>
+      <p class="usa-alert__text">
+        This is an important non-emergency warning message.
+      </p>
+    </div>
   </div>
-  <div class="usa-alert__body">
-    <p>This is an error or emergency alert.</p>
+</section>
+```
+
+```html
+<!-- Emergency variant with alert role -->
+<section class="usa-site-alert usa-site-alert--emergency" role="alert" aria-live="assertive">
+  <div class="usa-alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Emergency Alert</h3>
+      <p class="usa-alert__text">
+        Emergency alert requiring immediate attention.
+      </p>
+    </div>
   </div>
-</div>
+</section>
+```
+
+```html
+<!-- Success variant -->
+<section class="usa-site-alert usa-site-alert--success">
+  <div class="usa-alert">
+    <div class="usa-alert__body">
+      <h3 class="usa-alert__heading">Success</h3>
+      <p class="usa-alert__text">
+        Confirmation or success notification message.
+      </p>
+    </div>
+  </div>
+</section>
 ```
 
 ### Context
 
-The Site Alert component is a USWDS-based component in the MDWDS that provides a standardized way to communicate critical information to users. It integrates with other page layout components and should typically appear as a top-level page element before main content sections.
+The Site Alert component is a USWDS-based component that integrates into the Maryland Web Design System for communicating critical site-wide information. It composes with standard semantic HTML elements and ARIA attributes to ensure accessibility compliance, and can be paired with other alert components or messaging systems depending on the scope of the notification.
 
 ---
 
@@ -6540,83 +7157,79 @@ The Site Alert component is a USWDS-based component in the MDWDS that provides a
 
 *Components*
 
-The Social Media component provides a collection of styled links and icons for major social media platforms including Facebook, Twitter, Instagram, LinkedIn, YouTube, and others. It enables state websites to maintain consistent, accessible social media presence across Maryland government web properties. Use this component in footers or dedicated social media sections to connect users with official state social channels.
+A list of linked social media icons that provides quick access to an agency or entity's social media profiles. This component displays icon links for common platforms like Facebook, X (formerly Twitter), YouTube, Instagram, LinkedIn, and Flickr with screen reader-friendly text. Use this component in footers, sidebars, or contact sections to direct users to official social media channels.
 
 ### Key Information
 
-The Social Media component includes pre-styled icon links for common social platforms:
-- Facebook
-- Twitter/X
-- Instagram
-- LinkedIn
-- YouTube
-- TikTok
-- Pinterest
-- Nextdoor
-- GovDelivery
+## Variants & Modifiers
 
-Key features:
-- Accessible icon-based links with proper ARIA labels
-- Consistent styling and sizing across all social platforms
-- Hover states for interactive feedback
-- Mobile-responsive layout
-- Color styling aligned with platform branding or MDWDS color palette
-- Optional text labels alongside icons
-- Can be arranged horizontally or vertically
+The Social Media component uses a modifier class system to display different platform icons:
 
-CSS classes typically include: `social-media`, `social-icon`, `social-link`
+- `maryland-social__link--facebook` - Facebook icon link
+- `maryland-social__link--x` - X (Twitter) icon link
+- `maryland-social__link--youtube` - YouTube icon link
+- `maryland-social__link--instagram` - Instagram icon link
+- `maryland-social__link--linkedin` - LinkedIn icon link
+- `maryland-social__link--flickr` - Flickr icon link
 
-The component supports both icon-only and icon-with-text variants for flexibility in layout and space constraints.
+## CSS Class Names
+
+- `maryland-social` - Main container list element (unordered list)
+- `maryland-social__link` - Individual social media link element (applies base link styling)
+- `maryland-social__link--[platform]` - Platform-specific modifier that applies the corresponding icon
+
+## Required Attributes
+
+- Screen reader text wrapper: `<span class="usa-sr-only">` containing descriptive text in format "Connect with [Agency Name] on [platform].com (external link)"
+- Link href attribute pointing to the social media profile URL
+
+## Important Facts
+
+- The component uses BEM (Block Element Modifier) naming convention
+- Each link should have associated screen reader text to describe the link destination
+- Icons are typically applied via CSS background-image or pseudo-elements
+- Links should be accessible with proper ARIA labels via screen reader text
 
 ### Implementation
 
 ```html
-<!-- Icon-only variant -->
-<div class="social-media">
-  <a href="https://www.facebook.com/Maryland" class="social-link" aria-label="Maryland on Facebook">
-    <span class="social-icon icon-facebook"></span>
-  </a>
-  <a href="https://www.twitter.com/Maryland" class="social-link" aria-label="Maryland on Twitter">
-    <span class="social-icon icon-twitter"></span>
-  </a>
-  <a href="https://www.instagram.com/Maryland" class="social-link" aria-label="Maryland on Instagram">
-    <span class="social-icon icon-instagram"></span>
-  </a>
-  <a href="https://www.youtube.com/Maryland" class="social-link" aria-label="Maryland on YouTube">
-    <span class="social-icon icon-youtube"></span>
-  </a>
-</div>
-```
-
-```html
-<!-- Icon with text variant -->
-<div class="social-media social-media--with-text">
-  <a href="https://www.facebook.com/Maryland" class="social-link">
-    <span class="social-icon icon-facebook"></span>
-    <span class="social-text">Facebook</span>
-  </a>
-  <a href="https://www.twitter.com/Maryland" class="social-link">
-    <span class="social-icon icon-twitter"></span>
-    <span class="social-text">Twitter</span>
-  </a>
-</div>
-```
-
-```html
-<!-- Vertical layout variant -->
-<div class="social-media social-media--vertical">
-  <a href="https://www.facebook.com/Maryland" class="social-link" aria-label="Maryland on Facebook">
-    <span class="social-icon icon-facebook"></span>
-  </a>
-  <a href="https://www.twitter.com/Maryland" class="social-link" aria-label="Maryland on Twitter">
-    <span class="social-icon icon-twitter"></span>
-  </a>
-</div>
+<ul class="maryland-social">
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--facebook">
+      <span class="usa-sr-only">Connect with Agency Title on facebook.com (external link)</span>
+    </a>
+  </li>
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--x">
+      <span class="usa-sr-only">Connect with Agency Title on x.com (external link)</span>
+    </a>
+  </li>
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--youtube">
+      <span class="usa-sr-only">Connect with Agency Title on youtube.com (external link)</span>
+    </a>
+  </li>
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--instagram">
+      <span class="usa-sr-only">Connect with Agency Title on instagram.com (external link)</span>
+    </a>
+  </li>
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--linkedin">
+      <span class="usa-sr-only">Connect with Agency Title on linkedin.com (external link)</span>
+    </a>
+  </li>
+  <li>
+    <a href="#!" class="maryland-social__link maryland-social__link--flickr">
+      <span class="usa-sr-only">Connect with Agency Title on flickr.com (external link)</span>
+    </a>
+  </li>
+</ul>
 ```
 
 ### Context
 
-The Social Media component integrates with MDWDS foundation styles and color system to maintain visual consistency across Maryland government websites. It is commonly paired with Footer components and can be included in page layouts, sidebars, or dedicated contact/connection sections to help citizens engage with state agencies across social platforms.
+The Social Media component is a utility component that integrates into the MDWDS system to provide consistent styling for social media links across Maryland government websites. It complements the usa-sr-only class from USWDS for accessibility and follows the Maryland design system's BEM naming conventions.
 
 ---
 
@@ -6624,47 +7237,62 @@ The Social Media component integrates with MDWDS foundation styles and color sys
 
 *Components*
 
-The Statewide Banner is a consistent header component that appears at the top of Maryland state web pages to establish state identity and provide quick access to state services. It serves as a unifying element across all state digital properties and improves wayfinding for users navigating between state resources.
+The Statewide Banner is a required component that communicates to users that a website or application is a secure and official Maryland government site. It displays key information prominently without being visually distracting. The banner must be positioned at the top of all pages in any Maryland government website or application.
 
 ### Key Information
 
-The Statewide Banner includes:
-- State seal or logo identification
-- Text identifying the site as part of state government
-- Consistent branding across all state web properties
-- Optional navigation or link elements
-- Responsive design that adapts to mobile and desktop viewports
+## Key Information
 
-Key features:
-- Appears at the very top of the page above main navigation
-- Uses official Maryland state branding and colors
-- Provides accessibility features for navigation
-- Acts as an identity marker for state digital presence
+- **Component Tag**: `maryland-statewide-banner` (web component)
+- **Required**: Yes — must appear on all pages of Maryland government sites and applications
+- **Positioning**: Must be placed at the top of all pages
+- **CDN Version**: 0.44.0
+
+## CSS Classes
+- `maryland-alert` — Alert container class (used in noscript fallback)
+- `maryland-alert--warning` — Warning alert variant
+- `maryland-alert__body` — Alert body container
+- `maryland-alert__heading` — Alert heading
+- `maryland-alert__text` — Alert text content
+
+## Important Features
+- The component is a custom web component (`<maryland-statewide-banner>`)
+- Includes a noscript fallback that displays a warning alert when JavaScript is disabled
+- The fallback uses the Maryland Alert component styling classes
+- Communicates official government status and security information
+- JavaScript is required for full functionality
+
+## No-Script Fallback
+When JavaScript is disabled, a fallback alert appears with the message "JavaScript is required to use content on this page. Please enable JavaScript in your browser." This uses the `maryland-alert--warning` variant.
 
 ### Implementation
 
 ```html
-<!-- Statewide Banner Structure -->
-<div class="mdwds-statewide-banner">
-  <div class="mdwds-statewide-banner__container">
-    <a href="https://maryland.gov" class="mdwds-statewide-banner__link">
-      <span class="mdwds-statewide-banner__seal"></span>
-      <span class="mdwds-statewide-banner__text">An official website of the State of Maryland</span>
-    </a>
-  </div>
-</div>
+<maryland-statewide-banner>
+  <noscript>
+    <link rel="stylesheet" href="https://cdn.maryland.gov/mdwds/latest/css/mdwds.min.css">
+    <div class="maryland-alert maryland-alert--warning">
+      <div class="maryland-alert__body">
+        <h4 class="maryland-alert__heading">JavaScript Required</h4>
+        <p class="maryland-alert__text">
+          JavaScript is required to use content on this page. Please enable
+          JavaScript in your browser.
+        </p>
+      </div>
+    </div>
+  </noscript>
+</maryland-statewide-banner>
 ```
 
-Key class names:
-- `.mdwds-statewide-banner` - Main container
-- `.mdwds-statewide-banner__container` - Inner wrapper for content
-- `.mdwds-statewide-banner__link` - Clickable link to state homepage
-- `.mdwds-statewide-banner__seal` - State seal/logo element
-- `.mdwds-statewide-banner__text` - Descriptive text
+## Usage Notes
+- Place this component at the very top of your page, before other page content
+- The component is self-contained and does not require additional initialization beyond including the MDWDS CSS and JavaScript files
+- The noscript fallback provides a degraded but functional experience for users without JavaScript enabled
+- Link the MDWDS stylesheet in the noscript block to ensure the fallback alert displays correctly
 
 ### Context
 
-The Statewide Banner is a foundational component required at the top of all Maryland state web pages. It works in conjunction with main site headers and navigation to establish clear state government identity and should appear before any agency-specific branding or navigation elements.
+The Statewide Banner is a foundational component in the Maryland Web Design System that serves as a standardized header element for all Maryland government digital properties. It works in conjunction with other MDWDS components and uses the same Alert component styling (`maryland-alert` classes) for its JavaScript-disabled fallback, ensuring visual and behavioral consistency across the design system.
 
 ---
 
@@ -6672,129 +7300,58 @@ The Statewide Banner is a foundational component required at the top of all Mary
 
 *Components*
 
-The Statewide Footer is a standardized footer component that appears at the bottom of Maryland state web pages. It provides consistent branding, navigation, contact information, and compliance messaging across all state websites. This component ensures a unified user experience and reinforces Maryland state identity throughout the web presence.
+The Statewide Footer is a standardized, accessible footer component that provides consistent navigation and information across all Maryland.gov websites and applications. It reinforces public trust, improves navigation, and aligns with Maryland's digital service standards and the U.S. Web Design System (USWDS). This is a zero-configuration, plug-and-play component best used as a site-wide footer element.
 
 ### Key Information
 
+## Key Features
+- **Zero Configuration**: No configuration or data bindings required — fully self-contained
+- **Responsive Design**: Mobile-first responsive layout that adapts to all screen sizes
+- **Structured Content**: Includes grouped links to:
+  - Maryland state services
+  - Government portals
+  - Privacy policies
+  - Emergency alerts and notifications
+- **Accessibility**: Built-in accessibility features and ARIA support
+- **Built-in Styling**: Styled using MDWDS design tokens and CSS; no additional stylesheet required
+- **Web Component**: Implemented as a custom HTML element (`<maryland-statewide-footer>`)
 
-**Variants & Structure:**
-- Full statewide footer with all sections (header, navigation, contact information, links, compliance)
-- Collapsible sections for responsive mobile displays
-- Optional agency-specific customization areas
+## Usage Notes
+- This component is **non-editable** in most use cases
+- Intended to be used as-is without modification
+- If customization is needed, MDDS recommends using scoped CSS or submitting a feature request
+- Best delivered via CDN to ensure all downstream applications stay up-to-date with latest layout, links, and accessibility improvements
+- No manual deployments required when using CDN version
 
-**CSS Classes:**
-- `.mdwds-footer` - Main footer container
-- `.footer-section` - Individual section containers
-- `.footer-header` - Footer header area
-- `.footer-nav` - Navigation area
-- `.footer-contact` - Contact information section
-- `.footer-compliance` - Compliance and legal messaging section
-
-**Required Elements:**
-- Maryland state seal/branding
-- Agency name and contact information
-- Required compliance links (Accessibility, Privacy, Terms of Use)
-- Copyright and attribution information
-
-**Key Features:**
-- Responsive design that adapts to mobile, tablet, and desktop viewports
-- Accessible navigation with proper ARIA labels and semantic HTML
-- Customizable link sections for agency-specific navigation
-- Dark background with high-contrast text for accessibility compliance
-- Optional sticky/fixed positioning support
-
-**Important Attributes:**
-- `role="contentinfo"` on main footer element
-- Proper heading hierarchy within footer sections
-- Alt text for logo/seal images
-- ARIA labels for navigation landmarks
-
+## CSS Class Names
+While the component itself uses the custom element `maryland-statewide-footer`, all internal styling is encapsulated within the web component using MDWDS design tokens.
 
 ### Implementation
 
-
 ```html
-<footer class="mdwds-footer" role="contentinfo">
-  <div class="footer-container">
-    <!-- Footer Header Section -->
-    <div class="footer-section footer-header">
-      <div class="footer-branding">
-        <img src="/images/maryland-seal.svg" alt="State of Maryland" class="state-seal" />
-        <div class="agency-info">
-          <h2>Agency Name</h2>
-          <p>Brief agency description</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer Navigation Section -->
-    <nav class="footer-section footer-nav" aria-label="Footer Navigation">
-      <div class="footer-nav-column">
-        <h3>Section One</h3>
-        <ul>
-          <li><a href="#">Link One</a></li>
-          <li><a href="#">Link Two</a></li>
-          <li><a href="#">Link Three</a></li>
-        </ul>
-      </div>
-      <div class="footer-nav-column">
-        <h3>Section Two</h3>
-        <ul>
-          <li><a href="#">Link One</a></li>
-          <li><a href="#">Link Two</a></li>
-          <li><a href="#">Link Three</a></li>
-        </ul>
-      </div>
-    </nav>
-
-    <!-- Contact Information Section -->
-    <div class="footer-section footer-contact">
-      <h3>Contact Us</h3>
-      <p>Phone: <a href="tel:+14105000000">410-500-0000</a></p>
-      <p>Email: <a href="mailto:info@maryland.gov">info@maryland.gov</a></p>
-      <p>Address: Maryland Department<br />123 Main Street<br />Baltimore, MD 21201</p>
-    </div>
-
-    <!-- Compliance & Legal Section -->
-    <div class="footer-section footer-compliance">
-      <ul>
-        <li><a href="#">Accessibility</a></li>
-        <li><a href="#">Privacy Policy</a></li>
-        <li><a href="#">Terms of Use</a></li>
-        <li><a href="#">Security</a></li>
-      </ul>
-      <p class="copyright">&copy; 2024 State of Maryland. All rights reserved.</p>
-    </div>
-  </div>
-</footer>
+<!-- Recommended: CDN-hosted version (always up-to-date) -->
+<script type="module" src="https://cdn.maryland.gov/mdwds/0.44.0/components/maryland-statewide-footer.js"></script>
+<maryland-statewide-footer></maryland-statewide-footer>
 ```
 
-**Mobile Responsive Variant:**
+## Component Markup Structure
+
 ```html
-<footer class="mdwds-footer mdwds-footer--mobile" role="contentinfo">
-  <div class="footer-container">
-    <!-- Mobile version may collapse sections into accordion -->
-    <div class="footer-section footer-header">
-      <img src="/images/maryland-seal.svg" alt="State of Maryland" class="state-seal" />
-      <h2>Agency Name</h2>
-    </div>
-    
-    <nav class="footer-section footer-nav" aria-label="Footer Navigation">
-      <button class="footer-accordion-toggle" aria-expanded="false" aria-controls="footer-nav-content">
-        Navigation <span class="icon">+</span>
-      </button>
-      <div id="footer-nav-content" class="footer-nav-content" hidden>
-        <!-- Navigation links -->
-      </div>
-    </nav>
-  </div>
-</footer>
+<maryland-statewide-footer></maryland-statewide-footer>
 ```
 
+The `maryland-statewide-footer` is a self-contained web component. It renders its own internal footer structure with:
+- Grouped navigation links to Maryland state services
+- Government portals
+- Privacy and legal policies
+- Emergency alert sections
+- Responsive layout with mobile-first design
+
+All styling is encapsulated within the shadow DOM of the web component — no external CSS classes need to be applied.
 
 ### Context
 
-The Statewide Footer is a required component in the MDWDS that provides consistent footer styling and structure across all Maryland state web pages. It works in conjunction with the Header component to create complete page framing and includes composable sections for navigation, contact, and compliance information specific to each agency's needs.
+The Statewide Footer is a foundational component in the MDWDS system designed to provide a consistent, accessible footer across all Maryland government digital services. It aligns with the U.S. Web Design System (USWDS) standards and is delivered as a web component for easy integration with minimal configuration, ensuring all Maryland.gov applications maintain visual and functional consistency at the footer level.
 
 ---
 
@@ -6802,67 +7359,62 @@ The Statewide Footer is a required component in the MDWDS that provides consiste
 
 *Components*
 
-The Statistic List component displays a collection of key statistics or metrics in an organized, visually prominent format. It's designed to showcase important numerical data, achievements, or performance indicators on Maryland state web pages. Use this component when you need to highlight multiple related statistics or key performance metrics prominently.
+The Statistic List component displays key rankings, counts, or percentages in a highlighted format. It supports 1 to 4 statistic items with optional title, description, and "more" link. Use this component to showcase important statistics or achievements in a visually organized layout.
 
 ### Key Information
 
-## Variants and Structure
-- **Basic Statistic Item**: Displays a number/value with an accompanying label or description
-- **Optional Icon/Image Support**: May include visual indicators alongside statistics
-- **Responsive Layout**: Typically arranged in a grid that adapts to screen size (2-4 columns on desktop, single column on mobile)
+### Variants
+- **1 Statistic**: Single item layout
+- **2 Statistics**: Two-item layout
+- **3 Statistics**: Three-item layout
+- **4 Statistics**: Four-item layout
 
-## Key Class Names and Modifiers
-- `.statistic-list` - Main container class for the component
-- `.statistic-item` - Individual statistic wrapper
-- `.statistic-value` - The primary numerical or data value
-- `.statistic-label` - Descriptive text accompanying the value
+### CSS Class Names
+- `.maryland-statistic-list`: Main container element
+- `.maryland-statistic-list--one`: Modifier for single statistic (shown: `maryland-statistic-list--one`)
+- `.maryland-statistic-list__container`: Inner wrapper for content
+- `.maryland-statistic-list__header`: Header section containing title and description
+- `.maryland-statistic-list__title`: Heading for the statistic list
+- `.maryland-statistic-list__description`: Description text container
 
-## Important Facts
-- Each statistic item should clearly separate the value from its label
-- Statistics should be kept concise and scannable
-- Consider grouping related statistics together
-- Ensure sufficient contrast between text and background for accessibility
-- The component supports flexible grid layouts based on available space
+### Required Attributes
+- `aria-labelledby`: Links section to heading ID for accessibility
+- `id`: Unique identifier on the title element (e.g., `id-36z1g7cxq4f`)
+
+### Important Facts
+- Supports flexible layout with 1-4 items
+- Each statistic item displays: number/statistic, title, description, and optional "more" link
+- The component scales responsively from single column to multi-column grid layouts
+- Built to work with grid container system (`grid-container`, `grid-row`, `grid-gap`, `grid-col-12`)
 
 ### Implementation
 
 ```html
-<div class="statistic-list">
-  <div class="statistic-item">
-    <div class="statistic-value">2,547</div>
-    <div class="statistic-label">Active Users</div>
+<section class="maryland-statistic-list maryland-statistic-list--one" aria-labelledby="id-36z1g7cxq4f">
+  <div class="maryland-statistic-list__container">
+    <div class="maryland-statistic-list__header">
+      <h2 id="id-36z1g7cxq4f" class="maryland-statistic-list__title">
+        Maryland rankings by the numbers
+      </h2>
+      <div class="maryland-statistic-list__description">
+        <p>US News rates Maryland in the top 20 states overall in its Best States 2025 rankings.</p>
+      </div>
+    </div>
+    <!-- Statistic items follow -->
   </div>
-  <div class="statistic-item">
-    <div class="statistic-value">98%</div>
-    <div class="statistic-label">Satisfaction Rate</div>
-  </div>
-  <div class="statistic-item">
-    <div class="statistic-value">156</div>
-    <div class="statistic-label">Services Available</div>
-  </div>
-  <div class="statistic-item">
-    <div class="statistic-value">24/7</div>
-    <div class="statistic-label">Support Available</div>
-  </div>
-</div>
+</section>
 ```
 
-## With Icons or Visual Elements
-```html
-<div class="statistic-list">
-  <div class="statistic-item">
-    <div class="statistic-icon">
-      <svg><!-- icon content --></svg>
-    </div>
-    <div class="statistic-value">2,547</div>
-    <div class="statistic-label">Active Users</div>
-  </div>
-</div>
-```
+### Multiple Statistics Layout
+Use variant modifiers for different quantities:
+- `.maryland-statistic-list--one` for single item
+- `.maryland-statistic-list--two` for two items (expected)
+- `.maryland-statistic-list--three` for three items (expected)
+- `.maryland-statistic-list--four` for four items (expected)
 
 ### Context
 
-The Statistic List component is a foundational data visualization element within MDWDS that helps present numerical information at a glance. It often pairs with Hero sections, Overview cards, or Summary sections to communicate key performance indicators or service metrics on Maryland state agency websites.
+The Statistic List component integrates with MDWDS grid system (grid-container, grid-row, grid-col-12) for responsive layouts. It commonly appears in hero sections or content areas to highlight key state metrics, achievements, or rankings. The component is self-contained and typically doesn't nest other MDWDS components inside its statistics.
 
 ---
 
@@ -6870,90 +7422,86 @@ The Statistic List component is a foundational data visualization element within
 
 *Components*
 
-The Step Indicator is a visual component that displays progress through a multi-step process or workflow. It shows users where they are in a sequence of steps and helps them understand the overall progress and structure of a form, wizard, or process. Use this to guide users through complex, multi-step interactions and set clear expectations about the journey ahead.
+The Step Indicator is a USWDS component that helps users track their progress through multi-step processes, such as forms, wizards, or onboarding flows. It visually communicates completed steps, highlights the current step, and shows remaining steps. Use it when you need to guide users through a defined sequence of tasks or workflow stages.
 
 ### Key Information
 
-## Variants & Options
+**Core Classes:**
+- `usa-step-indicator` — Main container for the step indicator
+- `usa-step-indicator__segments` — Ordered list wrapper for all steps
+- `usa-step-indicator__segment` — Individual step item (list item)
+- `usa-step-indicator__segment--complete` — Modifier for completed steps
+- `usa-step-indicator__segment-label` — Label text for each step
+- `usa-sr-only` — Screen reader only text for status (e.g., " - completed")
 
-- **Step states**: Completed, current/active, not started
-- **Display styles**: Can show step labels and descriptions
-- **Orientation**: Typically horizontal layout for step progression
+**Key Props/Options:**
+- `steps` (array, required) — Array of step labels in display order
+- `currentStep` (number, required) — Currently active step (1-based index)
+- `showLabels` (boolean) — Toggle to show or hide step labels
+- `centerAlign` (boolean) — Toggle to center-align the steps
+- `counters` (boolean) — Toggle numeric counters (1, 2, 3...)
+- `smallCounters` (boolean) — Toggle small numeric counters variant
 
-## CSS Classes & Structure
+**Accessibility Attributes:**
+- `aria-label` (optional) — Provides an accessible label for the step indicator container
+- `aria-described-by` (optional) — Reference ID for element that describes the component
+- `aria-labelled-by` (optional) — Reference ID for label element (overrides aria-label)
 
-- `.usa-step-indicator`: Main container for the step indicator
-- `.usa-step-indicator__list`: Container for step items
-- `.usa-step-indicator__item`: Individual step item wrapper
-- `.usa-step-indicator__segment`: The visual segment/circle representing the step
-- `.usa-step-indicator__label`: Text label for the step
-- Completed steps: Apply `.usa-step-indicator__segment--complete` or relevant state class
-- Current step: Apply `.usa-step-indicator__segment--current` or active state class
-
-## ARIA Attributes & Accessibility
-
-- Use `role="list"` on step container
-- Use `role="listitem"` on individual steps
-- Each step should have `aria-current="step"` when it is the active step
-- Use `aria-label` or `aria-labelledby` to provide context for screen readers
-
-## Important Notes
-
-- Step indicators are primarily visual and should be paired with descriptive form labels
-- Completed steps should be clearly distinguishable (color, icon, styling)
-- Current/active step should have focus-visible styling for keyboard navigation
-- Step content should be properly associated with step indicators
+**Step States:**
+- Completed: `.usa-step-indicator__segment--complete` class applied
+- Current: Active/current step (no specific class shown in documentation)
+- Not yet completed: Default state with no modifier class
 
 ### Implementation
 
 ```html
-<ol class="usa-step-indicator" aria-label="Progress">
-  <li class="usa-step-indicator__item usa-step-indicator__item--complete">
-    <span class="usa-step-indicator__segment">
-      <span class="usa-step-indicator__label">Step 1</span>
-    </span>
-  </li>
-  <li class="usa-step-indicator__item usa-step-indicator__item--current">
-    <span class="usa-step-indicator__segment" aria-current="step">
-      <span class="usa-step-indicator__label">Step 2</span>
-    </span>
-  </li>
-  <li class="usa-step-indicator__item">
-    <span class="usa-step-indicator__segment">
-      <span class="usa-step-indicator__label">Step 3</span>
-    </span>
-  </li>
-</ol>
+<div class="usa-step-indicator" aria-label="Step indicator showing current step in application process">
+  <ol class="usa-step-indicator__segments">
+    <li class="usa-step-indicator__segment usa-step-indicator__segment--complete">
+      <span class="usa-step-indicator__segment-label">
+        Personal information
+        <span class="usa-sr-only"> - completed</span>
+      </span>
+    </li>
+    <li class="usa-step-indicator__segment usa-step-indicator__segment--complete">
+      <span class="usa-step-indicator__segment-label">
+        Household status
+        <span class="usa-sr-only"> - completed</span>
+      </span>
+    </li>
+    <li class="usa-step-indicator__segment">
+      <span class="usa-step-indicator__segment-label">
+        Supporting documents
+        <span class="usa-sr-only"> - current step</span>
+      </span>
+    </li>
+    <li class="usa-step-indicator__segment">
+      <span class="usa-step-indicator__segment-label">
+        Signature
+        <span class="usa-sr-only"> - not completed</span>
+      </span>
+    </li>
+    <li class="usa-step-indicator__segment">
+      <span class="usa-step-indicator__segment-label">
+        Review and submit
+        <span class="usa-sr-only"> - not completed</span>
+      </span>
+    </li>
+  </ol>
+</div>
 ```
 
-## With Descriptions
-
-```html
-<ol class="usa-step-indicator" aria-label="Progress">
-  <li class="usa-step-indicator__item usa-step-indicator__item--complete">
-    <div class="usa-step-indicator__segment">
-      <span class="usa-step-indicator__label">Personal Information</span>
-      <span class="usa-step-indicator__sub-label">Complete</span>
-    </div>
-  </li>
-  <li class="usa-step-indicator__item usa-step-indicator__item--current">
-    <div class="usa-step-indicator__segment" aria-current="step">
-      <span class="usa-step-indicator__label">Address</span>
-      <span class="usa-step-indicator__sub-label">In Progress</span>
-    </div>
-  </li>
-  <li class="usa-step-indicator__item">
-    <div class="usa-step-indicator__segment">
-      <span class="usa-step-indicator__label">Review</span>
-      <span class="usa-step-indicator__sub-label">Not Started</span>
-    </div>
-  </li>
-</ol>
-```
+**Notes:**
+- Container uses `aria-label` to describe the step indicator
+- Use an `<ol>` (ordered list) to wrap all steps in `.usa-step-indicator__segments`
+- Each step is an `<li>` with class `.usa-step-indicator__segment`
+- Apply `.usa-step-indicator__segment--complete` to mark completed steps
+- Use `.usa-sr-only` spans to provide screen-reader-only status text (e.g., " - completed", " - current step", " - not completed")
+- Step label text goes inside `.usa-step-indicator__segment-label` span
 
 ### Context
 
-The Step Indicator is a USWDS component adopted into MDWDS for consistent multi-step form and workflow implementations across Maryland state applications. It works alongside Form components and can be paired with Buttons for step navigation to create complete wizard experiences.
+The Step Indicator is part of the USWDS component library integrated into MDWDS and provides a standardized way to communicate multi-step workflow progress. It works alongside form components and page layouts to create guided user experiences for complex processes.
 
 ---
 
@@ -6961,231 +7509,183 @@ The Step Indicator is a USWDS component adopted into MDWDS for consistent multi-
 
 *Components*
 
-A Step List is a sequential navigation component that displays a numbered progression of steps, helping users understand their current position within a multi-step process or workflow. It provides visual clarity about completion status and remaining tasks, improving user orientation in complex tasks like forms, wizards, or procedural guides. Use it when guiding users through ordered processes where understanding progress is critical to the experience.
+The Step List component displays a vertical list of steps that guide users through multi-step processes like applications, onboarding flows, and tutorials. It provides visual structure through a vertical accent bar connecting steps and supports both ordered (numbered) and unordered (bullet) variants. Use it whenever you need to guide users through sequential instructions or complex processes.
 
 ### Key Information
 
-## Variants and Modifiers
+## Variants
+- **Ordered (Numbered)**: Displays numbered steps with a larger circular badge
+- **Unordered (Bullet)**: Displays steps with a smaller bullet indicator (class: `maryland-step-list--bullet`)
 
-- **Step States**: Active, Completed, Pending (future), Disabled
-- **Visual Indicators**: Step number, status icon, title, and optional description text
-- **Connector Lines**: Visual lines connecting steps to show progression flow
-- **Responsive**: Adapts from vertical layout on mobile to horizontal or vertical on larger screens
+## Key CSS Classes
+- `maryland-step-list`: Main container for the step list component
+- `maryland-step-list--bullet`: Modifier for bullet/unordered variant
+- `maryland-step-list__header`: Optional header section containing title, description, and actions
+- `maryland-step-list__title`: Title heading for the step list (wrapped in `<h2>`)
+- `maryland-step-list__description`: Description text for the step list
+- `maryland-step-list__links`: Container for action buttons/links
 
-## CSS Classes and Structure
-
-- `.step-list` - Main container for the step component
-- `.step-item` - Individual step within the list
-- `.step-item--active` - Modifier for the currently active step
-- `.step-item--completed` - Modifier for completed steps
-- `.step-item--pending` - Modifier for future/pending steps
-- `.step-item--disabled` - Modifier for disabled steps
-- `.step-number` - Container for the step number or icon
-- `.step-label` - Container for step title/heading
-- `.step-description` - Optional description text for the step
-
-## ARIA Attributes
-
-- `role="list"` - Applied to the main step list container
-- `role="listitem"` - Applied to each step item
-- `aria-current="step"` - Marks the currently active step
-- `aria-disabled="true"` - Applied to disabled steps
-- `aria-label` - Descriptive labels for each step
-
-## Important Implementation Notes
-
-- Include clear visual distinction between step states
-- Maintain proper tab order for keyboard navigation
-- Connector lines should be semantic (SVG or CSS-based, not images)
-- Step numbers or icons should be distinguishable at all viewport sizes
-- Descriptions are optional but improve clarity for complex workflows
+## Features
+- Vertical accent bar connects steps visually
+- Supports rich text content including links, lists, and emphasis
+- Optional header with title, description, and action buttons
+- Optional action buttons within individual steps
+- Responsive design adapts to container width
+- Uses semantic HTML with proper heading hierarchy
+- ARIA attributes for accessibility (e.g., `aria-labelledby` linking header to title)
 
 ### Implementation
 
 ```html
-<!-- Basic Step List Structure -->
-<ol class="step-list" role="list">
-  <li class="step-item step-item--completed" role="listitem">
-    <div class="step-number">
-      <span class="step-icon">✓</span>
+<!-- Bullet/Unordered Variant -->
+<section class="maryland-step-list maryland-step-list--bullet" aria-labelledby="id-vy4ay58x9hd">
+  <div class="maryland-step-list__header">
+    <h2 class="maryland-step-list__title" id="id-vy4ay58x9hd">
+      Steps to complete
+    </h2>
+    <p class="maryland-step-list__description">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+    </p>
+    <div class="maryland-step-list__links">
+      <a href="javascript:void(0)" class="usa-button usa-button--big">Primary action</a>
+      <a href="javascript:void(0)" class="usa-button usa-button--big">Secondary action</a>
     </div>
-    <div class="step-label">Step 1: Personal Information</div>
-    <div class="step-description">Enter your basic details</div>
-  </li>
-  
-  <li class="step-item step-item--active" role="listitem" aria-current="step">
-    <div class="step-number">
-      <span class="step-count">2</span>
-    </div>
-    <div class="step-label">Step 2: Address</div>
-    <div class="step-description">Provide your mailing address</div>
-  </li>
-  
-  <li class="step-item step-item--pending" role="listitem">
-    <div class="step-number">
-      <span class="step-count">3</span>
-    </div>
-    <div class="step-label">Step 3: Review & Confirm</div>
-    <div class="step-description">Review and submit your information</div>
-  </li>
-  
-  <li class="step-item step-item--disabled" role="listitem" aria-disabled="true">
-    <div class="step-number">
-      <span class="step-count">4</span>
-    </div>
-    <div class="step-label">Step 4: Payment</div>
-    <div class="step-description">Complete payment processing</div>
-  </li>
-</ol>
-```
+  </div>
+  <!-- Individual step items follow the header -->
+</section>
 
-```html
-<!-- Step List Without Descriptions -->
-<ol class="step-list" role="list">
-  <li class="step-item step-item--completed" role="listitem">
-    <div class="step-number">✓</div>
-    <div class="step-label">Documents Uploaded</div>
-  </li>
-  
-  <li class="step-item step-item--active" role="listitem" aria-current="step">
-    <div class="step-number">2</div>
-    <div class="step-label">Under Review</div>
-  </li>
-  
-  <li class="step-item step-item--pending" role="listitem">
-    <div class="step-number">3</div>
-    <div class="step-label">Approval Notification</div>
-  </li>
-</ol>
-```
-
-```html
-<!-- Vertical Layout Variant -->
-<ol class="step-list step-list--vertical" role="list">
-  <li class="step-item step-item--completed" role="listitem">
-    <div class="step-number">✓</div>
-    <div class="step-content">
-      <div class="step-label">Step 1</div>
-      <div class="step-description">Completed step</div>
-    </div>
-  </li>
-  
-  <li class="step-item step-item--active" role="listitem" aria-current="step">
-    <div class="step-number">2</div>
-    <div class="step-content">
-      <div class="step-label">Step 2</div>
-      <div class="step-description">Currently active</div>
-    </div>
-  </li>
-</ol>
-```
-
-### Context
-
-The Step List is a key component for Maryland's government workflow and form processes, commonly paired with form components and buttons. It helps users navigate complex multi-step procedures and integrates with the broader MDWDS component library to create cohesive, accessible digital experiences aligned with USWDS patterns.
-
----
-
-## Summary Box
-
-*Components*
-
-The Summary Box is a container component used to highlight and present key information or summaries prominently on a page. It draws attention to important content and helps users quickly scan for critical details or takeaways.
-
-### Key Information
-
-- **Purpose**: Highlights important summary information, callouts, or key takeaways
-- **Class Names**: `.summary-box` for the main container
-- **Variants**: May support different styles (informational, warning, success, etc.) through modifier classes
-- **Required Elements**: Container div with appropriate class names, content inside
-- **Accessibility**: Should use semantic HTML and appropriate ARIA roles if interactive
-- **Modifiers**: Likely supports variants for different visual states or importance levels
-- **Content**: Can contain text, lists, or other content types depending on use case
-
-### Implementation
-
-```html
-<!-- Basic Summary Box -->
-<div class="summary-box">
-  <p>This is important summary information that users should see.</p>
-</div>
-
-<!-- Summary Box with heading -->
-<div class="summary-box">
-  <h3>Summary Title</h3>
-  <p>Key information goes here.</p>
-</div>
-
-<!-- Summary Box with list -->
-<div class="summary-box">
-  <h3>Key Points</h3>
-  <ul>
-    <li>Point one</li>
-    <li>Point two</li>
-    <li>Point three</li>
-  </ul>
-</div>
-```
-
-### Context
-
-The Summary Box is a basic content container component in the MDWDS used to organize and emphasize key information within page layouts. It works alongside other content components to create visual hierarchy and improve scannability.
-
----
-
-## Summary Box
-
-*Components*
-
-The Summary Box is a USWDS component used to highlight key information or callouts on a page in a visually distinct container. It draws attention to important content and helps organize information hierarchy, commonly used for alerts, important notices, or highlighted information sections.
-
-### Key Information
-
-The Summary Box component uses the USWDS classes and structure. Key variants and modifiers include:
-
-- **Base class**: `.usa-summary-box`
-- **Content wrapper**: `.usa-summary-box__body`
-- **Heading class**: `.usa-summary-box__heading`
-- **Text/paragraph class**: `.usa-summary-box__text`
-
-Common modifier patterns:
-- Can contain headings, paragraphs, and lists
-- Typically uses semantic heading tags (h2, h3, etc.)
-- May include background color styling variants
-- Works with standard USWDS spacing utilities
-
-The component is a USWDS implementation and follows Maryland's adaptation of the U.S. Web Design System.
-
-### Implementation
-
-```html
-<div class="usa-summary-box">
-  <div class="usa-summary-box__body">
-    <h3 class="usa-summary-box__heading">Summary Box Title</h3>
-    <p class="usa-summary-box__text">
-      This is the summary box content. It can contain text, lists, or other content elements.
+<!-- Ordered/Numbered Variant (structure is same, remove the maryland-step-list--bullet modifier) -->
+<section class="maryland-step-list" aria-labelledby="id-vy4ay58x9hd">
+  <div class="maryland-step-list__header">
+    <h2 class="maryland-step-list__title" id="id-vy4ay58x9hd">
+      Steps to complete
+    </h2>
+    <p class="maryland-step-list__description">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     </p>
   </div>
-</div>
+</section>
 ```
 
-Variant with list content:
+### Context
+
+The Step List component is a core MDWDS component for presenting sequential workflows and processes. It composes with MDWDS buttons (using `usa-button` classes) for actions and follows Maryland's design system patterns for accessibility, responsive behavior, and semantic HTML structure.
+
+---
+
+## Summary Box
+
+*Components*
+
+The Maryland Summary Box component highlights important information in a visually prominent container. It is ideal for surfacing key takeaways, action items, or warnings that users should not miss. Use this component when you need to draw attention to critical information that requires user awareness or action.
+
+### Key Information
+
+## Properties
+
+- **title** (string, required): Heading text for the summary box.
+- **items** (array, required): Array of list items. Each item is an HTML string, allowing for embedded links and other inline markup.
+
+## CSS Classes
+
+- `maryland-summary-box`: Main container with `role="region"` and `aria-labelledby` attribute pointing to the heading ID.
+- `maryland-summary-box__inner`: Inner wrapper containing the heading and content.
+- `maryland-summary-box__heading`: The h2 heading element for the summary box title.
+- `maryland-summary-box__text`: Container for the list content.
+- `maryland-summary-box__list`: Unordered list (`<ul>`) containing individual list items.
+
+## Required Attributes
+
+- `role="region"`: Applied to the main container to define it as a landmark region.
+- `aria-labelledby`: References the ID of the heading element for accessible labeling.
+- Heading ID: A unique ID on the `maryland-summary-box__heading` element for `aria-labelledby` reference.
+
+## Variants
+
+- Single default variant with title and bulleted list of HTML string items.
+
+### Implementation
+
 ```html
-<div class="usa-summary-box">
-  <div class="usa-summary-box__body">
-    <h3 class="usa-summary-box__heading">Key Points</h3>
-    <ul class="usa-summary-box__text">
-      <li>Point one</li>
-      <li>Point two</li>
-      <li>Point three</li>
-    </ul>
+<div role="region" class="maryland-summary-box" aria-labelledby="maryland-summary-box-id-unique">
+  <div class="maryland-summary-box__inner">
+    <h2 class="maryland-summary-box__heading" id="maryland-summary-box-id-unique">
+      Key information
+    </h2>
+    <div class="maryland-summary-box__text">
+      <ul class="maryland-summary-box__list">
+        <li>If you are under a winter storm warning, <a href="#">find shelter</a> right away.</li>
+        <li>Sign up for <a href="#">your community's warning system</a>.</li>
+        <li>Learn the signs of, and basic treatments for, <a href="#">frostbite</a> and <a href="#">hypothermia</a>.</li>
+        <li>Gather emergency supplies for your <a href="#">home</a> and your <a href="#">car</a>.</li>
+        <li>Review and update your <a href="#">emergency plan</a> annually.</li>
+      </ul>
+    </div>
   </div>
 </div>
 ```
 
 ### Context
 
-The Summary Box is a core USWDS component adopted by Maryland's design system for highlighting important information sections. It integrates with other content components and follows the same design standards used across the MDWDS component library.
+The Summary Box is a specialized Components section within MDWDS that provides visual emphasis for critical information. It works as a standalone container and complements other content components by highlighting key messages without requiring integration with other elements.
+
+---
+
+## Summary Box
+
+*Components*
+
+The Summary Box component highlights important information in a visually prominent container. It is ideal for surfacing key takeaways, action items, or warnings that users should not miss. This USWDS-based component is fully customizable via controls and supports accessibility labels.
+
+### Key Information
+
+## Key CSS Classes
+- `usa-summary-box`: Main container element
+- `usa-summary-box__body`: Wrapper for the summary box content
+- `usa-summary-box__heading`: Heading text (typically an h4)
+- `usa-summary-box__text`: Container for the summary box text content
+- `usa-summary-box__link`: Link styling within the summary box
+- `usa-list`: List container class for list items
+
+## Key Properties
+- **heading** (string): Heading text for the summary box
+- **listItems** (array): Array of objects defining list items, each with `{ text, link }` properties
+- **regionLabel** (string): ARIA label for the region; required for screen readers to describe the purpose of the summary box
+
+## Required ARIA Attributes
+- `role="region"`: Identifies the summary box as a landmark region
+- `aria-label`: Must be set to provide an accessible description (e.g., "Summary of important information")
+
+## Structure
+The component wraps a list of linked items inside a prominent container with a heading. Links within the box use the `usa-summary-box__link` class for consistent styling.
+
+### Implementation
+
+```html
+<div class="usa-summary-box" role="region" aria-label="Summary of important information">
+  <div class="usa-summary-box__body">
+    <h4 class="usa-summary-box__heading">Key information</h4>
+    <div class="usa-summary-box__text">
+      <ul class="usa-list">
+        <li><a class="usa-summary-box__link" href="#">Find shelter</a></li>
+        <li><a class="usa-summary-box__link" href="#">Sign up for alerts</a></li>
+        <li><a class="usa-summary-box__link" href="#">Learn about frostbite and hypothermia</a></li>
+        <li><a class="usa-summary-box__link" href="#">Gather emergency supplies</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+## Notes
+- The `role="region"` and `aria-label` are critical for accessibility and screen reader users
+- The heading is typically an `<h4>` element
+- List items are wrapped in a `<ul class="usa-list">` for semantic structure
+- Links within the summary box receive the `usa-summary-box__link` class for proper styling and visual distinction
+
+### Context
+
+The Summary Box is a USWDS component adapted for MDWDS that serves as a prominent container for highlighting critical information. It composes with the standard `usa-list` utility and link styling, fitting into the broader USWDS component ecosystem for organizing and emphasizing content that users should not miss.
 
 ---
 
@@ -7193,276 +7693,424 @@ The Summary Box is a core USWDS component adopted by Maryland's design system fo
 
 *Components*
 
-A Table component for displaying structured data in rows and columns. Tables organize and present information in a grid format, making it easy for users to scan, compare, and understand related data. Use tables when you need to display large datasets, comparisons, or information that benefits from a columnar layout.
+The Maryland Table component displays data in rows and columns with responsive horizontal scrolling on narrow screens. It provides borderless and striped variants by default, with an italic caption above the table. In Drupal environments, Tabled.js enhances the table with navigation arrows and scroll indicators for horizontal column navigation.
 
 ### Key Information
 
-## Variants
-- Basic table with standard rows and columns
-- Striped rows for improved readability
-- Bordered table with visible cell borders
-- Responsive table (stackable on mobile)
-- Sortable columns
-- Selectable rows with checkboxes
+## Variants & Modifiers
+
+- **Striped**: Enable alternating row striping via the `striped` boolean property (default behavior enabled)
+- **Borderless**: Enable/disable borders via the `borderless` boolean property
+- **Caption**: Display italic caption text above the table (max 200 characters) via the `caption` string property
 
 ## CSS Classes
-- `.table` - Base table class
-- `.table-striped` - Alternating row colors
-- `.table-bordered` - Visible borders on all cells
-- `.table-hover` - Highlight row on hover
-- `.table-sm` - Compact/small table
-- `.table-responsive` - Wraps table for responsive behavior
 
-## Structure
-- `<table>` - Root element
-- `<thead>` - Table header section
-- `<tbody>` - Table body section
-- `<tfoot>` - Optional footer section
-- `<tr>` - Table row
-- `<th>` - Table header cell (scope attribute recommended)
-- `<td>` - Table data cell
+- `maryland-table`: Main container wrapper
+- `tabled`: Wrapper for table with scrolling support
+- `tabled--fade-right`: Modifier class indicating fade effect on right edge during horizontal scroll
+- `tabled__header`: Container for caption and navigation controls
+- `tabled__caption`: Caption text display (aria-hidden for accessibility)
+- `tabled__navigation`: Container for scroll navigation buttons
+- `tabled__previous`: Previous column button (disabled when at start)
+- `tabled__next`: Next column button
 
-## ARIA & Accessibility
-- Use `scope="col"` on header cells to associate with columns
-- Use `scope="row"` on row header cells if applicable
-- Add `role="table"` if not using semantic table element
-- Use `aria-label` or `aria-labelledby` to provide table title/description
-- For sortable tables, use `aria-sort="ascending|descending|none"` on sortable headers
+## Required Attributes
 
-## Important Attributes
-- `scope` - Defines header cell scope (col, row, colgroup, rowgroup)
-- `colspan` - Number of columns a cell spans
-- `rowspan` - Number of rows a cell spans
+- Table headers: Standard semantic `<thead>`, `<th>` elements
+- Navigation buttons: `aria-label` and `aria-controls` attributes for accessibility
+- Caption container: `aria-hidden="true"` attribute
+- Button states: `disabled` attribute when navigation is not applicable
+
+## Important Notes
+
+- Max caption length: 200 characters
+- Horizontal scrolling navigation provided by Tabled.js in Drupal environments
+- Table structure uses semantic HTML with proper heading hierarchy
+- Striped and borderless variants are enabled by default
 
 ### Implementation
 
 ```html
-<!-- Basic Table -->
-<table class="table">
+<div class="maryland-table" id="maryland-table-0">
+  <div class="tabled tabled--fade-right">
+    <div class="tabled__header">
+      <div class="tabled__caption" aria-hidden="true">
+        Table caption goes here with max 200 characters consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, qui.
+      </div>
+      <div class="tabled__navigation">
+        <button class="tabled__previous" aria-label="previous table column" aria-controls="tabled-n1" disabled="disabled" type="button"></button>
+        <button class="tabled__next" aria-label="next table column" aria-controls="tabled-n1" type="button"></button>
+      </div>
+    </div>
+    <!-- Table content with semantic HTML -->
+    <table>
+      <caption>Table caption goes here with max 200 characters consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, qui.</caption>
+      <thead>
+        <tr>
+          <th>Table(s) title goes here</th>
+          <th>Long title can go like this in double lines Long title can go like this in double lines</th>
+          <th>Column 3 header</th>
+          <th>Column 4 header</th>
+          <th>Column 5 header</th>
+          <th>Column 6 header</th>
+          <th>Column 7 header</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Column 1, Row 1</td>
+          <td>Column 2, Row 1</td>
+          <td>Column 3, Row 1</td>
+          <td>Column 4, Row 1</td>
+          <td>Column 5, Row 1</td>
+          <td>Column 6, Row 1</td>
+          <td>Column 7, Row 1</td>
+        </tr>
+        <tr>
+          <td>Column 1, Row 2</td>
+          <td>Column 2, Row 2</td>
+          <td>Column 3, Row 2</td>
+          <td>Column 4, Row 2</td>
+          <td>Column 5, Row 2</td>
+          <td>Column 6, Row 2</td>
+          <td>Column 7, Row 2</td>
+        </tr>
+        <!-- Additional rows follow same pattern -->
+      </tbody>
+    </table>
+  </div>
+</div>
+```
+
+### Context
+
+The Maryland Table component is a core data presentation component that integrates with the MDWDS system for consistent tabular data display. It composes with Tabled.js in Drupal environments for enhanced horizontal scrolling navigation and works alongside standard semantic HTML table elements to provide accessible, responsive data presentation.
+
+---
+
+## Table
+
+*Components*
+
+The USWDS Table component organizes data in rows and columns with multiple style variants and responsive behavior. It supports various configurations including striped, borderless, stacked layouts, and optional features like sortable columns and sticky headers. Use this component to display structured tabular data with proper accessibility semantics and responsive design.
+
+### Key Information
+
+## Variants & Modifiers
+- **Variant options:** `default`, `borderless`, `striped`, `stacked`, `stacked-header`, `compact`
+- Stacked variants collapse to single-column on mobile devices
+- **Scrollable:** Wraps table in a scrollable container for horizontal scrolling of wide datasets
+- **Sortable:** Enable sortable columns requiring USWDS JavaScript integration; individual columns must have `sortable: true`
+- **Sticky Header:** Keep column headers visible during vertical scrolling with `stickyHeader` option
+- **Compact:** Reduced padding variant for dense data display
+
+## CSS Class Names
+- Base table class: `usa-table`
+- Variant modifiers applied as classes on the table element (e.g., `usa-table usa-table--striped`)
+
+## Key HTML Attributes
+- **`<table>`**: Unique `id` attribute for scripting and identification
+- **`<caption>`**: Required for accessibility; describes table content
+- **`<th scope="col">`**: Column headers with `scope="col"` attribute and `role="columnheader"`
+- **`<th scope="row">`**: Row header cells with `scope="row"` attribute
+- **`<td>`**: Standard data cells
+
+## Configuration Properties
+- **variant:** Table style variant (string, default varies by design)
+- **caption:** Descriptive caption for the table (string)
+- **columns:** Array of column definition objects with properties: `header` (display text), `accessor` (data key), `sortable` (boolean)
+- **rows:** Array of data objects where keys match column accessors
+- **scrollable:** Boolean to enable horizontal scrolling wrapper
+- **sortable:** Boolean to enable column sorting; requires USWDS JavaScript
+- **stickyHeader:** Boolean to keep headers visible during scrolling
+- **enableAnalytics:** Optional boolean for Google Analytics tracking attributes
+
+## Accessibility Requirements
+- Proper semantic markup with `<table>`, `<thead>`, `<tbody>`
+- Column headers require `scope="col"` and `role="columnheader"`
+- Row headers require `scope="row"`
+- All tables must have a `<caption>` element describing the table purpose
+- WCAG 2.1 AA compliant
+
+### Implementation
+
+```html
+<!-- Basic Table with Caption -->
+<table class="usa-table" id="table-id-example">
+  <caption>Agency contact information</caption>
   <thead>
     <tr>
-      <th scope="col">Column 1</th>
-      <th scope="col">Column 2</th>
-      <th scope="col">Column 3</th>
+      <th scope="col" role="columnheader">Agency</th>
+      <th scope="col" role="columnheader">Contact</th>
+      <th scope="col" role="columnheader">Email</th>
+      <th scope="col" role="columnheader">Phone</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data 1</td>
-      <td>Data 2</td>
-      <td>Data 3</td>
+      <th scope="row">Department of Information Technology</th>
+      <td>John Smith</td>
+      <td>john.smith@maryland.gov</td>
+      <td>(410) 555-1234</td>
     </tr>
     <tr>
-      <td>Data 1</td>
-      <td>Data 2</td>
-      <td>Data 3</td>
+      <th scope="row">Department of Health</th>
+      <td>Jane Doe</td>
+      <td>jane.doe@maryland.gov</td>
+      <td>(410) 555-5678</td>
+    </tr>
+    <tr>
+      <th scope="row">Department of Transportation</th>
+      <td>Bob Johnson</td>
+      <td>bob.johnson@maryland.gov</td>
+      <td>(410) 555-9012</td>
     </tr>
   </tbody>
 </table>
+```
 
-<!-- Striped Table -->
-<table class="table table-striped">
+```html
+<!-- Striped Variant -->
+<table class="usa-table usa-table--striped" id="table-id-example">
+  <caption>Table caption describing content</caption>
   <thead>
     <tr>
-      <th scope="col">Header</th>
-      <th scope="col">Header</th>
+      <th scope="col" role="columnheader">Column 1</th>
+      <th scope="col" role="columnheader">Column 2</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data</td>
+      <th scope="row">Row Header</th>
       <td>Data</td>
     </tr>
   </tbody>
 </table>
+```
 
-<!-- Bordered Table -->
-<table class="table table-bordered">
+```html
+<!-- Borderless Variant -->
+<table class="usa-table usa-table--borderless" id="table-id-example">
+  <caption>Table caption describing content</caption>
   <thead>
     <tr>
-      <th scope="col">Header</th>
-      <th scope="col">Header</th>
+      <th scope="col" role="columnheader">Column 1</th>
+      <th scope="col" role="columnheader">Column 2</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data</td>
+      <th scope="row">Row Header</th>
       <td>Data</td>
     </tr>
   </tbody>
 </table>
+```
 
-<!-- Responsive Table Wrapper -->
-<div class="table-responsive">
-  <table class="table table-striped">
+```html
+<!-- Compact Variant -->
+<table class="usa-table usa-table--compact" id="table-id-example">
+  <caption>Table caption describing content</caption>
+  <thead>
+    <tr>
+      <th scope="col" role="columnheader">Column 1</th>
+      <th scope="col" role="columnheader">Column 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Row Header</th>
+      <td>Data</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+```html
+<!-- Stacked Variant (Responsive) -->
+<table class="usa-table usa-table--stacked" id="table-id-example">
+  <caption>Table caption describing content</caption>
+  <thead>
+    <tr>
+      <th scope="col" role="columnheader">Column 1</th>
+      <th scope="col" role="columnheader">Column 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Row Header</th>
+      <td>Data</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+```html
+<!-- Stacked Header Variant -->
+<table class="usa-table usa-table--stacked-header" id="table-id-example">
+  <caption>Table caption describing content</caption>
+  <thead>
+    <tr>
+      <th scope="col" role="columnheader">Column 1</th>
+      <th scope="col" role="columnheader">Column 2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Row Header</th>
+      <td>Data</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+```html
+<!-- Scrollable Table (Horizontally Scrollable) -->
+<div class="usa-table-container--scrollable">
+  <table class="usa-table" id="table-id-example">
+    <caption>Wide table with horizontal scrolling</caption>
     <thead>
       <tr>
-        <th scope="col">Header 1</th>
-        <th scope="col">Header 2</th>
-        <th scope="col">Header 3</th>
+        <th scope="col" role="columnheader">Column 1</th>
+        <th scope="col" role="columnheader">Column 2</th>
+        <th scope="col" role="columnheader">Column 3</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>Data</td>
+        <th scope="row">Row Header</th>
         <td>Data</td>
         <td>Data</td>
       </tr>
     </tbody>
   </table>
 </div>
+```
 
-<!-- Small/Compact Table -->
-<table class="table table-sm">
+```html
+<!-- Sortable Columns with USWDS JS -->
+<table class="usa-table" id="table-id-example" data-sortable="">
+  <caption>Table with sortable columns</caption>
   <thead>
     <tr>
-      <th scope="col">Header</th>
-      <th scope="col">Header</th>
+      <th scope="col" role="columnheader" data-sortable="">Column 1</th>
+      <th scope="col" role="columnheader" data-sortable="">Column 2</th>
+      <th scope="col" role="columnheader">Column 3 (Not sortable)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
+      <th scope="row">Row Header</th>
       <td>Data</td>
       <td>Data</td>
     </tr>
   </tbody>
 </table>
+
+<!-- Initialize USWDS Table JavaScript -->
+<script src="https://cdn.designsystem.maryland.gov/js/uswds.min.js?v=0.44.0"></script>
+<script>
+  USWDS.Table.on(document.getElementById("table-id-example"));
+</script>
+```
+
+```html
+<!-- Sticky Header Table -->
+<div class="usa-table-container--sticky-header">
+  <table class="usa-table" id="table-id-example">
+    <caption>Table with sticky headers</caption>
+    <thead>
+      <tr>
+        <th scope="col" role="columnheader">Column 1</th>
+        <th scope="col" role="columnheader">Column 2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Row Header 1</th>
+        <td>Data</td>
+      </tr>
+      <tr>
+        <th scope="row">Row Header 2</th>
+        <td>Data</td>
+      </tr>
+      <!-- Additional rows... -->
+    </tbody>
+  </table>
+</div>
 ```
 
 ### Context
 
-The Table component is a foundational data display element within MDWDS that works with other components like pagination, filters, and buttons for complete data presentation. Tables follow Maryland's accessibility standards and responsive design principles to ensure data is readable across all devices.
+The Table component is a core USWDS element adapted into MDWDS for displaying structured data across Maryland government applications. It integrates with USWDS JavaScript utilities for sortable columns and responsive behaviors, composing with other data display patterns while maintaining consistent accessibility and visual standards.
 
 ---
 
-## Table
+## Table of Contents
 
 *Components*
 
-Tables are used to organize and display structured data in rows and columns. They help users scan, compare, and understand complex information at a glance. Use tables when you need to present organized data that benefits from a grid layout, especially for financial, statistical, or comparative information.
+A table of contents component provides in-page navigation links to various sections of a page, allowing users to quickly jump to relevant content. It improves page usability by offering an overview of page structure and enabling faster navigation for longer documents.
 
 ### Key Information
 
-## Variants and Options
+## Key Information
 
-- **Standard Table**: Basic table with headers and data rows
-- **Sortable Table**: Allows users to sort columns by clicking headers
-- **Scrollable Table**: Responsive horizontal scrolling on small screens
-- **Striped Rows**: Alternating row colors for easier reading
-- **Bordered Table**: Visible borders around cells and rows
+### Class Names
+- `maryland-sidenav`: Main navigation container for the table of contents
+- `maryland-sidenav__toggle`: Button to toggle the visibility of the navigation list
+- `maryland-sidenav__title`: Heading for the navigation section
+- `maryland-sidenav__list`: Container for navigation items
+- `maryland-sidenav__list--level-1`: Modifier indicating first-level navigation items
+- `maryland-sidenav__item`: Individual navigation item
+- `maryland-sidenav__item--level-1`: Modifier for first-level items
+- `maryland-sidenav__link`: Clickable link within a navigation item
 
-## CSS Classes
+### ARIA Attributes
+- `aria-labelledby`: Links the nav to the title via ID
+- `aria-controls`: Connects toggle button to the list it controls
 
-- `usa-table`: Base table class
-- `usa-table--striped`: Adds alternating row background colors
-- `usa-table--bordered`: Adds visible borders
-- `usa-table--compact`: Reduces padding for denser data
-- `usa-table--scrollable`: Enables horizontal scroll on mobile
+### States
+- `is-open`: Applied to the list to indicate expanded state
 
-## Key Attributes
-
-- `<table>`: Main container
-- `<thead>`: Table header section
-- `<tbody>`: Table body with data rows
-- `<tr>`: Table row
-- `<th>`: Table header cell (use `scope="col"` for column headers, `scope="row"` for row headers)
-- `<td>`: Table data cell
-
-## Accessibility Requirements
-
-- Always include `<thead>` and `<tbody>` for proper semantic structure
-- Use `scope` attribute on `<th>` to associate headers with data
-- Use `caption` element or `aria-label` for table title/description
-- Ensure sufficient color contrast for text and borders
-- Make sortable headers keyboard accessible with proper ARIA attributes
+### HTML Structure
+- Uses semantic `<nav>` and `<ul>`/`<li>` elements
+- Requires toggle button for mobile/responsive behavior
+- Links are typically `<a>` or `<span>` elements styled as links
 
 ### Implementation
 
-## Basic Table
-
 ```html
-<table class="usa-table">
-  <thead>
-    <tr>
-      <th scope="col">Header 1</th>
-      <th scope="col">Header 2</th>
-      <th scope="col">Header 3</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Data 1</td>
-      <td>Data 2</td>
-      <td>Data 3</td>
-    </tr>
-    <tr>
-      <td>Data 4</td>
-      <td>Data 5</td>
-      <td>Data 6</td>
-    </tr>
-  </tbody>
-</table>
+<nav class="maryland-sidenav" aria-labelledby="id-gdapyyf7w7f">
+  <button class="maryland-sidenav__toggle" aria-controls="id-k459osmcu6">
+    <span class="usa-sr-only"></span>
+    <h2 class="maryland-sidenav__title" id="id-gdapyyf7w7f">Section menu</h2>
+  </button>
+  <ul class="maryland-sidenav__list maryland-sidenav__list--level-1 is-open" id="id-k459osmcu6">
+    <li class="maryland-sidenav__item maryland-sidenav__item--level-1">
+      <span class="maryland-sidenav__link">Navigation Link</span>
+    </li>
+  </ul>
+</nav>
 ```
 
-## Striped Table
+### Expanded State
+Apply `is-open` class to `maryland-sidenav__list` to show the navigation list:
 
 ```html
-<table class="usa-table usa-table--striped">
-  <thead>
-    <tr>
-      <th scope="col">Name</th>
-      <th scope="col">Value</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Item 1</td>
-      <td>100</td>
-    </tr>
-    <tr>
-      <td>Item 2</td>
-      <td>200</td>
-    </tr>
-  </tbody>
-</table>
+<ul class="maryland-sidenav__list maryland-sidenav__list--level-1 is-open" id="id-k459osmcu6">
 ```
 
-## Bordered and Scrollable Table
+### Collapsed State
+Remove or do not apply the `is-open` class to hide the navigation list:
 
 ```html
-<table class="usa-table usa-table--bordered usa-table--scrollable">
-  <caption>Sales Data by Region</caption>
-  <thead>
-    <tr>
-      <th scope="col">Region</th>
-      <th scope="col">Q1</th>
-      <th scope="col">Q2</th>
-      <th scope="col">Q3</th>
-      <th scope="col">Q4</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th scope="row">North</th>
-      <td>45,000</td>
-      <td>52,000</td>
-      <td>48,000</td>
-      <td>61,000</td>
-    </tr>
-    <tr>
-      <th scope="row">South</th>
-      <td>38,000</td>
-      <td>41,000</td>
-      <td>44,000</td>
-      <td>49,000</td>
-    </tr>
-  </tbody>
-</table>
+<ul class="maryland-sidenav__list maryland-sidenav__list--level-1" id="id-k459osmcu6">
 ```
 
 ### Context
 
-Tables are a core component in the MDWDS that follows USWDS design patterns for presenting tabular data on Maryland state websites. They work alongside Typography and Color Foundation components to ensure readable, accessible data presentation across government services.
+The Table of Contents component is part of the Maryland Web Design System's navigation components. It typically works alongside page layout utilities (such as grid-container, grid-row, grid-col classes) to provide a responsive side navigation that enhances discoverability of page sections.
 
 ---
 
@@ -7470,61 +8118,58 @@ Tables are a core component in the MDWDS that follows USWDS design patterns for 
 
 *Components*
 
-A Tag component is a compact, labeled element used to mark or categorize content with short text labels. Tags help users quickly identify and filter information, making them useful for displaying metadata, statuses, keywords, or categories in a visible and scannable way.
+The Tag component is a USWDS-based element used to visually emphasize statuses, categories, or other metadata. It provides a flexible way to display labeled information with optional ARIA attributes for accessibility. Use tags to highlight important information, status indicators, or categorical labels within your interface.
 
 ### Key Information
 
-Tags are typically used to:
-- Display metadata or keywords associated with content
-- Show status indicators or categorization labels
-- Filter or organize items by tag
-- Mark items with brief descriptive text
+**Variants:**
+- `default` - Standard tag size
+- `big` - Larger tag size
 
-**CSS Class Names:**
-- `.usa-tag` — Base tag component class
-- `.usa-tag--outline` — Outline variant (light background with border)
+**Key CSS Classes:**
+- `usa-tag` - Base tag component class
 
-**Modifiers & Variants:**
-- Basic tag with text label
-- Outline/secondary style for less prominent tags
-- Single-line text display
-
-**Required Attributes:**
-- Text content should be concise and scannable
-- Typically not interactive (links may be wrapped around tags for navigation)
-- Accessible text alternatives if used with icons or graphics
+**Properties/Attributes:**
+- `size` - Controls tag size (options: "default" or "big")
+- `label` - Text displayed inside the tag
+- `ariaLabel` (optional) - Override visible text for screen readers
+- `ariaDescribedBy` (optional) - ID of another element providing additional context
+- `role` (optional) - ARIA role such as 'status' or 'note'
 
 **Important Facts:**
-- Tags are read-only display elements (not form inputs)
-- Should use short, descriptive labels (1-3 words recommended)
-- Support semantic HTML with `<span>` or `<div>` elements
-- Can be grouped or repeated for multiple categorizations
+- The component accepts customizable label text
+- ARIA attributes are optional and can be used to enhance accessibility
+- Supports both default and big sizing options
 
 ### Implementation
 
 ```html
-<!-- Basic Tag -->
-<span class="usa-tag">Label</span>
+<span class="usa-tag">Info</span>
+```
 
-<!-- Outline/Secondary Tag -->
-<span class="usa-tag usa-tag--outline">Label</span>
+**Default Tag:**
+```html
+<span class="usa-tag">Info</span>
+```
 
-<!-- Multiple Tags -->
-<div>
-  <span class="usa-tag">Category A</span>
-  <span class="usa-tag">Category B</span>
-  <span class="usa-tag usa-tag--outline">Category C</span>
-</div>
+**Big Tag Variant (when size="big"):**
+```html
+<span class="usa-tag usa-tag--big">Info</span>
+```
 
-<!-- Tag with Custom Content -->
-<span class="usa-tag">
-  New
-</span>
+**With ARIA Attributes:**
+```html
+<span class="usa-tag" aria-label="Status: Active" role="status">Active</span>
+```
+
+**With aria-describedBy:**
+```html
+<span class="usa-tag" aria-describedby="tag-description">Info</span>
 ```
 
 ### Context
 
-Tags are a fundamental USWDS component used throughout Maryland state web pages for marking, categorizing, and filtering content. They compose well with card components, lists, and search/filter interfaces to enhance content discoverability and organization.
+The Tag component is part of the USWDS component library integrated into MDWDS. It serves as a lightweight, accessible labeling component that can be combined with other components to provide status indicators, category labels, or metadata emphasis throughout the design system.
 
 ---
 
@@ -7532,84 +8177,66 @@ Tags are a fundamental USWDS component used throughout Maryland state web pages 
 
 *Components*
 
-A textarea component is a multi-line text input field that allows users to enter and edit longer text content. It's used in forms where extended text input is required, such as comments, descriptions, or feedback sections. Use textarea when you need to collect multiple lines of text from users.
+The USWDS Textarea component is used for collecting longer free-form input like comments, descriptions, or multiline data. It supports custom labels, placeholders, optional ARIA attributes, and MDWDS styling with focus visibility. Use this when you need to gather multiple lines of text input from users.
 
 ### Key Information
 
-## Variants & Options
-- **Standard textarea**: Basic multi-line input field
-- **Disabled state**: Set `disabled` attribute to prevent user input
-- **Read-only state**: Set `readonly` attribute for non-editable content
-- **With label**: Always pair with a `<label>` element using `for` attribute
-- **With help text**: Optional helper text below the field for guidance
-- **With error state**: Shows validation error messages
-- **Character count**: Optional character limit display
+## Properties
 
-## CSS Class Names
-- `usa-textarea`: Main textarea class
-- `usa-input__block`: Block-level styling
-- `usa-form-group`: Wrapper for form field and associated elements
-- `usa-hint`: Class for help text elements
+- **label** (string): Text label associated with the textarea
+- **id** (string): Unique ID for textarea and label association
+- **name** (string): Textarea name attribute (used in form submissions)
+- **placeholder** (string, optional): Optional placeholder text inside the textarea
+- **rows** (number, optional): Number of visible rows
 
-## Required Attributes
-- `id`: Unique identifier for the textarea
-- `name`: Form field name
-- `aria-label` or associated `<label>`: Accessible name required
+## Accessibility Attributes
 
-## Important Facts
-- Based on USWDS textarea component standards
-- Supports accessibility standards (WCAG 2.1)
-- Should always have an associated label element
-- Can include min/max row attributes for size control
-- Supports placeholder text for guidance
+- **ariaLabel** (string, optional): ARIA label used when label is visually hidden
+- **ariaDescribedBy** (string, optional): ID of an element describing this textarea
+
+## CSS Classes
+
+- `usa-form`: Form wrapper class
+- `usa-label`: Applied to the label element for proper styling
+- `usa-textarea`: Main class applied to the textarea element
+
+## Notes
+
+- The component uses standard HTML form elements with USWDS styling applied
+- Supports optional ARIA attributes for enhanced accessibility
+- Label should be associated with textarea via `for` attribute on label and matching `id` on textarea element
 
 ### Implementation
 
-## Basic Textarea
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="textarea-input">Textarea Label</label>
-  <textarea class="usa-textarea" id="textarea-input" name="textarea-input"></textarea>
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="input-type-textarea">Text area label</label>
+  <textarea class="usa-textarea" id="input-type-textarea" name="input-type-textarea" rows="5"></textarea>
+</form>
 ```
 
-## Textarea with Help Text
+### With Placeholder
+
 ```html
-<div class="usa-form-group">
-  <label class="usa-label" for="textarea-help">Textarea with Help Text</label>
-  <span class="usa-hint" id="textarea-help-text">This is help text</span>
-  <textarea class="usa-textarea" id="textarea-help" name="textarea-help" aria-describedby="textarea-help-text"></textarea>
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="textarea-id">Label Text</label>
+  <textarea class="usa-textarea" id="textarea-id" name="textarea-name" rows="5" placeholder="Enter your text here"></textarea>
+</form>
 ```
 
-## Disabled Textarea
-```html
-<div class="usa-form-group">
-  <label class="usa-label" for="textarea-disabled">Disabled Textarea</label>
-  <textarea class="usa-textarea" id="textarea-disabled" name="textarea-disabled" disabled></textarea>
-</div>
-```
+### With ARIA Attributes
 
-## Textarea with Error
 ```html
-<div class="usa-form-group usa-form-group--error">
-  <label class="usa-label" for="textarea-error">Textarea with Error</label>
-  <span class="usa-error-message" id="textarea-error-message">This field is required</span>
-  <textarea class="usa-textarea" id="textarea-error" name="textarea-error" aria-describedby="textarea-error-message"></textarea>
-</div>
-```
-
-## Textarea with Rows Attribute
-```html
-<div class="usa-form-group">
-  <label class="usa-label" for="textarea-rows">Textarea with Rows</label>
-  <textarea class="usa-textarea" id="textarea-rows" name="textarea-rows" rows="10"></textarea>
-</div>
+<form class="usa-form">
+  <label class="usa-label" for="textarea-id">Label Text</label>
+  <textarea class="usa-textarea" id="textarea-id" name="textarea-name" rows="5" aria-label="Description" aria-describedby="help-text"></textarea>
+  <div id="help-text">Provide additional details</div>
+</form>
 ```
 
 ### Context
 
-The textarea component is part of the USWDS integration within MDWDS and provides a standardized multi-line text input for Maryland state web forms. It follows the same accessibility and styling patterns as other MDWDS form components like text inputs and select fields, ensuring consistency across state web applications.
+The Textarea component extends USWDS form elements within the MDWDS system, providing consistent styling and accessibility patterns for multi-line text input. It composes with the usa-form wrapper and usa-label components to create accessible, properly-associated form fields.
 
 ---
 
@@ -7617,85 +8244,135 @@ The textarea component is part of the USWDS integration within MDWDS and provide
 
 *Components*
 
-The Time Picker component enables users to select a specific time through an accessible interface. It provides an alternative to typing time values manually, reducing input errors and improving user experience. Use this component in forms, scheduling interfaces, or any application requiring time selection.
+The Time Picker is an accessible dropdown time selection widget that provides filterable time options with customizable intervals. It solves the problem of allowing users to quickly select a time from a pre-defined list with keyboard filtering capabilities. Use it in forms where time input is required, such as appointment scheduling or time-based event registration.
 
 ### Key Information
 
-## Variants and Options
+## Variants & Features
+- **Default intervals**: 30-minute increments (configurable to 15, 60 minutes, or custom)
+- **Filtering**: Keyboard filtering enabled by default (can be disabled with `data-disable-filtering="true"`)
+- **Min/Max constraints**: Support for minimum and maximum time boundaries
+- **Default values**: Can set a pre-selected time with `data-default-value`
+- **Required state**: Boolean attribute to mark field as required
+- **Disabled state**: Boolean attribute to disable the input
+- **Analytics support**: Google Analytics tracking attributes configurable
 
-- **Time Format**: Supports 12-hour and 24-hour time formats
-- **Granularity**: Configurable time increments (typically 15-minute, 30-minute, or hourly intervals)
-- **Initial Value**: Can be pre-populated with a default time
+## CSS Class Names
+- `usa-form-group` — wrapper container
+- `usa-label` — label element
+- `usa-hint` — hint text container
+- `usa-time-picker` — main time picker container
+- `usa-combo-box` — combobox functionality class (used alongside `usa-time-picker`)
 
-## Key Attributes
-
-- `type="time"` - HTML5 time input attribute
-- `aria-label` - Descriptive label for screen readers
-- `required` - Mark field as mandatory when needed
-- `min` and `max` - Set time boundaries for valid selections
-- `step` - Define the increment interval (in seconds)
-
-## CSS Classes
-
-- `.usa-time-picker` - Main container class
-- `.usa-input` - Applied to the input field for consistent styling
-- `.usa-form-group` - Wrapper for form field grouping
+## Required Attributes & Data Attributes
+- `id` — unique identifier for the input
+- `name` — form submission name
+- `for` (on label) — links label to input via id
+- `data-step` — time interval in minutes (e.g., 30, 15, 60)
+- `data-filter` — regex pattern for filtering (e.g., `0?{{ hourQueryFilter }}:{{minuteQueryFilter}}.*{{ apQueryFilter }}m?`)
+- `data-ap-query-filter` — regex for AM/PM filtering
+- `data-hour-query-filter` — regex for hour filtering
+- `data-minute-query-filter` — regex for minute filtering
+- `data-disable-filtering` — boolean to disable keyboard filtering
+- `data-default-value` — default selected time value
+- `data-enhanced` — boolean indicating USWDS JS has been applied
 
 ## Important Facts
-
-- Built on USWDS (U.S. Web Design System) patterns
-- Fully keyboard accessible with arrow key navigation
-- Screen reader compatible with proper ARIA labeling
-- Integrates with standard HTML5 time input elements
+- Requires USWDS JavaScript to initialize and function
+- Automatically initializes on page load with combobox-like functionality
+- Supports WCAG 2.1 AA accessibility requirements
+- Hint text provided via `usa-hint` div with matching id attribute
+- Component generates 48 time options (30-minute intervals over 24 hours) by default
 
 ### Implementation
 
 ```html
-<!-- Basic Time Picker -->
 <div class="usa-form-group">
-  <label class="usa-label" for="time-picker">Select a time</label>
-  <input
-    class="usa-input"
-    id="time-picker"
-    type="time"
-    name="time"
-    aria-label="Select a time"
-  />
+  <label class="usa-label" id="time-picker-label-id" for="time-picker-id">
+    Appointment time
+  </label>
+  <div class="usa-hint" id="time-picker-hint-id">
+    Select a time from the dropdown. Type to filter options.
+  </div>
+  <div class="usa-time-picker usa-combo-box" 
+       data-step="30" 
+       data-filter="0?{{ hourQueryFilter }}:{{minuteQueryFilter}}.*{{ apQueryFilter }}m?"
+       data-ap-query-filter="([ap])"
+       data-hour-query-filter="([1-9][0-2]?)"
+       data-minute-query-filter="[\d]+:([0-9]{0,2})"
+       data-disable-filtering="true"
+       data-default-value="undefined"
+       data-enhanced="true">
+    <select id="time-picker-id" name="appointment_time"></select>
+  </div>
+</div>
+```
+
+### With 15-Minute Intervals
+```html
+<div class="usa-form-group">
+  <label class="usa-label" id="time-picker-label" for="time-picker-id">
+    Select Time
+  </label>
+  <div class="usa-time-picker usa-combo-box" 
+       data-step="15"
+       data-filter="0?{{ hourQueryFilter }}:{{minuteQueryFilter}}.*{{ apQueryFilter }}m?"
+       data-ap-query-filter="([ap])"
+       data-hour-query-filter="([1-9][0-2]?)"
+       data-minute-query-filter="[\d]+:([0-9]{0,2})"
+       data-disable-filtering="false"
+       data-enhanced="true">
+    <select id="time-picker-id" name="time"></select>
+  </div>
+</div>
+```
+
+### With Min/Max Times
+```html
+<div class="usa-form-group">
+  <label class="usa-label" id="business-hours-label" for="time-picker-business">
+    Business Hours (9 AM - 5 PM)
+  </label>
+  <div class="usa-time-picker usa-combo-box" 
+       data-step="30"
+       data-min-time="9:00am"
+       data-max-time="5:00pm"
+       data-filter="0?{{ hourQueryFilter }}:{{minuteQueryFilter}}.*{{ apQueryFilter }}m?"
+       data-ap-query-filter="([ap])"
+       data-hour-query-filter="([1-9][0-2]?)"
+       data-minute-query-filter="[\d]+:([0-9]{0,2})"
+       data-enhanced="true">
+    <select id="time-picker-business" name="business_time"></select>
+  </div>
+</div>
+```
+
+### Required & Disabled States
+```html
+<!-- Required -->
+<div class="usa-form-group">
+  <label class="usa-label" for="time-required">
+    Appointment Time <span class="usa-required">*</span>
+  </label>
+  <div class="usa-time-picker usa-combo-box" data-step="30" data-enhanced="true">
+    <select id="time-required" name="time" required></select>
+  </div>
 </div>
 
-<!-- Time Picker with Constraints -->
+<!-- Disabled -->
 <div class="usa-form-group">
-  <label class="usa-label" for="time-picker-constrained">Appointment time (9 AM - 5 PM)</label>
-  <input
-    class="usa-input"
-    id="time-picker-constrained"
-    type="time"
-    name="appointment-time"
-    min="09:00"
-    max="17:00"
-    step="900"
-    aria-label="Select an appointment time between 9 AM and 5 PM"
-    required
-  />
-</div>
-
-<!-- Time Picker with 24-hour Format -->
-<div class="usa-form-group">
-  <label class="usa-label" for="time-picker-24">Select time (24-hour format)</label>
-  <input
-    class="usa-input"
-    id="time-picker-24"
-    type="time"
-    name="time-24"
-    value="14:30"
-    aria-label="Select time in 24-hour format"
-  />
+  <label class="usa-label" for="time-disabled">
+    Time (Disabled)
+  </label>
+  <div class="usa-time-picker usa-combo-box" data-step="30" data-enhanced="true">
+    <select id="time-disabled" name="time" disabled></select>
+  </div>
 </div>
 ```
 
 ### Context
 
-The Time Picker is a USWDS-based component that integrates into the Maryland Design System for consistent time input across state applications. It composes naturally with form components like labels and form groups, following MDWDS accessibility standards.
+The Time Picker is a USWDS component integrated into MDWDS that provides accessible time selection for forms. It composes with the form group system (usa-form-group, usa-label, usa-hint) and shares combobox functionality with other select-like components. It requires USWDS JavaScript initialization and follows WCAG accessibility standards for enhanced user experience.
 
 ---
 
@@ -7703,140 +8380,70 @@ The Time Picker is a USWDS-based component that integrates into the Maryland Des
 
 *Components*
 
-A Tooltip is a small popup element that displays additional information or context when a user hovers over or focuses on a UI element. It helps reduce visual clutter by revealing supplementary content only when needed, improving user experience by providing helpful hints, descriptions, or explanatory text without overwhelming the interface.
+The USWDS Tooltip component provides contextual help text that appears on hover or focus. It solves the problem of delivering brief, contextual information without cluttering the interface. Use tooltips to clarify form fields, button purposes, or provide additional context for UI elements.
 
 ### Key Information
 
 ## Variants
-- Default tooltip with hover activation
-- Tooltip with focus activation (keyboard accessible)
-- Positioning variants: top, bottom, left, right
+- **Position options**: top (default), bottom, left, right
+- **Trigger types**: button or link element
+- **Analytics**: Optional Google Analytics tracking attributes (gaCategory, gaAction, gaLabel)
 
 ## CSS Classes
-- `.usa-tooltip` - main tooltip container
-- `.usa-tooltip__trigger` - element that triggers the tooltip
-- `.usa-tooltip__body` - tooltip content wrapper
+- `usa-tooltip`: Container wrapper
+- `usa-tooltip__trigger`: Applied to the trigger element (button or link)
+- `usa-tooltip__body`: The tooltip content container
 
-## Key Attributes
-- `aria-describedby` - links trigger to tooltip content
-- `role="tooltip"` - semantic role for tooltip body
-- `data-position` - controls tooltip placement (top, bottom, left, right)
+## Required Attributes
+- `data-position`: Specifies tooltip placement (top, bottom, left, right)
+- `aria-describedby`: Links trigger to tooltip body by ID
+- `id`: Unique identifier for tooltip trigger element
+- `role="tooltip"`: Applied to the tooltip content container
+- `aria-hidden="true"`: Applied to tooltip body to hide from assistive tech when not visible
 
-## Important Notes
-- Tooltips must be keyboard accessible with focus states
-- Always include ARIA attributes for screen reader compatibility
-- Use for brief, helpful content only (not critical information)
-- Avoid tooltips on touch devices without fallback behavior
-- JavaScript required for show/hide behavior
+## Key Facts
+- Tooltips are keyboard accessible via Tab and focus states
+- ESC key dismisses the tooltip
+- Tested against WCAG 2.1 AA standards
+- Progressive enhancement of native title attribute
+- Supports custom content via `tooltipText` property
+- Configurable trigger labels via `triggerLabel` property
 
 ### Implementation
 
 ```html
-<!-- Basic Tooltip Structure -->
-<button class="usa-tooltip__trigger" aria-describedby="tooltip-1">
-  Help
-</button>
-
-<div id="tooltip-1" class="usa-tooltip" role="tooltip" data-position="top">
-  <div class="usa-tooltip__body">
-    This is helpful information about this field
-  </div>
-</div>
-```
-
-```html
-<!-- Tooltip with Icon Trigger -->
-<span class="usa-tooltip__trigger" aria-describedby="tooltip-2" tabindex="0">
-  <svg class="usa-icon" aria-hidden="true">
-    <use xlink:href="/assets/img/sprite.svg#info"></use>
-  </svg>
+<!-- Basic Tooltip with Button Trigger -->
+<span class="usa-tooltip">
+  <button 
+    type="button" 
+    class="usa-button usa-tooltip__trigger" 
+    id="tooltip-trigger-id-5tgd9bb68uw" 
+    data-position="top" 
+    aria-describedby="tooltip-313835" 
+    tabindex="0">
+    Hover or focus me
+  </button>
+  <span 
+    class="usa-tooltip__body" 
+    id="tooltip-313835" 
+    role="tooltip" 
+    aria-hidden="true">
+    This is helpful information
+  </span>
 </span>
-
-<div id="tooltip-2" class="usa-tooltip" role="tooltip" data-position="bottom">
-  <div class="usa-tooltip__body">
-    Additional context here
-  </div>
-</div>
 ```
 
-```javascript
-// JavaScript initialization for tooltip behavior
-document.querySelectorAll('.usa-tooltip__trigger').forEach(trigger => {
-  const tooltipId = trigger.getAttribute('aria-describedby');
-  const tooltip = document.getElementById(tooltipId);
-  
-  trigger.addEventListener('mouseenter', () => {
-    tooltip.classList.add('is-visible');
-  });
-  
-  trigger.addEventListener('mouseleave', () => {
-    tooltip.classList.remove('is-visible');
-  });
-  
-  trigger.addEventListener('focus', () => {
-    tooltip.classList.add('is-visible');
-  });
-  
-  trigger.addEventListener('blur', () => {
-    tooltip.classList.remove('is-visible');
-  });
-});
-```
+## Key Implementation Details
+- The trigger element must have a unique `id` attribute
+- The `aria-describedby` attribute on the trigger must match the `id` of the tooltip body
+- The `data-position` attribute controls placement: `top`, `bottom`, `left`, or `right`
+- The tooltip body uses `role="tooltip"` and `aria-hidden="true"` for accessibility
+- Multiple variants exist for different positions (top, bottom, left, right) and trigger types (button, link)
+- Link trigger variant uses similar structure with `<a>` instead of `<button>`
 
 ### Context
 
-Tooltips are a USWDS-based component integrated into the Maryland Design System for providing contextual help and information. They compose with form controls, buttons, and icons to improve accessibility and user guidance across Maryland state web applications.
-
----
-
-## USWDS Components Collection
-
-*Components*
-
-This is a collection index page for USWDS (U.S. Web Design System) components integrated into the Maryland Web Design System. It serves as a comprehensive reference and navigation hub for all available UI components that developers and designers can use to build Maryland state web pages. This page helps users discover, explore, and understand the various pre-built components available in the design system.
-
-### Key Information
-
-The page presents a collection of USWDS components that have been integrated into the Maryland Web Design System. Key aspects include:
-
-- **Collection Purpose**: Central repository for component documentation and reference
-- **Component Access**: Provides navigation to individual component documentation pages
-- **Toolbar Interface**: Includes a toolbar with a "New" button and "Skip to sidebar" functionality for accessibility
-- **Navigation**: Sidebar navigation for filtering and accessing specific component categories
-- **USWDS Integration**: All components follow U.S. Web Design System standards and guidelines
-- **Component Types**: Includes form controls, layout components, content containers, interactive elements, and other UI building blocks
-- **Documentation Structure**: Each component typically includes usage guidelines, code examples, and best practices
-
-This serves as the entry point for accessing component-level documentation within the design system.
-
-### Implementation
-
-```html
-<!-- Main collection page structure -->
-<div class="uswds-collection">
-  <!-- Toolbar with navigation -->
-  <div class="toolbar" role="toolbar">
-    <button class="toolbar-button" aria-label="Create new">New</button>
-    <a href="#sidebar" class="skip-link">Skip to sidebar</a>
-  </div>
-  
-  <!-- Sidebar navigation -->
-  <aside id="sidebar" class="sidebar" role="navigation">
-    <!-- Component category filters and links go here -->
-  </aside>
-  
-  <!-- Main content area -->
-  <main class="collection-content" role="main">
-    <!-- Individual component cards or documentation sections -->
-  </main>
-</div>
-```
-
-Note: The specific component listings and detailed implementations are accessed through individual component pages within this collection.
-
-### Context
-
-The USWDS Components Collection serves as the central hub within the Maryland Web Design System for accessing all available USWDS components. It provides a structured way to browse, reference, and implement components consistently across Maryland state web properties, ensuring compliance with federal web standards while maintaining Maryland-specific customizations.
+The Tooltip component is a USWDS component that enhances user experience by providing on-demand contextual information. It integrates with standard form controls and buttons, and can be combined with other components that need additional help or explanation.
 
 ---
 
@@ -7844,55 +8451,66 @@ The USWDS Components Collection serves as the central hub within the Maryland We
 
 *Components*
 
-The Utility Nav is a lightweight navigation bar positioned at the top of the page that provides access to secondary links and utilities such as language selection, login/account access, and other support functions. It serves as a persistent, accessible header element that typically sits above the main navigation and helps users quickly access account-related features and site utilities without cluttering the primary navigation structure.
+The utility navigation provides quick access to secondary actions and account-related links in the header. It supports both standard links and button-styled CTAs. The utility nav appears at the top of the header on desktop viewports and in the mobile menu on smaller screens.
 
 ### Key Information
 
-The Utility Nav is a compact, horizontal navigation component designed for secondary/utility links. It typically includes:
+## Item Types
 
-- **Purpose**: Host secondary navigation items like language switchers, account login, search, contact info, and help links
-- **Placement**: Positioned at the very top of the page, above main navigation
-- **Structure**: Uses semantic list markup with proper ARIA labeling
-- **Accessibility**: Includes proper ARIA roles and keyboard navigation support
-- **Styling**: Minimal styling to distinguish it as secondary navigation
-- **Variants**: Can display inline links or as a horizontal list depending on layout needs
-- **Responsive**: May collapse to a compact menu on mobile devices
+The utility nav supports three types of items:
 
-Key CSS classes typically include:
-- `.utility-nav` or similar container class
-- List items styled for inline horizontal display
-- Link styling for utility items
+- **Plain link**: `{ label: "Text", url: "#" }` — renders as a standard `<a>` tag
+- **Button-styled link**: `{ label: "Text", url: "#", isButton: true }` — renders as an anchor with button classes
+- **Button (no link)**: `{ label: "Text", isButton: true }` — renders as a button element without a URL property
+
+## CSS Class Names
+
+- `maryland-header__util-nav-container` — wrapper container for the utility nav
+- `maryland-header__util-nav` — the unordered list containing nav items
+- `usa-button` — standard button class for button-styled items
+- `usa-button--small` — modifier for small button variant
+
+## Properties
+
+- `enableUtil` (boolean, default: false) — Enable/disable the utility navigation
+- `util` (array) — Array of navigation items with label, url, and optional isButton properties
+
+## Structure
+
+The component renders as an unordered list of navigation items that can be either plain links or button-styled links. Each item is a list item (`<li>`) containing either an `<a>` tag or button element.
 
 ### Implementation
 
 ```html
-<!-- Basic Utility Nav Structure -->
-<nav class="utility-nav" aria-label="Utility navigation">
-  <ul class="utility-nav__list">
-    <li class="utility-nav__item">
-      <a href="#" class="utility-nav__link">Language</a>
+<!-- Utility Nav Container -->
+<div class="maryland-header__util-nav-container">
+  <ul class="maryland-header__util-nav">
+    <!-- Plain Link Item -->
+    <li>
+      <a href="#!">Link One</a>
     </li>
-    <li class="utility-nav__item">
-      <a href="#" class="utility-nav__link">Login</a>
+    
+    <!-- Plain Link Item -->
+    <li>
+      <a href="#!">Link Two</a>
     </li>
-    <li class="utility-nav__item">
-      <a href="#" class="utility-nav__link">Contact</a>
-    </li>
-    <li class="utility-nav__item">
-      <a href="#" class="utility-nav__link">Help</a>
+    
+    <!-- Button-Styled Link Item -->
+    <li>
+      <a class="usa-button usa-button--small" href="#!">Button</a>
     </li>
   </ul>
-</nav>
+</div>
 ```
 
-**Required Attributes:**
-- `aria-label="Utility navigation"` on the `<nav>` element to distinguish from other navigation regions
-- Semantic `<nav>` element with proper list structure
-- `<ul>` and `<li>` elements for list semantics
+**Variants:**
+
+1. **Plain Link** — Standard anchor tag with no button classes
+2. **Button-Styled Link** — Anchor tag with `usa-button` and `usa-button--small` classes
 
 ### Context
 
-The Utility Nav is a foundational component in the MDWDS that typically appears at the very top of the page layout, above main navigation and other header elements. It provides a dedicated zone for utility and secondary links, helping establish a clear visual and functional hierarchy that keeps primary navigation focused on main content categories while utilities remain consistently accessible.
+The utility navigation is a header component that composes within the Maryland header system. It provides a flexible list-based structure for secondary navigation and account-related actions, supporting both text links and button-styled CTAs within the header region.
 
 ---
 
@@ -7900,119 +8518,106 @@ The Utility Nav is a foundational component in the MDWDS that typically appears 
 
 *Components*
 
-Validation provides visual and programmatic feedback to users when form inputs don't meet requirements. It includes error states, success states, and helper text to guide users through form completion and correction of mistakes.
+The USWDS Validation component provides inline validation feedback for form fields with error and success states. It displays error messages, success indicators, and required field markers while maintaining accessibility through ARIA attributes. Use this component to provide users with real-time form field validation feedback.
 
 ### Key Information
 
-## Validation States
+**Variants/States:**
+- Default: Standard styling with optional hints
+- Error: Red border, error message, error icon
+- Success: Green border, success icon
+- Disabled with error: Disabled input with error state
+- Required field: Field marked with asterisk indicator
 
-- **Error State**: Indicates invalid input with error message and red styling
-- **Success State**: Indicates valid input with success message and green styling
-- **Warning State**: Indicates caution needed with warning message and yellow styling
-- **Helper Text**: Provides additional context or requirements for form fields
+**CSS Classes:**
+- `usa-form`: Form wrapper (may use `usa-form--large` modifier for larger spacing)
+- `usa-form-group`: Container for each form field
+- `usa-label`: Label element
+- `usa-hint`: Hint text displayed below label
+- `usa-input`: Input field element (appears without color modifiers in HTML; error/success states managed via parent form-group or input attributes)
 
-## CSS Classes & Attributes
+**Input Types Supported:**
+- `text`
+- `email`
+- `tel`
+- `password`
+- `number`
 
-- `.usa-form-group`: Container for form field with validation
-- `.usa-form-group--error`: Applies error styling to form group
-- `.usa-input--error`: Applies error styling to input element
-- `.usa-form-group__error`: Container for error message text
-- `aria-invalid="true"`: Set on invalid inputs for accessibility
-- `aria-describedby`: Links input to error message ID
+**Component Properties:**
+- `label` (string): Label text for the input field
+- `inputType` (string): Type of input field (text, email, tel, password, number)
+- `validationState` (string): Current state — default, error, or success
+- `errorMessage` (string): Error message displayed only when validationState is 'error'
+- `hint` (string): Optional hint text displayed below label
+- `required` (boolean): Mark field as required (false by default)
+- `disabled` (boolean): Disable the input field (false by default)
+- `enableAnalytics` (boolean): Enable/disable GA tracking attributes
+- `gaCategory`, `gaAction`, `gaLabel` (strings): Google Analytics tracking parameters
 
-## Key Attributes
+**Required Attributes:**
+- `id` on input (for aria-describedby linking)
+- `aria-describedby` on input (links to hint text id)
+- `for` attribute on label (matches input id)
 
-- Required error messages must have unique IDs
-- Error messages should use `.usa-form-group__error` class
-- Icons may be used to visually reinforce validation state
-- Validation can occur on blur, change, or form submission
-- Helper text provides guidance before validation failure
-
-## USWDS Foundation
-
-Validation is built on USWDS (U.S. Web Design System) patterns and follows federal accessibility standards for form validation.
+**Note:** This component requires USWDS JavaScript to be loaded for dynamic validation functionality.
 
 ### Implementation
 
 ```html
-<!-- Error State Example -->
-<div class="usa-form-group usa-form-group--error">
-  <label class="usa-label" for="input-error">
-    Form field with error
-  </label>
-  <span class="usa-error-message" id="input-error-message" role="alert">
-    <span class="usa-sr-only">Error:</span> This field is required
-  </span>
-  <input
-    class="usa-input usa-input--error"
-    id="input-error"
-    type="text"
-    name="input-error"
-    aria-invalid="true"
-    aria-describedby="input-error-message"
-  />
-</div>
+<!-- Default State with Hint -->
+<form class="usa-form usa-form--large" style="max-width: 30rem;">
+  <div class="usa-form-group">
+    <label class="usa-label" for="validation-id-example">
+      Email address
+    </label>
+    <span class="usa-hint" id="hint-id-example">For example, name@example.com</span>
+    <input class="usa-input" id="validation-id-example" name="validation-id-example" type="email" aria-describedby="hint-id-example">
+  </div>
+</form>
 ```
 
+**Error State Variant:**
 ```html
-<!-- Success State Example -->
-<div class="usa-form-group">
-  <label class="usa-label" for="input-success">
-    Form field with success
-  </label>
-  <input
-    class="usa-input"
-    id="input-success"
-    type="text"
-    name="input-success"
-    value="Valid input"
-  />
-  <span class="usa-success-message">✓ This field is valid</span>
-</div>
+<form class="usa-form usa-form--large">
+  <div class="usa-form-group usa-form-group--error">
+    <label class="usa-label" for="validation-error">
+      Email address
+    </label>
+    <span class="usa-hint" id="hint-error">For example, name@example.com</span>
+    <span class="usa-error-message" id="error-message-error">Please enter a valid email address</span>
+    <input class="usa-input usa-input--error" id="validation-error" name="validation-error" type="email" aria-describedby="hint-error error-message-error">
+  </div>
+</form>
 ```
 
+**Required Field Variant:**
 ```html
-<!-- Helper Text Example -->
-<div class="usa-form-group">
-  <label class="usa-label" for="input-helper">
-    Form field with helper text
-  </label>
-  <span class="usa-hint" id="input-helper-hint">
-    Password must be at least 8 characters
-  </span>
-  <input
-    class="usa-input"
-    id="input-helper"
-    type="password"
-    name="input-helper"
-    aria-describedby="input-helper-hint"
-  />
-</div>
+<form class="usa-form usa-form--large">
+  <div class="usa-form-group">
+    <label class="usa-label" for="validation-required">
+      Full Name
+      <abbr title="required">*</abbr>
+    </label>
+    <input class="usa-input" id="validation-required" name="validation-required" type="text" required aria-required="true">
+  </div>
+</form>
 ```
 
+**Success State Variant:**
 ```html
-<!-- Multiple Validation Messages -->
-<div class="usa-form-group usa-form-group--error">
-  <label class="usa-label" for="email-field">
-    Email Address
-  </label>
-  <span class="usa-error-message" id="email-error" role="alert">
-    <span class="usa-sr-only">Error:</span> Please enter a valid email address
-  </span>
-  <input
-    class="usa-input usa-input--error"
-    id="email-field"
-    type="email"
-    name="email"
-    aria-invalid="true"
-    aria-describedby="email-error"
-  />
-</div>
+<form class="usa-form usa-form--large">
+  <div class="usa-form-group">
+    <label class="usa-label" for="validation-success">
+      Email address
+    </label>
+    <input class="usa-input usa-input--success" id="validation-success" name="validation-success" type="email">
+  </div>
+</form>
 ```
 
 ### Context
 
-Validation is a critical USWDS component used across MDWDS form implementations to provide accessible, consistent feedback on user input. It integrates with other form components like inputs, selects, and textareas to create complete form workflows.
+This component extends USWDS form validation patterns for the Maryland Web Design System. It integrates with the standard form components (form-group, label, input) and enhances them with state-specific styling and error messaging. Validation states compose with other form elements and support optional Google Analytics tracking for user interaction monitoring.
 
 ---
 
@@ -8020,74 +8625,65 @@ Validation is a critical USWDS component used across MDWDS form implementations 
 
 *Components*
 
-The Video Promo component is a promotional content block that features a video thumbnail with overlay text, headline, and call-to-action elements. It's used to highlight video content and draw user attention to multimedia resources on Maryland state web pages.
+The Video Promo component is a visually prominent content section that combines video media with accompanying text and a call-to-action link. It highlights a single message or offer by presenting video and descriptive content in a structured, flexible layout to drive user engagement.
 
 ### Key Information
 
-## Variants
-- Standard video promo with thumbnail, headline, description, and CTA button
-- Overlay text positioned over video thumbnail
-- Optional badge or label
 
-## CSS Classes
-- `.video-promo` - Main container class
-- `.video-promo__thumbnail` - Video thumbnail image wrapper
-- `.video-promo__content` - Content section containing text and CTA
-- `.video-promo__headline` - Headline text
-- `.video-promo__description` - Description/body text
-- `.video-promo__cta` - Call-to-action button
+**Variants:**
+- Layout option: Side-by-side (default: `maryland-video-promo--side-by-side`)
+- Layout options available: Full-width, Video first, Text first
 
-## Key Attributes
-- Video source URL or thumbnail image source
-- Title/headline text
-- Description text
-- CTA button text and link
-- Optional: Video duration, badge text
+**CSS Classes:**
+- `.maryland-video-promo` – Main container
+- `.maryland-video-promo--side-by-side` – Layout modifier for side-by-side display
+- `.maryland-video-promo__container` – Inner wrapper
+- `.maryland-video-promo__content` – Content section wrapper
+- `.maryland-video-promo__title` – Title heading
+- `.maryland-video-promo__description` – Description text
+- `.maryland-video-promo__link` – Call-to-action link
 
-## Important Notes
-- Maintains responsive design across all screen sizes
-- Video thumbnail should use appropriate aspect ratio
-- CTA button integrates with Maryland button component
-- Supports both internal and external video links
+**Required Props:**
+- `title` (string, required) – Clear, concise, descriptive title relevant to the content
+- `video` (string, required) – iFrame embed code for YouTube/Vimeo video player
+
+**Optional Props:**
+- `description` (string) – Brief message providing information or context for the link
+- `visually_hide_title` (boolean, default: false) – Hides title from display but not screen readers
+- `link_text` (string) – Text for optional call-to-action link
+- `link_url` (string) – URL for optional call-to-action link
+- `caption` (string) – Adds a caption to the video player
+- `layout` (string) – Supports Full-width, Video first, Text first options
+
+**Accessibility:**
+- Uses `aria-labelledby` to associate the section with its title ID
+- Title is an `<h2>` heading with auto-generated ID
+
 
 ### Implementation
 
+
 ```html
-<div class="video-promo">
-  <div class="video-promo__thumbnail">
-    <img src="video-thumbnail.jpg" alt="Video thumbnail description">
-    <button class="video-promo__play-button" aria-label="Play video">
-      <span class="icon-play"></span>
-    </button>
+<section class="maryland-video-promo maryland-video-promo--side-by-side" aria-labelledby="id-r34vb9wdqlj">
+  <div class="maryland-video-promo__container">
+    <div class="maryland-video-promo__content">
+      <h2 id="id-r34vb9wdqlj" class="maryland-video-promo__title">Video Promo</h2>
+      <p class="maryland-video-promo__description">Culpa esse excepteur commodo velit mollit amet amet mollit consequat irure ipsum sint sint.</p>
+      <a class="maryland-video-promo__link" href="https://example.com">Call to action</a>
+    </div>
   </div>
-  <div class="video-promo__content">
-    <h3 class="video-promo__headline">Video Title</h3>
-    <p class="video-promo__description">Brief description of the video content goes here.</p>
-    <a href="#" class="btn btn-primary">Watch Video</a>
-  </div>
-</div>
+</section>
 ```
 
-### Responsive Variant
-```html
-<div class="video-promo video-promo--responsive">
-  <div class="video-promo__thumbnail">
-    <img src="video-thumbnail.jpg" alt="Video description" class="video-promo__image">
-    <button class="video-promo__play-button" aria-label="Play video">
-      <span class="icon-play"></span>
-    </button>
-  </div>
-  <div class="video-promo__content">
-    <h3 class="video-promo__headline">Responsive Video Promo</h3>
-    <p class="video-promo__description">Description text for mobile and desktop layouts.</p>
-    <a href="video-page.html" class="btn btn-primary btn-sm">Learn More</a>
-  </div>
-</div>
-```
+**Notes:**
+- The video player iframe embed would be inserted in the appropriate layout position alongside the content
+- The title receives an auto-generated ID (e.g., `id-r34vb9wdqlj`) that is referenced in the `aria-labelledby` attribute
+- Layout modifiers control positioning of video and text (side-by-side, full-width, video-first, text-first)
+
 
 ### Context
 
-The Video Promo component is a specialized content component within MDWDS that combines image, text, and button elements to create engaging promotional blocks. It typically composes with the Button component for its CTA and follows Maryland's design patterns for multimedia content presentation.
+The Video Promo component is part of the MDWDS component library for composing rich media sections. It combines semantic HTML with BEM-style class naming and integrates with the grid system for layout control, allowing flexible positioning of multimedia content with supporting text and calls-to-action.
 
 ---
 
@@ -8095,79 +8691,49 @@ The Video Promo component is a specialized content component within MDWDS that c
 
 *Components*
 
-The Visual Link Collection is a component that displays a group of linked items with visual indicators, typically used for navigation or content discovery. It organizes related links in a structured, scannable format. Use this when you need to present multiple related destinations or actions in a visually organized way.
+Visual Link Collection displays a grid of linked cards that guide users to different sections or resources. Each card is fully clickable and uses the Linked variant of the Maryland Cards component. It is ideal for service directories, topic landing pages, resource collections, and navigation hubs.
 
 ### Key Information
 
-**Variants:**
-- Grid layout with visual cards for each link
-- Icon/image support for visual context
-- Text-based link labels and descriptions
+## Key Class Names
+- `maryland-visual-link-collection` — Main container/wrapper for the component
+- `maryland-card-group__header` — Header section containing title and description
+- `maryland-card-group__header-content` — Content wrapper within the header
+- `maryland-card-group__title` — Section title heading (h2 element)
+- `maryland-card-group__description` — Description text below the title
 
-**Class Names & Structure:**
-- `.visual-link-collection` — main container wrapper
-- `.visual-link-item` — individual link item
-- `.visual-link-label` — text label for the link
-- `.visual-link-description` — optional description text
+## Structure & Usage
+- The component uses a section element with the `maryland-visual-link-collection` class
+- Includes a header with title and optional description
+- Cards within the collection use the Maryland Cards component with the Linked variant
+- Each card is fully clickable for navigation
+- Supports custom section aria labels via `aria-labelledby` attribute
 
-**Required Attributes:**
-- `href` attribute on link elements
-- Semantic HTML structure using `<a>` or `<button>` elements
-
-**Options:**
-- Multiple items can be displayed in grid or flex layout
-- Supports icons or background images for visual enhancement
-- Optional descriptions beneath each link label
-
-**Important Notes:**
-- Should maintain keyboard navigation and focus management
-- Requires proper ARIA labels if using non-semantic link structures
-- Visual indicators should not be the only method of distinction
+## Important Attributes
+- `aria-labelledby` — Links the section to its title ID for proper accessibility
+- Section-level semantic HTML for proper document structure
 
 ### Implementation
 
 ```html
-<!-- Basic Visual Link Collection -->
-<div class="visual-link-collection">
-  <a href="/destination-1" class="visual-link-item">
-    <div class="visual-link-icon">
-      <svg aria-hidden="true"><!-- icon content --></svg>
+<section class="maryland-visual-link-collection" aria-labelledby="id-iw3e8mw6os8">
+  <div class="maryland-card-group__header">
+    <div class="maryland-card-group__header-content">
+      <h2 class="maryland-card-group__title" id="id-iw3e8mw6os8">
+        Latest updates
+      </h2>
+      <p class="maryland-card-group__description">
+        Maryland is the perfect place to start your business. Learn about doing business in the state and find grants, and loans for qualified businesses.
+      </p>
     </div>
-    <h3 class="visual-link-label">Link Title One</h3>
-    <p class="visual-link-description">Brief description of this destination</p>
-  </a>
-  
-  <a href="/destination-2" class="visual-link-item">
-    <div class="visual-link-icon">
-      <svg aria-hidden="true"><!-- icon content --></svg>
-    </div>
-    <h3 class="visual-link-label">Link Title Two</h3>
-    <p class="visual-link-description">Brief description of this destination</p>
-  </a>
-  
-  <a href="/destination-3" class="visual-link-item">
-    <div class="visual-link-icon">
-      <svg aria-hidden="true"><!-- icon content --></svg>
-    </div>
-    <h3 class="visual-link-label">Link Title Three</h3>
-    <p class="visual-link-description">Brief description of this destination</p>
-  </a>
-</div>
-```
-
-**With Images Instead of Icons:**
-```html
-<div class="visual-link-collection">
-  <a href="/destination" class="visual-link-item">
-    <img src="image.jpg" alt="Descriptive alt text" class="visual-link-image">
-    <h3 class="visual-link-label">Link Title</h3>
-  </a>
-</div>
+  </div>
+  <!-- Card items using Maryland Cards component with Linked variant -->
+</section>
 ```
 
 ### Context
 
-The Visual Link Collection component is part of the MDWDS component library and provides a flexible pattern for organizing multiple related links with visual support. It can be used within page templates and composes with heading, typography, and icon components to create cohesive navigation experiences.
+Visual Link Collection is a layout template component in MDWDS that combines a section header with the Maryland Cards component in Linked variant. It provides a reusable pattern for organizing related resources or topics into grouped, clickable card collections across topic landing pages and resource directories.
 
 ---
 
@@ -8177,414 +8743,56 @@ The Visual Link Collection component is part of the MDWDS component library and 
 
 *Templates*
 
-The Action Page is a template designed for pages that guide users toward completing specific tasks or taking action. It provides a structured layout to present call-to-action elements, instructions, and supporting information in a clear hierarchy. Use this template when you need to direct users to perform a specific action like submitting a form, requesting a service, or completing a transaction.
+The Action Page is a template for full-page layouts in the Maryland Web Design System that combines a statewide banner and main navigation. It serves as a base page structure for state of Maryland web properties and demonstrates how foundational components like the banner and navigation compose together.
 
 ### Key Information
 
-The Action Page template typically includes:
+## Key Structure
+- Uses `usa-banner` for the statewide banner section with `aria-label="Official website of the State of Maryland"`
+- Includes `usa-accordion` within the banner header for the "Here's how you know" toggle
+- Uses `maryland-link` and `maryland-link--skipnav` classes for skip navigation link
+- Skip navigation link should target `#main-content` for proper accessibility
+- Banner button uses `usa-banner__button` with `aria-controls` and `aria-expanded` attributes
+- SVG icons are included with `role="img"` and `aria-hidden="true"` for button labels
 
-- **Header/Hero section**: Prominent title and description of the action
-- **Call-to-Action button(s)**: Primary action button prominently displayed
-- **Supporting content areas**: Sections for context, requirements, or prerequisites
-- **Related links**: Navigation to related pages or alternative actions
-- **Status indicators**: Optional badges or indicators for task status
+## Class Names
+- `.usa-skipnav`: Skip navigation link
+- `.maryland-link`: Base link styling
+- `.maryland-link--skipnav`: Skip navigation link modifier
+- `.usa-banner`: Banner section container
+- `.usa-accordion`: Accordion component within banner
+- `.usa-banner__header`: Banner header inner container
+- `.usa-banner__inner`: Inner wrapper for banner content
+- `.usa-banner__header-text`: Text content in banner header
+- `.usa-banner__button`: Toggle button for banner details
 
-Key layout patterns:
-- Single-column or two-column layouts depending on content volume
-- Button placement above or alongside content
-- Clear visual hierarchy with headings and spacing
-- Responsive design that works on mobile and desktop
-
-The template leverages Maryland's standard button styles, typography, and spacing conventions from the design system.
+## Required Attributes
+- Skip link: `href="#main-content"`
+- Banner: `aria-label="Official website of the State of Maryland"`
+- Banner button: `aria-controls`, `aria-expanded`, `type="button"`
+- SVG icons: `role="img"`, `aria-hidden="true"`, `aria-label` for descriptive text
 
 ### Implementation
 
 ```html
-<!-- Action Page Template Structure -->
-<div class="page-action">
-  <!-- Header Section -->
-  <section class="page-header">
-    <div class="container">
-      <h1 class="page-title">Action Page Title</h1>
-      <p class="page-subtitle">Brief description of the action or service</p>
-    </div>
-  </section>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
 
-  <!-- Main Content Section -->
-  <main class="page-content">
-    <div class="container">
-      <!-- Call-to-Action Section -->
-      <section class="action-section">
-        <h2>Ready to get started?</h2>
-        <p>Introductory text explaining what the user will do.</p>
-        <a href="#" class="btn btn-primary btn-lg">Primary Action Button</a>
-        <a href="#" class="btn btn-secondary btn-lg">Secondary Action</a>
-      </section>
-
-      <!-- Supporting Content -->
-      <section class="supporting-content">
-        <h2>What you'll need</h2>
-        <ul>
-          <li>Requirement or document</li>
-          <li>Requirement or document</li>
-        </ul>
-      </section>
-
-      <!-- Related Information -->
-      <section class="related-section">
-        <h2>Related resources</h2>
-        <ul class="link-list">
-          <li><a href="#">Related page link</a></li>
-          <li><a href="#">Related page link</a></li>
-        </ul>
-      </section>
-    </div>
-  </main>
-</div>
-```
-
-### Context
-
-The Action Page template is a composition of core Maryland design system components including typography, buttons, containers, and spacing utilities. It serves as a high-level page template that organizes these foundational elements and components into a cohesive, task-focused layout pattern.
-
----
-
-## Agency Homepage
-
-*Templates*
-
-The Agency Homepage is a full-page template designed for Maryland state agency websites. It provides a standardized layout and structure that agencies can use to create consistent, branded web presences aligned with MDWDS guidelines. This template solves the problem of building agency websites from scratch by offering pre-configured sections, components, and layouts that follow state design standards.
-
-### Key Information
-
-The Agency Homepage template is a complete page composition that typically includes:
-
-- **Header/Navigation**: Standard MDWDS header with agency branding and main navigation
-- **Hero Section**: Large featured content area at the top of the page
-- **Main Content Area**: Primary section for key agency information and services
-- **Sidebar/Secondary Navigation**: Optional navigation for related content or services
-- **Footer**: Standard MDWDS footer with required state links and information
-
-**Key Characteristics:**
-- Responsive design that works across desktop, tablet, and mobile devices
-- Uses semantic HTML5 structure
-- Integrates core MDWDS components (buttons, cards, navigation, etc.)
-- Follows accessibility standards (WCAG 2.1 AA)
-- Implements state color palette and typography standards
-- Supports multiple content sections and flexible layouts
-
-**Important Considerations:**
-- Agency branding should follow the MDWDS brand guidelines
-- Content should be organized hierarchically with clear navigation
-- All interactive elements must include proper ARIA labels and roles
-- The template serves as a starting point that should be customized for specific agency needs
-
-### Implementation
-
-```html
-<!-- Agency Homepage Template -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agency Name - Maryland State Government</title>
-    <link rel="stylesheet" href="mdwds-styles.css">
-</head>
-<body>
-    <!-- Header with Navigation -->
-    <header class="mdwds-header" role="banner">
-        <div class="header-container">
-            <div class="header-logo">
-                <a href="/" class="logo-link">
-                    <span class="agency-name">Agency Name</span>
-                </a>
-            </div>
-            <nav class="header-nav" role="navigation" aria-label="Main Navigation">
-                <ul class="nav-list">
-                    <li><a href="#section1">Section 1</a></li>
-                    <li><a href="#section2">Section 2</a></li>
-                    <li><a href="#section3">Section 3</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="hero-section" aria-label="Featured Content">
-        <div class="hero-container">
-            <h1 class="hero-title">Welcome to [Agency Name]</h1>
-            <p class="hero-subtitle">Your gateway to [agency mission/services]</p>
-            <a href="#" class="btn btn-primary">Get Started</a>
-        </div>
-    </section>
-
-    <!-- Main Content -->
-    <main class="main-content" role="main">
-        <div class="content-container">
-            <!-- Primary Content Area -->
-            <section class="primary-content">
-                <h2>Key Services</h2>
-                <div class="cards-grid">
-                    <article class="card">
-                        <h3>Service 1</h3>
-                        <p>Description of service</p>
-                        <a href="#" class="btn btn-secondary">Learn More</a>
-                    </article>
-                    <article class="card">
-                        <h3>Service 2</h3>
-                        <p>Description of service</p>
-                        <a href="#" class="btn btn-secondary">Learn More</a>
-                    </article>
-                </div>
-            </section>
-
-            <!-- Sidebar (Optional) -->
-            <aside class="sidebar" role="complementary" aria-label="Sidebar Navigation">
-                <nav class="sidebar-nav">
-                    <h3>Quick Links</h3>
-                    <ul>
-                        <li><a href="#">Link 1</a></li>
-                        <li><a href="#">Link 2</a></li>
-                        <li><a href="#">Link 3</a></li>
-                    </ul>
-                </nav>
-            </aside>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="mdwds-footer" role="contentinfo">
-        <div class="footer-container">
-            <div class="footer-content">
-                <p>&copy; 2024 State of Maryland</p>
-                <ul class="footer-links">
-                    <li><a href="#">Accessibility</a></li>
-                    <li><a href="#">Privacy</a></li>
-                    <li><a href="#">Contact</a></li>
-                </ul>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
-```
-
-### Context
-
-The Agency Homepage template is a complete page composition that brings together multiple MDWDS components (header, navigation, cards, buttons, footer) into a cohesive, full-page layout. It serves as a reference implementation for how agencies should structure their websites while adhering to Maryland state design standards and best practices.
-
----
-
-## Basic Page
-
-*Templates*
-
-The Basic Page template is a foundational layout template that provides a standardized structure for creating Maryland state web pages. It establishes the core page architecture, including header, navigation, and content areas that align with MDWDS standards. Use this template when creating new Maryland government web pages that require a consistent, accessible page structure.
-
-### Key Information
-
-### Overview
-The Basic Page template serves as the foundational page structure for Maryland state web pages. It includes:
-
-- Standard page header and branding
-- Navigation and wayfinding elements
-- Main content area
-- Sidebar/complementary content area (optional)
-- Footer with standard Maryland government links
-
-### Key Components
-- **Header**: Contains Maryland state branding and main navigation
-- **Main Navigation**: Primary site navigation structure
-- **Skip to Content**: Accessibility feature allowing users to bypass navigation (linked via "Skip to sidebar" toolbar)
-- **Content Area**: Main content section for page body
-- **Sidebar**: Optional secondary navigation or related content
-- **Footer**: Standard Maryland government footer
-
-### Required Structure
-- Proper semantic HTML (header, main, aside, footer elements)
-- Skip links for accessibility
-- Responsive layout that adapts to mobile and desktop viewports
-- Standard Maryland state branding and color scheme
-- ARIA landmarks for screen reader navigation
-
-### Variants
-The template can accommodate different sidebar configurations:
-- With sidebar (two-column layout)
-- Without sidebar (single-column full-width)
-- Variable content widths based on page needs
-
-### Implementation
-
-```html
-<!-- Basic Page Template Structure -->
-<div class="page-wrapper">
-  <!-- Skip to Navigation Links -->
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  <a href="#sidebar" class="skip-link">Skip to sidebar</a>
-
-  <!-- Header -->
-  <header class="page-header" role="banner">
-    <div class="header-container">
-      <!-- Maryland State Branding -->
-      <div class="state-branding">
-        <span class="state-seal"></span>
-        <span class="state-name">State of Maryland</span>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know 
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- SVG icon content -->
+          </svg>
+        </button>
       </div>
-      <!-- Site Title/Logo -->
-      <div class="site-title">
-        <h1>Your Agency or Site Name</h1>
-      </div>
-    </div>
-  </header>
-
-  <!-- Navigation -->
-  <nav class="primary-navigation" role="navigation" aria-label="Main">
-    <!-- Navigation items -->
-  </nav>
-
-  <!-- Main Content Area -->
-  <div class="page-container">
-    <main id="main-content" class="main-content" role="main">
-      <!-- Page content goes here -->
-      <h1>Page Title</h1>
-      <p>Page content...</p>
-    </main>
-
-    <!-- Sidebar (Optional) -->
-    <aside id="sidebar" class="sidebar" role="complementary" aria-label="Sidebar">
-      <!-- Related content, secondary navigation, etc. -->
-    </aside>
-  </div>
-
-  <!-- Footer -->
-  <footer class="page-footer" role="contentinfo">
-    <!-- Maryland state footer content -->
-  </footer>
-</div>
-```
-
-### Alternative: Full-Width Variant (No Sidebar)
-```html
-<div class="page-wrapper no-sidebar">
-  <!-- Same header and nav structure -->
-  
-  <div class="page-container full-width">
-    <main id="main-content" class="main-content" role="main">
-      <!-- Full-width page content -->
-    </main>
-  </div>
-
-  <!-- Footer -->
-</div>
-```
-
-### Context
-
-The Basic Page template is the foundational layout pattern within MDWDS Templates and composes standard elements (header, navigation, footer) that are reused across Maryland government web properties. It provides the structural scaffold into which other MDWDS components (Accordion, Cards, Forms, etc.) are placed to create complete, accessible web pages.
-
----
-
-## Landing Page
-
-*Templates*
-
-The Landing Page template is a full-page layout designed as the primary entry point for Maryland state websites. It combines hero sections, featured content areas, and call-to-action elements to welcome users and guide them to key information or services.
-
-### Key Information
-
-## Structure
-The Landing Page template serves as a complete page layout combining multiple MDWDS components into a cohesive entry experience.
-
-## Key Components Used
-- Hero section or banner for primary messaging
-- Navigation integration from MDWDS navbar component
-- Featured content cards or sections
-- Call-to-action buttons using MDWDS button component
-- Content sections for key information areas
-- Footer integration from MDWDS footer component
-
-## Layout Considerations
-- Responsive design that adapts to mobile, tablet, and desktop viewports
-- Uses Maryland design tokens for spacing, colors, and typography
-- Integrates with MDWDS grid system for consistent layout alignment
-- Accessibility-first approach with proper semantic HTML and ARIA attributes
-
-## Variants
-- May include different hero configurations (image, gradient, solid color backgrounds)
-- Optional featured content grid layouts
-- Various CTA button placements and configurations
-
-## Important Facts
-- This is a complete template, not a single component
-- Intended as a starting point for new Maryland state web properties
-- Composes together multiple individual MDWDS components
-- Should maintain Maryland branding standards and visual hierarchy
-
-### Implementation
-
-```html
-<!-- Landing Page Template Structure -->
-<div class="mdwds-landing-page">
-  <!-- Navigation -->
-  <nav class="mdwds-navbar" role="navigation" aria-label="Main navigation">
-    <!-- Navigation component implementation -->
-  </nav>
-
-  <!-- Hero Section -->
-  <section class="mdwds-hero" aria-label="Hero section">
-    <div class="mdwds-hero__content">
-      <h1 class="mdwds-hero__title">Welcome to [Service/Department]</h1>
-      <p class="mdwds-hero__subtitle">Supporting Maryland residents and businesses</p>
-      <button class="mdwds-button mdwds-button--primary mdwds-button--large">
-        Get Started
-      </button>
-    </div>
-  </section>
-
-  <!-- Main Content -->
-  <main class="mdwds-main-content" id="main-content">
-    <!-- Featured Services Section -->
-    <section class="mdwds-featured-section" aria-label="Featured services">
-      <div class="mdwds-container">
-        <h2 class="mdwds-heading-2">Featured Services</h2>
-        <div class="mdwds-grid mdwds-grid--3-cols">
-          <div class="mdwds-card">
-            <h3 class="mdwds-card__title">Service 1</h3>
-            <p class="mdwds-card__description">Description of service</p>
-            <a href="#" class="mdwds-button mdwds-button--secondary">Learn More</a>
-          </div>
-          <!-- Additional cards -->
-        </div>
-      </div>
-    </section>
-
-    <!-- Information Section -->
-    <section class="mdwds-info-section" aria-label="Key information">
-      <div class="mdwds-container">
-        <h2 class="mdwds-heading-2">Important Information</h2>
-        <!-- Content here -->
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="mdwds-footer" role="contentinfo">
-    <!-- Footer component implementation -->
-  </footer>
-</div>
-```
-
-## Responsive Variants
-
-```html
-<!-- Mobile-optimized variant -->
-<section class="mdwds-featured-section">
-  <div class="mdwds-container">
-    <h2 class="mdwds-heading-2">Featured Services</h2>
-    <!-- Grid adjusts to 1 column on mobile via responsive utilities -->
-    <div class="mdwds-grid mdwds-grid--1-col-mobile mdwds-grid--2-cols-tablet mdwds-grid--3-cols-desktop">
-      <!-- Cards automatically adjust -->
     </div>
   </div>
 </section>
@@ -8592,7 +8800,204 @@ The Landing Page template serves as a complete page layout combining multiple MD
 
 ### Context
 
-The Landing Page template is a complete page composition that brings together multiple MDWDS components (navbar, buttons, cards, grid, footer) into a cohesive entry experience for Maryland state websites. It serves as the primary template for establishing consistent branding, navigation, and user guidance across the MDWDS ecosystem.
+The Action Page template demonstrates the foundational composition of MDWDS pages, combining the Statewide Banner and skip navigation patterns that should be present at the top of most Maryland government websites. It serves as the template wrapper within which other components and content are nested.
+
+---
+
+## Agency Homepage
+
+*Templates*
+
+The Agency Homepage is a template that demonstrates the full-page layout for a Maryland state agency website. It serves as a starting point for building agency web properties following MDWDS standards. This template includes the statewide banner, header, navigation, and main content area structure.
+
+### Key Information
+
+## Key Components Included:
+- **Statewide Banner**: Uses `usa-banner` class with `usa-accordion` for the expandable section
+- **Skip Navigation Link**: Implements accessibility best practice with `usa-skipnav` and `maryland-link maryland-link--skipnav` classes, linking to `#main-content`
+- **Banner Text**: Uses `usa-banner__header-text` class for the "An official website of the State of Maryland" text
+- **Banner Button**: Uses `usa-banner__button` with `aria-controls="gov-banner-default"` and `aria-expanded="false"` attributes
+- **Banner Inner Container**: `usa-banner__inner` wraps header content
+- **SVG Icons**: Used with `role="img"` and `aria-hidden="true"` attributes for decorative purposes
+
+## Required ARIA Attributes:
+- `aria-label` on the banner section for "Official website of the State of Maryland"
+- `aria-controls` on the banner toggle button
+- `aria-expanded` state on the banner button
+- `role="img"` and `aria-hidden="true"` on decorative SVG elements
+
+## Main Content Reference:
+- The skip navigation link targets `#main-content` which should exist on the page
+
+### Implementation
+
+```html
+<!-- Skip Navigation Link -->
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
+
+<!-- Statewide Banner -->
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know
+          <svg role="img" aria-hidden="true" aria-label="Toggle button" class="usa-icon">
+            <!-- SVG content -->
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+**Notes:**
+- The banner serves as the top-level statewide identifier for all Maryland government websites
+- The accordion structure allows the banner content to expand/collapse
+- The skip navigation link should be the first focusable element on the page
+- Maryland-specific styling is applied via `maryland-link` and `maryland-link--skipnav` classes
+
+### Context
+
+The Agency Homepage template establishes the foundational page structure for Maryland state agencies using MDWDS. It composes the Statewide Banner component with header, navigation, and content area layouts to create a consistent, accessible template that agencies can build upon for their specific needs.
+
+---
+
+## Basic Page
+
+*Templates*
+
+The Basic Page template provides the foundational structure for Maryland government web pages, including the required Statewide Banner, Skip to Main Content link, and standard header/navigation framework. This template establishes consistent layout and accessibility patterns across all MDWDS-based pages.
+
+### Key Information
+
+
+### Key Class Names
+- `usa-skipnav` - Skip to main content link class
+- `maryland-link` - Maryland-specific link styling
+- `maryland-link--skipnav` - Skip nav link modifier
+- `usa-banner` - Statewide banner section with `aria-label="Official website of the State of Maryland"`
+- `usa-accordion` - Accordion container for banner content
+- `usa-banner__header` - Banner header section
+- `usa-banner__inner` - Banner inner wrapper
+- `usa-banner__header-text` - Text label ("An official website of the State of Maryland.")
+- `usa-banner__button` - Toggle button for banner details
+
+### Required ARIA Attributes
+- `aria-label` on section (for banner context)
+- `aria-controls` on banner toggle button (links to banner accordion ID)
+- `aria-expanded` on banner button (initial state: false)
+- `role="img"` on SVG icons with `aria-hidden="true"` and `aria-label`
+
+### Structure Requirements
+- Skip to main content link must appear first in the page structure
+- Statewide banner must be a `<section>` element with appropriate aria-label
+- Banner includes an accordion mechanism for expandable content details
+
+
+### Implementation
+
+
+```html
+<!-- Skip to Main Content Link -->
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
+
+<!-- Statewide Banner Section -->
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button 
+          type="button" 
+          class="usa-banner__button" 
+          aria-controls="gov-banner-default" 
+          aria-expanded="false">
+          Here's how you know
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- SVG icon content -->
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+
+### Context
+
+The Basic Page template serves as the starting point for all MDWDS page implementations, establishing required accessibility landmarks and government-mandated elements like the Statewide Banner. It composes with navigation, header, and content components to create complete page layouts.
+
+---
+
+## Landing Page
+
+*Templates*
+
+The Landing Page is a complete page template that serves as the entry point for Maryland state websites. It establishes the visual hierarchy and layout patterns for state government digital properties, combining the Statewide Banner, navigation, hero sections, and content areas into a cohesive full-page design.
+
+### Key Information
+
+### Key Classes and Structure
+- `usa-skipnav`: Skip navigation link for accessibility (class: `maryland-link maryland-link--skipnav`)
+- `usa-banner`: Statewide Banner section wrapping the official Maryland government message
+- `usa-accordion`: Accordion component container within banner
+- `usa-banner__header`: Banner header container
+- `usa-banner__inner`: Inner wrapper for banner content
+- `usa-banner__header-text`: Text content styling for the banner message
+- `usa-banner__button`: Button to toggle banner details with aria-controls and aria-expanded attributes
+
+### Required ARIA Attributes
+- Skip link: `href="#main-content"` (target ID for keyboard navigation)
+- Banner button: `aria-controls="gov-banner-default"`, `aria-expanded="false"` (toggle state management)
+- Section: `aria-label="Official website of the State of Maryland"` (descriptive label)
+
+### Important Notes
+- The Landing Page template integrates the USWDS (U.S. Web Design System) components with Maryland customizations
+- Rendered HTML shows the initial page structure with Storybook loader states
+- The actual rendered preview appears to be loading or not fully displayed in the captured HTML
+
+### Implementation
+
+```html
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
+
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button 
+          type="button" 
+          class="usa-banner__button" 
+          aria-controls="gov-banner-default" 
+          aria-expanded="false">
+          Here's how you know
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+### Context
+
+The Landing Page template is the foundational page structure for Maryland state websites, integrating USWDS patterns with Maryland-specific customizations. It combines the Statewide Banner, skip navigation link, and accordion components to provide accessible and recognizable navigation patterns for state government digital properties.
 
 ---
 
@@ -8600,109 +9005,122 @@ The Landing Page template is a complete page composition that brings together mu
 
 *Templates*
 
-The Listing Page is a template that displays collections of related items or content in an organized, scannable format. It provides a standardized layout for presenting lists of resources, documents, news items, or other content types that users need to browse and filter. This template is used when you need to present multiple similar items with consistent styling and interactive elements like filtering or search.
+The Listing Page is a template component for displaying searchable, filterable collections of items such as news articles or listings on Maryland.gov. It provides a form-based interface with text and select filters, combined with a prose introduction section. Use this template when you need to present multiple items with user-controlled filtering capabilities.
 
 ### Key Information
 
-## Variants and Structure
 
-The Listing Page template typically includes:
+**Key Classes:**
+- `maryland-listing__body` – Main body section containing introductory prose
+- `maryland-listing__form` – Form wrapper containing all filter controls
+- `maryland-listing__filter` – Individual filter field wrapper
+- `maryland-listing__filter--input` – Modifier for text input filter section
+- `maryland-listing__filter--select` – Modifier for select dropdown filter section
+- `usa-prose` – USWDS class for prose styling on the body section
+- `usa-label` – USWDS label component
+- `usa-input` – USWDS text input component
+- `usa-select` – USWDS select dropdown component
 
-- **Header Section**: Page title and optional description
-- **Filter/Search Bar**: For users to narrow down results
-- **List Container**: Organized display of individual items
-- **Item Cards/Rows**: Consistent presentation of each list item with relevant metadata
-- **Pagination**: Navigation controls for browsing multiple pages of results
+**Structure:**
+- The component contains two main sections: a body section with descriptive prose and a form section with filters
+- Filters use modifier classes (`--input`, `--select`) to distinguish between filter types
+- Form controls utilize USWDS base components (usa-input, usa-select, usa-label)
+- Text input filter includes standard input attributes (type="text", id, name, size)
+- Select filter includes option elements (markup appears incomplete in source)
 
-## Key Components
 
-- List items should be presented in a consistent, repeating format
-- Each item typically includes: title, brief description, date/metadata, and action link
-- Items should be scannable with proper spacing and typography hierarchy
-- Optional filters, sorting options, and search functionality
-- Pagination or infinite scroll for managing large lists
+### Implementation
 
-## CSS Classes and Structure
 
-The template uses standard MDWDS components combined with layout utilities. Items are typically wrapped in grid or flex containers for responsive display.
+```html
+<div class="maryland-listing__body usa-prose">
+  <p>Search through news items for Maryland.gov.</p>
+</div>
 
-## Required Attributes
+<form class="maryland-listing__form">
+  <div class="maryland-listing__filter maryland-listing__filter--input">
+    <label class="usa-label" for="input-type-text">Filter text</label>
+    <input class="usa-input" id="input-type-text" name="input-type-text" size="35" type="text">
+  </div>
 
-- Proper heading hierarchy (h1 for page title, h2/h3 for item titles)
-- Semantic HTML list elements where appropriate
-- ARIA labels for filter controls and interactive elements
-- Link destinations for each list item
+  <div class="maryland-listing__filter maryland-listing__filter--select">
+    <label class="usa-label" for="options">Filter select</label>
+    <select class="usa-select" name="options" id="options">
+      <option>Select an option</option>
+    </select>
+  </div>
+</form>
+```
 
-## Important Facts
 
-- This is a composition of multiple MDWDS components (cards, buttons, filters, pagination)
-- Responsive design adapts from single column (mobile) to multiple columns (desktop)
-- Should follow MDWDS typography and spacing standards
-- Can be customized for different content types while maintaining structure
+### Context
+
+The Listing Page template integrates with USWDS form components (usa-label, usa-input, usa-select) and combines them with Maryland-specific layout and filtering patterns. It serves as a container for implementing searchable, filtered content listings across Maryland.gov applications.
+
+---
+
+## Listing Page
+
+*Templates*
+
+The Listing Page is a template component for displaying collections of items in a structured list format. It provides the foundational layout and structure for pages that need to present multiple records or entries. This template is used when you need a standardized way to display filterable, paginated, or organized item listings on Maryland state websites.
+
+### Key Information
+
+The Listing Page template is a container template that composes with other MDWDS components to create a full page layout. Key classes visible in the Storybook wrapper:
+
+- `.usa-skipnav` - Skip navigation link for accessibility
+- `.maryland-link` - Maryland-specific link styling
+- `.maryland-link--skipnav` - Skip navigation link variant
+- `.usa-banner` - Statewide banner wrapper (USWDS)
+- `.usa-accordion` - Accordion functionality for banner expansion
+- `.usa-banner__header` - Banner header container
+- `.usa-banner__inner` - Banner inner wrapper
+- `.usa-banner__header-text` - Banner header text
+- `.usa-banner__button` - Banner toggle button
+
+Required ARIA attributes:
+- `aria-label` on the banner section for semantic identification
+- `aria-controls` on banner button pointing to accordion ID
+- `aria-expanded` on banner button for state management
+- `role="img"` on SVG elements
+- `aria-hidden="true"` on decorative SVGs
+
+The template utilizes USWDS components (banner, accordion) as foundational elements and Maryland-specific link styling for skip navigation.
 
 ### Implementation
 
 ```html
-<!-- Listing Page Template -->
-<main class="container">
-  <!-- Page Header -->
-  <div class="listing-header">
-    <h1>Page Title</h1>
-    <p class="lead">Optional page description or subtitle</p>
-  </div>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
 
-  <!-- Filter/Search Section -->
-  <div class="listing-controls">
-    <div class="search-bar">
-      <input type="search" placeholder="Search items..." aria-label="Search listing">
-      <button type="submit">Search</button>
-    </div>
-    <div class="filters">
-      <select aria-label="Filter by category">
-        <option value="">All Categories</option>
-        <option value="category-1">Category 1</option>
-        <option value="category-2">Category 2</option>
-      </select>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- SVG content -->
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
+</section>
 
-  <!-- List Container -->
-  <div class="listing-items" role="region" aria-label="Search results">
-    <!-- Individual List Item -->
-    <article class="listing-item">
-      <h2><a href="/item-detail">Item Title</a></h2>
-      <p class="item-meta">
-        <span class="date">Published: January 1, 2024</span>
-        <span class="category">Category Tag</span>
-      </p>
-      <p class="item-description">Brief description of the item goes here.</p>
-      <a href="/item-detail" class="btn btn-primary">View Details</a>
-    </article>
-
-    <!-- Additional List Items Follow Same Pattern -->
-    <article class="listing-item">
-      <h2><a href="/item-detail-2">Another Item</a></h2>
-      <p class="item-meta">
-        <span class="date">Published: December 15, 2023</span>
-        <span class="category">Category Tag</span>
-      </p>
-      <p class="item-description">Another item description.</p>
-      <a href="/item-detail-2" class="btn btn-primary">View Details</a>
-    </article>
-  </div>
-
-  <!-- Pagination -->
-  <nav aria-label="Pagination" class="listing-pagination">
-    <a href="#" class="btn btn-outline" aria-label="Previous page" rel="prev">Previous</a>
-    <span>Page 1 of 5</span>
-    <a href="#" class="btn btn-outline" aria-label="Next page" rel="next">Next</a>
-  </nav>
+<main id="main-content">
+  <!-- Listing page content goes here -->
 </main>
 ```
 
 ### Context
 
-The Listing Page template is a composition of foundational MDWDS components (typography, spacing, cards, buttons) combined into a complete page layout. It provides a reusable structure for displaying collections of content while maintaining consistency with Maryland state web standards and accessibility requirements.
+The Listing Page template serves as the primary template for displaying collections within the MDWDS system. It integrates the USWDS banner and accordion components at the top of the page and provides the structural foundation that other content components (cards, tables, filters) can be composed into to create complete listing experiences.
 
 ---
 
@@ -8710,114 +9128,69 @@ The Listing Page template is a composition of foundational MDWDS components (typ
 
 *Templates*
 
-The Location Page is a template for displaying Maryland state office or facility locations with contact information and directions. It provides a standardized way to present location details, hours of operation, and contact methods to site visitors. Use this template when you need to feature a specific Maryland state office, facility, or service location.
+The Location Page is a template that provides a standardized layout for displaying location or facility information within Maryland government websites. It serves as a reusable template pattern that integrates core MDWDS components like the statewide banner and skip navigation link. This template ensures consistency and accessibility across location-based pages in the Maryland Web Design System.
 
 ### Key Information
 
-This is a full-page template that combines multiple components to create a location-focused landing page. The template typically includes:
 
-- **Page Header**: Maryland state branding and navigation
-- **Hero/Title Section**: Location name and primary identifier
-- **Content Sections**: Key information areas for hours, address, phone, email, and directions
-- **Contact Information Block**: Structured display of office details (hours, address, phone numbers, email)
-- **Map Integration**: Embedded map or directions link
-- **Services/Info Cards**: Additional details specific to the location
-- **Call-to-Action Elements**: Links to online services or related locations
+**Key Components:**
+- Statewide banner section with `usa-banner` class
+- Skip navigation link with `maryland-link maryland-link--skipnav` classes
+- Accordion component within banner (`usa-accordion`)
+- Banner header with `usa-banner__header`, `usa-banner__inner`, and `usa-banner__header-text` classes
+- Banner button with `usa-banner__button` class
+- Proper ARIA attributes for accessibility: `aria-label`, `aria-controls`, `aria-expanded`
 
-The page follows Maryland's standard page layout and component patterns, maintaining consistency with other state templates. It leverages the grid system, typography, spacing utilities, and component library established in MDWDS.
+**CSS Class Names:**
+- `.usa-skipnav` - Skip navigation link
+- `.maryland-link` - Maryland-specific link styling
+- `.maryland-link--skipnav` - Skip nav link modifier
+- `.usa-banner` - Main banner section wrapper
+- `.usa-accordion` - Accordion container
+- `.usa-banner__header` - Banner header block
+- `.usa-banner__inner` - Inner banner container
+- `.usa-banner__header-text` - Header text styling
+- `.usa-banner__button` - Banner toggle button
+
+**Required Attributes:**
+- `aria-label` on section for semantic description
+- `type="button"` on banner button
+- `aria-controls` linking button to accordion ID
+- `aria-expanded` for toggle state management
+- `role="img"` on SVG icons with `aria-hidden="true"` when decorative
+
 
 ### Implementation
 
+
 ```html
-<!-- Location Page Template Structure -->
-<div class="page-wrapper">
-  <!-- Header/Navigation -->
-  <header class="site-header">
-    <!-- Standard Maryland header components -->
-  </header>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
 
-  <!-- Hero/Page Title Section -->
-  <section class="page-hero">
-    <div class="container">
-      <h1 class="page-title">Location Name</h1>
-      <p class="page-subtitle">Organization or Department</p>
-    </div>
-  </section>
-
-  <!-- Main Content -->
-  <main class="page-content">
-    <div class="container">
-      <div class="row">
-        <!-- Primary Content Column -->
-        <div class="col-md-8">
-          <section class="location-details">
-            <h2>About This Location</h2>
-            <p>Description of the location and services provided.</p>
-          </section>
-
-          <section class="services-section">
-            <h2>Services Available</h2>
-            <!-- Service cards or list -->
-          </section>
-        </div>
-
-        <!-- Sidebar - Contact & Hours -->
-        <aside class="col-md-4">
-          <div class="location-info-card">
-            <h3>Hours of Operation</h3>
-            <ul class="hours-list">
-              <li>Monday - Friday: 8:00 AM - 5:00 PM</li>
-              <li>Saturday - Sunday: Closed</li>
-            </ul>
-
-            <h3>Address</h3>
-            <address>
-              Street Address<br>
-              City, State ZIP Code
-            </address>
-
-            <h3>Contact Information</h3>
-            <p>
-              <strong>Phone:</strong> 
-              <a href="tel:+14105551234">(410) 555-1234</a>
-            </p>
-            <p>
-              <strong>Email:</strong> 
-              <a href="mailto:info@maryland.gov">info@maryland.gov</a>
-            </p>
-
-            <h3>Directions</h3>
-            <a href="#map" class="btn btn-primary">Get Directions</a>
-          </div>
-        </aside>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- Icon SVG content -->
+          </svg>
+        </button>
       </div>
-
-      <!-- Map Section -->
-      <section id="map" class="location-map-section">
-        <h2>Location Map</h2>
-        <div class="map-container">
-          <!-- Embedded map or iframe -->
-        </div>
-      </section>
-
-      <!-- Additional Resources -->
-      <section class="related-locations">
-        <h2>Other Locations</h2>
-        <!-- Links to related location pages -->
-      </section>
     </div>
-  </main>
-
-  <!-- Footer -->
-  <footer class="site-footer">
-    <!-- Standard Maryland footer -->
-  </footer>
-</div>
+  </div>
+</section>
 ```
+
 
 ### Context
 
-The Location Page template is part of MDWDS Templates and provides a pre-built structure for Maryland state locations and facilities. It combines foundation elements (typography, spacing, grid), core components (cards, buttons, navigation), and utilities to create a complete, accessible page experience that aligns with Maryland's digital standards.
+The Location Page template is part of the MDWDS Templates category and provides a standardized page structure that incorporates foundational components like the Statewide Banner and accessibility features such as skip navigation. It serves as a starting point for building location-specific pages that maintain consistency with Maryland government web standards.
 
 ---
 
@@ -8825,89 +9198,74 @@ The Location Page template is part of MDWDS Templates and provides a pre-built s
 
 *Templates*
 
-The Maryland Homepage is a template that demonstrates the proper structure and composition of a full-page website for Maryland state organizations. It serves as a reference implementation showing how to assemble various MDWDS components (header, navigation, hero, content sections, and footer) into a cohesive, accessible web page that meets state web standards and branding guidelines.
+The Maryland Homepage is a full-page template that demonstrates the complete layout and structure of Maryland's official state website. It serves as the primary entry point for citizens and includes the state banner, navigation, and main content areas. Use this template as the foundation for all Maryland-branded web pages requiring consistent state identity and accessibility.
 
 ### Key Information
 
-This template integrates core MDWDS components including:
-- **Header**: Contains the Maryland state branding and logo
-- **Navigation**: Primary navigation bar with links to main sections
-- **Hero Section**: Prominent banner area for featured content or messaging
-- **Content Sections**: Main page content area with flexible layout options
-- **Footer**: Footer with state-level links and information
-- **Accessibility**: Implements ARIA labels and semantic HTML structure
-- **Responsive Design**: Mobile-first responsive layout that adapts to different screen sizes
-- **Skip Links**: Skip to main content navigation for keyboard users
+**Key Classes:**
+- `usa-skipnav` - Skip navigation link for accessibility
+- `maryland-link` - Maryland-specific link styling
+- `maryland-link--skipnav` - Modifier for skip navigation link styling
+- `usa-banner` - Statewide banner container
+- `usa-accordion` - Accordion component within banner
+- `usa-banner__header` - Banner header section
+- `usa-banner__inner` - Inner container for banner content
+- `usa-banner__header-text` - Banner text content
+- `usa-banner__button` - Banner toggle button
 
-The template demonstrates proper semantic HTML structure, correct class name usage, and the composition pattern of how MDWDS components work together at the page level. It serves as the starting point for creating new Maryland state web pages.
+**Required ARIA Attributes:**
+- `aria-label` on banner section (describes purpose)
+- `aria-controls` on banner button (references controlled element ID)
+- `aria-expanded` on banner button (indicates expanded state, starts as "false")
+- `role="img"` on SVG icons
+- `aria-hidden="true"` on decorative SVG elements
+- `aria-label` on SVG for descriptive purposes when needed
+
+**HTML Structure:**
+- Skip navigation link placed at top for keyboard accessibility
+- Statewide banner with accordion pattern for "Here's how you know" section
+- Banner includes SVG toggle button with proper ARIA attributes
 
 ### Implementation
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maryland Homepage Template</title>
-  <link rel="stylesheet" href="mdwds-styles.css">
-</head>
-<body>
-  <!-- Skip Link -->
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  
-  <!-- Toolbar/Header -->
-  <header class="md-header" role="banner">
-    <div class="md-header-top">
-      <div class="container">
-        <a href="/" class="md-logo">
-          <img src="maryland-logo.svg" alt="State of Maryland">
-        </a>
-        <nav class="md-header-nav" role="navigation" aria-label="Primary navigation">
-          <!-- Navigation items -->
-        </nav>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
+
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button 
+          type="button" 
+          class="usa-banner__button" 
+          aria-controls="gov-banner-default" 
+          aria-expanded="false"
+        >
+          Here's how you know 
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- SVG content -->
+          </svg>
+        </button>
       </div>
     </div>
-  </header>
-
-  <!-- Skip to Sidebar Link -->
-  <a href="#sidebar" class="skip-link">Skip to sidebar</a>
-
-  <!-- Main Content -->
-  <main id="main-content" role="main">
-    <!-- Hero Section -->
-    <section class="md-hero">
-      <div class="container">
-        <!-- Hero content -->
-      </div>
-    </section>
-
-    <!-- Page Content -->
-    <section class="md-page-content">
-      <div class="container">
-        <!-- Main content goes here -->
-      </div>
-    </section>
-  </main>
-
-  <!-- Sidebar (if applicable) -->
-  <aside id="sidebar" role="complementary" aria-label="Secondary navigation">
-    <!-- Sidebar content -->
-  </aside>
-
-  <!-- Footer -->
-  <footer class="md-footer" role="contentinfo">
-    <div class="container">
-      <!-- Footer content -->
-    </div>
-  </footer>
-</body>
-</html>
+  </div>
+</section>
 ```
+
+**Accessibility Features:**
+- Skip navigation link at the top allows keyboard users to jump to main content
+- Banner section clearly labeled with `aria-label`
+- Button state controlled via `aria-expanded` attribute
+- SVG icons properly marked as decorative with `aria-hidden="true"` or labeled appropriately
 
 ### Context
 
-The Maryland Homepage template is the top-level reference implementation in MDWDS that demonstrates how to properly structure a complete state web page by composing header, navigation, hero, content, and footer components according to system standards. It establishes the foundational pattern that all Maryland state web pages should follow to maintain consistency, accessibility, and brand compliance.
+The Maryland Homepage template establishes the foundational page structure for all Maryland state websites. It begins with the statewide banner—a required component that clearly identifies the site as an official government resource—followed by navigation and main content areas. This template ensures consistent branding, accessibility compliance, and proper information hierarchy across all Maryland web properties.
 
 ---
 
@@ -8915,51 +9273,66 @@ The Maryland Homepage template is the top-level reference implementation in MDWD
 
 *Templates*
 
-The News Page is a template that provides a structured layout for displaying news articles and content related to Maryland state government. It serves as a reusable page template that helps maintain consistency across news-related content on state websites. Use this template when creating dedicated pages for news, announcements, or press releases within the Maryland Web Design System.
+The News Page is a template component that demonstrates how to structure a news or article-focused page within the MDWDS. It combines the Statewide Banner, skip navigation link, and page layout patterns to create a consistent news article presentation. Use this template as a starting point for creating news, blog, or article pages that follow Maryland Design System standards.
 
 ### Key Information
 
-The News Page template follows the MDWDS design patterns and layout structure for presenting news-related information. It includes standard header and navigation components integrated with content areas for articles, dates, and related metadata. This template should maintain responsive design principles and comply with accessibility standards required for Maryland state web properties. The page structure includes standard Maryland branding elements, navigation patterns, and content organization suited for news and announcement publishing.
+### Key Classes and Attributes
+
+- **Skip Navigation Link**: `usa-skipnav`, `maryland-link`, `maryland-link--skipnav` — provides accessible skip-to-content functionality
+- **Statewide Banner**: Uses `usa-banner` section with `usa-accordion` for the collapsible "Official website of Maryland" section
+- **Banner Header**: `usa-banner__header`, `usa-banner__inner`, `usa-banner__header-text` — contains the official state website text
+- **Banner Button**: `usa-banner__button` with `aria-controls="gov-banner-default"` and `aria-expanded="false"` for toggling the banner details
+
+### ARIA Attributes
+- `aria-label="Official website of the State of Maryland"` on the banner section
+- `aria-controls` and `aria-expanded` on the toggle button for accessible state management
+- `role="img"` and `aria-hidden="true"` on SVG icons within the button
+
+### Important Facts
+- The News Page template starts with the standard Maryland header/banner pattern
+- Skip navigation link uses the ID anchor `#main-content` as the target
+- The banner follows USA Design System (USWDS) conventions with `usa-*` class naming
+- The template is designed to be extended with additional main content sections below the banner
 
 ### Implementation
 
 ```html
-<!-- News Page Template Structure -->
-<div class="news-page">
-  <!-- Header and Navigation (standard MDWDS header) -->
-  <header class="mdwds-header" role="banner">
-    <!-- Maryland branding and navigation -->
-  </header>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
 
-  <!-- Main Content Area -->
-  <main class="mdwds-main-content" role="main">
-    <div class="news-container">
-      <!-- News Page Title/Hero Section -->
-      <section class="news-hero">
-        <h1>News</h1>
-      </section>
-
-      <!-- News Articles List -->
-      <section class="news-articles" aria-label="News Articles">
-        <article class="news-item">
-          <h2><a href="#">Article Title</a></h2>
-          <time datetime="YYYY-MM-DD">Date Published</time>
-          <p>Article summary or excerpt</p>
-        </article>
-      </section>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button 
+          type="button" 
+          class="usa-banner__button" 
+          aria-controls="gov-banner-default" 
+          aria-expanded="false">
+          Here's how you know 
+          <svg role="img" aria-hidden="true" aria-label="Toggle button">
+            <!-- SVG icon content -->
+          </svg>
+        </button>
+      </div>
     </div>
-  </main>
+  </div>
+</section>
 
-  <!-- Footer (standard MDWDS footer) -->
-  <footer class="mdwds-footer" role="contentinfo">
-    <!-- Standard Maryland footer content -->
-  </footer>
-</div>
+<!-- Main content follows with id="main-content" -->
 ```
+
+### Variant Notes
+The template renders the standard Statewide Banner at the top. Additional page content (hero section, news article content, sidebar) would follow the banner structure, anchored by `id="main-content"` for the skip navigation target.
 
 ### Context
 
-The News Page template is part of the MDWDS Templates collection and combines standard header, navigation, and footer components with a specialized news content layout. It follows the established MDWDS component patterns to ensure visual and functional consistency across Maryland state government web properties.
+The News Page template provides the foundational structure for news and article pages in the MDWDS, combining the Statewide Banner component with skip navigation accessibility patterns. It demonstrates proper composition of header elements and accessibility features (ARIA labels, skip links) that should be present on all Maryland web pages.
 
 ---
 
@@ -8967,114 +9340,55 @@ The News Page template is part of the MDWDS Templates collection and combines st
 
 *Templates*
 
-The Search Page is a template for implementing a full-page search interface for Maryland state websites. It provides a standardized layout and component structure for users to enter search queries and interact with search results, ensuring consistency across state web properties.
+The Search Page is a template that provides a full-page search interface for Maryland Web Design System implementations. It solves the problem of allowing users to discover and filter content across an entire website. Use this template when you need a dedicated, accessible search experience that follows MDWDS patterns.
 
 ### Key Information
 
-This template serves as a pre-built page layout designed for search-focused functionality. Key features include:
+This is a page template that includes standard MDWDS page structure components:
 
-- **Purpose**: Full-page search interface for state websites
-- **Template Type**: Reusable page layout combining multiple components
-- **Structure**: Integrates header, search input, filters, and results display areas
-- **Composition**: Uses foundational components (search box, buttons, typography, spacing utilities) combined into a cohesive template
-- **Responsive**: Adapts to different screen sizes while maintaining usability
-- **Accessibility**: Includes proper semantic HTML and ARIA labels for search functionality
+**Key Components Included:**
+- `usa-skipnav` - Skip navigation link with class `maryland-link maryland-link--skipnav`
+- `usa-banner` - Statewide banner section with aria-label for accessibility
+- `usa-accordion` - Accordion component within the banner for expandable content
+- `usa-banner__header` - Banner header container
+- `usa-banner__inner` - Inner wrapper for banner content
+- `usa-banner__header-text` - Text element within banner header
+- `usa-banner__button` - Interactive button with aria-controls and aria-expanded attributes
 
-Common use cases:
-- Site-wide search functionality
-- Public records search
-- Service finder interfaces
-- Document and resource discovery pages
+**Required Attributes:**
+- The banner button requires `aria-controls`, `aria-expanded`, and `type="button"`
+- The banner section requires `aria-label` for semantic meaning
+- SVG elements should have `role="img"`, `aria-hidden="true"`, and `aria-label` attributes
+
+**Accessibility:**
+This template prioritizes accessibility with skip navigation links, ARIA labels, and proper button semantics.
 
 ### Implementation
 
 ```html
-<!-- Search Page Template Structure -->
-<main role="main" class="page-wrapper">
-  <!-- Header Section -->
-  <header class="search-page-header">
-    <h1>Search</h1>
-    <p class="subtitle">Find information, services, and resources</p>
-  </header>
+<a class="usa-skipnav maryland-link maryland-link--skipnav" href="#main-content">
+  Skip to main content
+</a>
 
-  <!-- Search Input Section -->
-  <section class="search-input-section">
-    <form role="search" method="get" action="/search">
-      <div class="form-group">
-        <label for="search-input" class="form-label">Search Query</label>
-        <div class="input-wrapper">
-          <input 
-            type="search" 
-            id="search-input" 
-            name="q" 
-            class="form-control search-input"
-            placeholder="Enter your search terms"
-            required
-          />
-          <button 
-            type="submit" 
-            class="btn btn-primary"
-            aria-label="Submit search"
-          >
-            Search
-          </button>
-        </div>
+<section class="usa-banner" aria-label="Official website of the State of Maryland">
+  <div class="usa-accordion">
+    <div class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <p class="usa-banner__header-text">
+          An official website of the State of Maryland.
+        </p>
+        <button type="button" class="usa-banner__button" aria-controls="gov-banner-default" aria-expanded="false">
+          Here's how you know <svg role="img" aria-hidden="true" aria-label="Toggle button"></svg>
+        </button>
       </div>
-
-      <!-- Optional Filters -->
-      <div class="search-filters">
-        <fieldset>
-          <legend class="filter-legend">Refine Your Search</legend>
-          <div class="filter-options">
-            <label class="checkbox">
-              <input type="checkbox" name="filter-type" value="pages" />
-              <span>Web Pages</span>
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" name="filter-type" value="documents" />
-              <span>Documents</span>
-            </label>
-          </div>
-        </fieldset>
-      </div>
-    </form>
-  </section>
-
-  <!-- Results Section -->
-  <section class="search-results" aria-live="polite" aria-label="Search results">
-    <div class="results-info">
-      <p>Showing <strong id="result-count">0</strong> results</p>
     </div>
-
-    <div class="results-list">
-      <!-- Search result items populated dynamically -->
-      <article class="search-result-item">
-        <h2 class="result-title">
-          <a href="#" class="result-link">Result Title</a>
-        </h2>
-        <p class="result-url">https://example.maryland.gov/page</p>
-        <p class="result-snippet">Brief description or excerpt of the search result...</p>
-        <div class="result-metadata">
-          <span class="result-date">Published: January 15, 2024</span>
-        </div>
-      </article>
-    </div>
-
-    <!-- Pagination (if applicable) -->
-    <nav class="pagination" aria-label="Search results pagination">
-      <ul class="pagination-list">
-        <li><a href="#" class="pagination-link" aria-current="page">1</a></li>
-        <li><a href="#" class="pagination-link">2</a></li>
-        <li><a href="#" class="pagination-link">3</a></li>
-      </ul>
-    </nav>
-  </section>
-</main>
+  </div>
+</section>
 ```
 
 ### Context
 
-The Search Page template combines foundational components (form inputs, buttons, typography, spacing) with MDWDS patterns to create a complete, accessible search interface. It demonstrates how to compose multiple system components into a functional page template that serves a specific user need within Maryland state websites.
+The Search Page template establishes a standardized page structure that integrates the MDWDS header components (skip navigation, statewide banner, and accordion) with search functionality. It provides a foundation for implementing state government search patterns while maintaining consistency with other MDWDS templates.
 
 ---
 
@@ -9084,97 +9398,131 @@ The Search Page template combines foundational components (form inputs, buttons,
 
 *Utilities*
 
-The Layout Grid is a responsive utility system for creating flexible, consistent page layouts across Maryland state websites. It provides a foundation for organizing content into rows and columns that adapt to different screen sizes. Use it to ensure visual consistency and responsive behavior across all page templates and components.
+The Layout Grid is a responsive 12-column layout system designed to build flexible, consistent page structures that adapt to various screen sizes. It supports fixed-width, auto-layout, fill, and offset column behaviors using Flexbox principles. Use it whenever you need responsive content layouts with consistent spacing and alignment without custom CSS.
 
 ### Key Information
 
-## Overview
-- Responsive grid system based on a 12-column layout
-- Supports multiple breakpoints for mobile, tablet, and desktop views
-- Uses flexbox for alignment and distribution
+## Variants
 
-## Class Names
-- `.grid` - Main grid container wrapper
-- `.grid-row` - Row container (direct child of grid)
-- `.grid-col` - Column element (direct child of grid-row)
-- `.grid-col-{n}` - Width modifier (e.g., `.grid-col-6` for 50% width)
-- `.grid-col-auto` - Auto-width column
-- `.grid-gap` - Add gap/spacing between grid items
-- `.grid-gap-{size}` - Gap size modifiers (small, medium, large)
+- **ThreeColumns**: 3 equal-width columns at tablet and above
+- **NumericWidth**: Fixed-width columns using 12-column scale
+- **AutoFill**: Flexible columns using auto-sizing and fill
+- **ResponsiveMix**: Responsive columns with different widths per breakpoint
+- **Offset**: Shifted content using column offsets
+- **Gutters**: Demonstrates grid gutter spacing—default, small, and large
 
-## Responsive Breakpoints
-- Mobile-first approach
-- Prefix modifiers with breakpoint: `tablet:`, `desktop:`, `widescreen:`
-- Examples: `.desktop:grid-col-4`, `.tablet:grid-col-6`
+## CSS Class Names
 
-## Key Attributes
-- Display flex by default
-- Supports alignment utilities: `align-items`, `justify-content`
-- Works with standard spacing and sizing utilities
+### Container & Row
+- `grid-container` – Constrains grid within page margins
+- `grid-row` – Wraps columns in a flex row
+
+### Column Classes
+- `grid-col` – Base column class
+- `grid-col-auto` – Flexible, content-driven columns
+- `grid-col-fill` – Fill available space equally
+- `grid-col-6` – Fixed-width 6-column (50% of 12-column grid)
+- `tablet:grid-col` – Responsive column width at tablet breakpoint and above
+- `tablet:grid-col-4` – Fixed 4-column width at tablet breakpoint
+- Numeric modifiers: `grid-col-1` through `grid-col-12`
+- Responsive prefixes: `tablet:`, `desktop:`, `widescreen:` before column classes
+
+### Offset Classes
+- `grid-col-offset-*` – Shift columns; e.g., `grid-col-offset-3` offsets by 3 columns
+
+### Gutter Variants
+- Default gutter spacing
+- Small gutters
+- Large gutters
+
+### Utility Combinations
+Often combined with presentation utilities:
+- `padding-2`, `margin-top-2` – Spacing
+- `text-center` – Text alignment
+- `bg-base-lightest` – Background color
+- `border` – Border styling
+- `font-mono` – Font styling
+
+## Required Attributes
+- No ARIA attributes required; grids are visual constructs only
+- Use semantic heading levels and landmarks inside the grid for accessibility
 
 ## Important Facts
-- Mobile-first responsive design
-- Ensures consistent 16px base unit spacing
-- Compatible with all MDWDS components
-- Improves accessibility through semantic structure
+- Grid system is based on Flexbox
+- Mirrors U.S. Web Design System (USWDS) principles with usa-specific class names
+- Responsive breakpoints support mobile-first design patterns
+- Should not affect semantic structure of content
 
 ### Implementation
 
-## Basic Grid Structure
-
 ```html
-<div class="grid">
+<!-- Basic Three-Column Layout (Responsive at Tablet) -->
+<div class="grid-container">
   <div class="grid-row">
-    <div class="grid-col grid-col-12 tablet:grid-col-6 desktop:grid-col-4">
-      <!-- Content here -->
+    <div class="tablet:grid-col bg-base-lightest padding-2 border text-center font-mono">
+      tablet:grid-col
     </div>
-    <div class="grid-col grid-col-12 tablet:grid-col-6 desktop:grid-col-4">
-      <!-- Content here -->
+    <div class="tablet:grid-col bg-base-lightest padding-2 border text-center font-mono">
+      tablet:grid-col
     </div>
-    <div class="grid-col grid-col-12 tablet:grid-col-6 desktop:grid-col-4">
-      <!-- Content here -->
+    <div class="tablet:grid-col bg-base-lightest padding-2 border text-center font-mono">
+      tablet:grid-col
     </div>
   </div>
 </div>
 ```
 
-## Full-Width Column
-
 ```html
-<div class="grid">
+<!-- Fixed-Width Columns (Numeric Width) -->
+<div class="grid-container">
   <div class="grid-row">
-    <div class="grid-col grid-col-12">
-      <!-- Full width content -->
+    <div class="grid-col-6">
+      <!-- 50% width content -->
+    </div>
+    <div class="grid-col-6">
+      <!-- 50% width content -->
     </div>
   </div>
 </div>
 ```
 
-## Grid with Gaps
-
 ```html
-<div class="grid grid-gap">
+<!-- Auto-Fill Layout -->
+<div class="grid-container">
   <div class="grid-row">
-    <div class="grid-col grid-col-12 desktop:grid-col-6">
-      <!-- Content -->
+    <div class="grid-col-auto">
+      <!-- Auto-sized content -->
     </div>
-    <div class="grid-col grid-col-12 desktop:grid-col-6">
-      <!-- Content -->
+    <div class="grid-col-fill">
+      <!-- Fills remaining space -->
     </div>
   </div>
 </div>
 ```
 
-## Auto-Width Columns
+```html
+<!-- Responsive Mix with Multiple Breakpoints -->
+<div class="grid-container">
+  <div class="grid-row">
+    <div class="grid-col-12 tablet:grid-col-6 desktop:grid-col-4">
+      <!-- Full width mobile, half at tablet, third at desktop -->
+    </div>
+    <div class="grid-col-12 tablet:grid-col-6 desktop:grid-col-4">
+      <!-- Same responsive behavior -->
+    </div>
+    <div class="grid-col-12 tablet:grid-col-12 desktop:grid-col-4">
+      <!-- Full width until desktop -->
+    </div>
+  </div>
+</div>
+```
 
 ```html
-<div class="grid">
+<!-- Offset Columns -->
+<div class="grid-container">
   <div class="grid-row">
-    <div class="grid-col grid-col-auto">
-      <!-- Content auto-sizes -->
-    </div>
-    <div class="grid-col grid-col-auto">
-      <!-- Content auto-sizes -->
+    <div class="grid-col-6 grid-col-offset-3">
+      <!-- Offset by 3 columns, 50% width -->
     </div>
   </div>
 </div>
@@ -9182,97 +9530,110 @@ The Layout Grid is a responsive utility system for creating flexible, consistent
 
 ### Context
 
-The Layout Grid is a foundational utility component that works with all MDWDS templates and page layouts to provide consistent responsive behavior across Maryland state web pages. It pairs with spacing utilities and alignment helpers to create well-structured, accessible page layouts.
+The Layout Grid is a foundational utility in the MDWDS that provides responsive column-based layouts. It composes with other utility classes (spacing, colors, typography) and serves as the backbone for page structure and content organization across the design system, following USWDS conventions.
 
 ---
 
 # Other
 
-## Adopt Conventional Comments for Code Reviews
+## Adopt Conventional Comments for Code Reviews (ADR)
 
 *Other*
 
-This is an Architecture Decision Record (ADR) documenting the adoption of Conventional Comments as a standard for code reviews within the Maryland Web Design System project. It establishes best practices for providing structured, consistent feedback during the peer review process to improve code quality and team communication.
+This is an Architecture Decision Record (ADR) documenting the team's adoption of Conventional Comments as a structured framework for code review feedback. Conventional Comments categorizes review feedback (nitpick, suggestion, issue, question, praise) to improve clarity, reduce ambiguity, and foster a collaborative review culture. Use this ADR as a reference for understanding and implementing the code review standards across MDWDS repositories.
 
 ### Key Information
 
-This ADR establishes the use of Conventional Comments as the standard format for code review feedback in MDWDS. Key points include:
+**Conventional Comments Labels:**
+- `nitpick`: for small changes that are optional but improve code style or readability
+- `suggestion`: for recommended changes that are non-blocking
+- `issue`: for problems that must be addressed before merging
+- `question`: for clarifications or understanding
+- `praise`: for positive reinforcement or acknowledgment of good work
 
-- **Purpose**: Standardizes code review comments to improve clarity, reduce ambiguity, and streamline the review process
-- **Conventional Comments Format**: Uses a structured prefix system for different types of comments:
-  - `praise:` - Positive feedback on well-executed code
-  - `nitpick:` - Minor stylistic or formatting suggestions
-  - `suggestion:` - Non-blocking recommendations for improvement
-  - `issue:` - Blocking concerns that should be addressed before merge
-  - `question:` - Requests for clarification
-  - `thought:` - Exploratory or informational comments
-  - `chore:` - Maintenance-related comments
+**Comment Structure:**
+All reviewers must use the format: `[label]: [comment]`
 
-- **Benefits**: Improves communication clarity, distinguishes blocking from non-blocking feedback, helps reviewers and authors understand the priority and nature of each comment, and creates a more constructive review culture
+Example: `suggestion: Consider renaming this variable to better reflect its purpose.`
 
-- **Implementation**: All team members should use the Conventional Comments format when providing feedback on pull requests and code reviews
+**Status:** Accepted  
+**Date:** 2025-06-18
+
+**Key Benefits:**
+- Improves clarity and actionability of code review feedback
+- Reduces ambiguity and fosters respect and collaboration
+- Helps new contributors understand what is required
+- Makes review process more consistent across team
+
+**Implementation Notes:**
+- All code review feedback across repositories must follow this convention
+- Team onboarding and contribution guidelines should reference this ADR
+- Small learning curve expected during adoption phase
 
 ### Implementation
 
-While this is a policy/process document rather than a UI component, the implementation involves:
+This is a documentation/guidance page with no interactive components or structured markup examples to extract. The page consists primarily of prose content rendered via Storybook's documentation view, using standard semantic HTML headings, paragraphs, and links. There are no MDWDS-specific component implementations, class patterns, or ARIA structures to document.
 
-**Code Review Comment Format:**
+The page contains:
+- Standard heading hierarchy (`<h1>`, `<h2>`)
+- Paragraph text (`<p>`) with inline links
+- Horizontal rule separator (`<hr>`)
+- Status metadata (Accepted, Date: 2025-06-18)
+- Structured sections with emoji prefixes (🚀, ✅, ⚖️, 👨🏾‍💻)
 
-```
-<TYPE>: [optional blocking marker] <summary>
-
-[optional body]
-
-[optional metadata]
-```
-
-**Examples:**
-
-```
-praise: Great refactoring of the button component! The code is much more maintainable.
-```
-
-```
-suggestion: Consider using the `useCallback` hook here to memoize the event handler and improve performance.
-```
-
-```
-issue: This breaks the existing API contract. The component no longer accepts the `disabled` prop, which will cause issues downstream.
-```
-
-```
-question: Why are we using flexbox here instead of grid? Is there a specific reason for this approach?
-```
-
-```
-nitpick: The variable name `temp` could be more descriptive. Consider `formattedDate` or similar.
-```
-
-**Guidelines:**
-- Include the comment type prefix to clarify intent
-- Use optional blocking marker `[blocking]` to indicate critical issues
-- Keep comments constructive and focused
-- Provide context and suggestions for improvement when possible
+No component code blocks or implementation examples are provided.
 
 ### Context
 
-This ADR is part of the MDWDS developer documentation and governance, establishing development practices and standards that all team members follow when collaborating on the design system. It supports quality assurance and consistency across all components and contributions to the system.
+This ADR document is part of the MDWDS developer documentation and governance structure, establishing standardized practices for code reviews across the design system. It serves as a reference guide for all contributors and maintainers working within the MDWDS ecosystem.
 
 ---
 
-## Adopt Conventional Commits for Versioning and Clarity
+## Adopt Conventional Commits for Versioning and Clarity (ADR)
 
 *Other*
 
-This is an Architecture Decision Record (ADR) documenting the adoption of Conventional Commits as the standard commit message format for the Maryland Web Design System. It establishes clear versioning and communication practices across the design system codebase. This applies to all developers contributing to MDWDS to ensure consistency, automated changelog generation, and semantic versioning.
+This is an Architecture Decision Record (ADR) documenting the adoption of Conventional Commits specification across all MDWDS projects. It standardizes commit message formats to enable semantic versioning, automatic changelog generation, and improved code history clarity. This decision supports long-term project sustainability and better collaboration across contributors.
 
 ### Key Information
 
-## Conventional Commits Standard
+**Commit Message Structure:**
+- Format: `<type>[optional scope]: <description>`
+- Optional body and footer sections for additional context
 
-Conventional Commits is a specification for adding human and machine-readable meaning to commit messages. The format follows:
+**Supported Commit Types:**
+- `feat` – A new feature
+- `fix` – A bug fix
+- `docs` – Documentation changes only
+- `style` – Formatting, whitespace, etc. (no code changes)
+- `refactor` – Code change that neither fixes nor adds a feature
+- `test` – Adding or fixing tests
+- `chore` – Maintenance tasks (e.g., bumping deps)
+- `ci` – CI/CD configuration or scripts
+- `perf` – Performance improvements
+- `build` – Changes that affect the build system or deps
 
-```
+**Key Benefits:**
+- Enables semantic versioning and automatic changelog generation
+- Provides consistent, meaningful history across all projects
+- Makes it easier for new contributors to understand changes
+- Supports tools like semantic-release and release-please
+
+**Consequences:**
+- Requires learning curve and upfront discipline from contributors
+- Teams need to lint and enforce commit message standards
+
+### Implementation
+
+```html
+<!-- Example conventional commits (text format): -->
+
+feat(auth): add login redirect after signup
+fix(forms): handle null values in required fields
+docs(readme): update contributing guidelines
+chore(deps): bump astro from 3.5 to 3.6
+
+<!-- Full commit message structure: -->
 <type>[optional scope]: <description>
 
 [optional body]
@@ -9280,121 +9641,9 @@ Conventional Commits is a specification for adding human and machine-readable me
 [optional footer(s)]
 ```
 
-### Commit Types
-- **feat**: A new feature
-- **fix**: A bug fix
-- **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (formatting, missing semicolons, etc.)
-- **refactor**: Code change that neither fixes a bug nor adds a feature
-- **perf**: Code change that improves performance
-- **test**: Adding or updating tests
-- **chore**: Changes to build process, dependencies, or tooling
-- **ci**: Changes to CI/CD configuration
-
-### Breaking Changes
-- Append `!` after the type/scope to indicate a breaking change: `feat!:` or `feat(scope)!:`
-- Include `BREAKING CHANGE:` in the footer to describe the breaking change
-
-### Scope (Optional)
-- Identifies the section of the codebase affected (e.g., `button`, `form`, `accessibility`)
-- Helps categorize and filter commits
-
-### Description Requirements
-- Use imperative mood ("add" not "added" or "adds")
-- Do not capitalize first letter
-- No period (.) at the end
-- Keep it concise (50 characters or less preferred)
-
-### Body (Optional)
-- Explain what and why, not how
-- Wrap at 72 characters
-- Separated from description by blank line
-
-### Footer (Optional)
-- Reference issues: `Closes #123`, `Fixes #456`, `Relates to #789`
-- Include `BREAKING CHANGE:` for significant API changes
-
-## Benefits
-- Automated semantic versioning (major.minor.patch)
-- Automated changelog generation
-- Clear commit history
-- Better repository navigation and filtering
-- Integration with CI/CD pipelines
-
-### Implementation
-
-## Example Conventional Commits
-
-### Feature Commit
-```
-feat(button): add loading state to primary button
-
-Add new loading prop to button component that displays 
-a spinner and disables interaction while async action 
-is in progress.
-
-Closes #234
-```
-
-### Bug Fix
-```
-fix(accessibility): improve keyboard navigation in modal
-
-Previously tabbing through modal did not properly trap focus
-in accessible ways. Fixed by implementing proper focus trap
-and returning focus to trigger on close.
-
-Fixes #567
-```
-
-### Breaking Change
-```
-feat(form)!: restructure form validation API
-
-BREAKING CHANGE: The onChange handler signature has changed from
-onChange(value) to onChange({value, errors}). Update all form
-implementations to destructure the new object format.
-
-Closes #890
-```
-
-### Documentation
-```
-docs: add accessibility guidelines to README
-
-Update main README with comprehensive accessibility guidelines
-including WCAG 2.1 AA compliance requirements.
-```
-
-### Chore/Dependency Update
-```
-chore(deps): upgrade react to v18.0.0
-```
-
-### Style/Format
-```
-style(button): remove trailing whitespace and reformat CSS
-```
-
-### Performance Improvement
-```
-perf(grid): optimize rendering of large lists
-
-Use React.memo on grid row component to prevent unnecessary
-re-renders when parent grid updates.
-```
-
-### Test Update
-```
-test(button): add tests for loading state
-
-Add unit tests covering loading state transitions, disabled
-state verification, and spinner visibility.
-```
-
 ### Context
 
-This ADR establishes development practices and code quality standards for the Maryland Web Design System team. It ensures all contributors follow a consistent approach to versioning and commit messaging, which improves project maintainability, automated tooling integration, and developer communication across the MDWDS project.
+This ADR establishes a development standard for the MDWDS project that affects all contributors and CI/CD workflows. By standardizing commit messages, the system enables automated versioning, changelog generation, and integration with modern development tools across the design system ecosystem.
 
 ---
 
@@ -9402,59 +9651,92 @@ This ADR establishes development practices and code quality standards for the Ma
 
 *Other*
 
-The Changelog documents the version history and updates to the Maryland Web Design System (MDWDS), including new features, bug fixes, improvements, and breaking changes. It serves as a reference for developers and designers to understand what has changed between releases and how to migrate their implementations when needed.
+The Changelog is a documentation page that tracks version history and release notes for the Maryland Web Design System. It documents features, bug fixes, documentation updates, and other changes across multiple versions. This page serves as a reference for developers to understand what has changed between releases and plan updates to their projects.
 
 ### Key Information
 
-The Changelog is a historical record maintained for the MDWDS project. Key aspects include:
+This is a documentation-only page with no interactive components or variants. The page displays a table of contents with collapsible sections for each version, organized by release date in reverse chronological order. Key information includes:
 
-- **Purpose**: Tracks all updates, features, and fixes released in different versions
-- **Content Types**: Features, bug fixes, improvements, deprecations, and breaking changes
-- **Version References**: Links specific changes to version numbers for dependency management
-- **Update Frequency**: Updated with each release cycle
-- **Accessibility**: Provides important information for developers deciding when to upgrade their projects
-- **Breaking Changes**: Clearly documents any changes that may require code modifications in consuming applications
+- Version numbers following semantic versioning (e.g., v0.43.0-rc.4576727)
+- Release dates
+- Categories of changes: Features, Bug Fixes, Documentation, Code Refactoring, Build System, CI/CD, Housekeeping (Chores), and Tests
+- No CSS class modifiers or interactive elements to configure
 
-Developers should regularly consult the Changelog when:
-- Updating MDWDS to a new version
-- Planning component implementations
-- Understanding deprecated features
-- Troubleshooting issues that may be version-related
+The page uses standard Storybook documentation styling with `sbdocs` wrapper classes and navigation elements.
 
 ### Implementation
 
-The Changelog is a documentation reference page rather than a reusable component. It typically uses standard markdown or documentation formatting:
+The Changelog page renders as a documentation-only page using Storybook's default documentation layout. No custom component implementation is needed. The page structure consists of:
 
 ```html
-<!-- Changelog documentation structure -->
-<main class="docs-content">
-  <h1>Changelog</h1>
-  <article>
-    <h2>Version X.X.X</h2>
-    <p><strong>Release Date:</strong> YYYY-MM-DD</p>
-    
-    <h3>Features</h3>
-    <ul>
-      <li>New feature description</li>
-    </ul>
-    
-    <h3>Bug Fixes</h3>
-    <ul>
-      <li>Bug fix description</li>
-    </ul>
-    
-    <h3>Breaking Changes</h3>
-    <ul>
-      <li>Breaking change with migration guidance</li>
-    </ul>
-  </article>
-</main>
+<div id="storybook-docs">
+  <div class="sbdocs sbdocs-wrapper css-3rewwu">
+    <aside class="sbdocs sbdocs-toc--custom css-1wizkyk">
+      <nav aria-labelledby="_r_0_" class="css-q7khkg">
+        <h2 id="_r_0_" class="css-ghy3je">Table of Contents</h2>
+        <div class="toc-wrapper">
+          <ul class="toc-list">
+            <li class="toc-list-item is-active-li">
+              <a href="#v0430-rc4576727-2026-03-24" class="toc-link node-name--H2 is-active-link">
+                v0.43.0-rc.4576727 (2026-03-24)
+              </a>
+              <ul class="toc-list is-collapsible">
+                <li class="toc-list-item">
+                  <a href="#features" class="toc-link node-name--H3">Features</a>
+                </li>
+              </ul>
+            </li>
+            <!-- Additional version entries follow same pattern -->
+          </ul>
+        </div>
+      </nav>
+    </aside>
+  </div>
+</div>
 ```
 
-For implementation details, consult specific version entries in the Changelog for exact changes to affected components.
+The navigation uses `toc-list` and `toc-list-item` classes with `is-active-li` and `is-active-link` modifiers for the currently selected version. Collapsible sections use `is-collapsible` and `is-collapsed` classes.
 
 ### Context
 
-The Changelog is a foundational reference document within the MDWDS that complements the component library and design guidelines. It documents the evolution of all system components and helps teams ensure their implementations remain compatible with current versions while understanding deprecations and improvements across the entire system.
+The Changelog is a reference documentation page within the MDWDS Storybook that helps developers track system updates and changes. It integrates with the Storybook navigation system to provide historical context for the design system's evolution and helps teams stay informed about new features, fixes, and breaking changes across versions.
+
+---
+
+## Exclude USWDS Styles from Core Web Components
+
+*Other*
+
+This is an Architectural Decision Record (ADR) documenting the decision to exclude U.S. Web Design System (USWDS) stylesheets as direct dependencies from core MDWDS Web Components. The decision prevents style conflicts, reduces bundle bloat, and maintains component encapsulation while still adhering to USWDS and MDWDS design principles. This ensures flexibility for consuming applications and improves long-term maintainability of the design system.
+
+### Key Information
+
+**Status:** Accepted  
+**Date:** 2025-06-18
+
+**Key Points:**
+
+- Core MDWDS Web Components will not include USWDS stylesheets as direct dependencies
+- Components are built using custom design tokens, custom properties, and internal styles without relying on USWDS core, global, or component styles
+- Non-core components may reuse USWDS class names or behavior where practical
+- All components continue to follow USWDS and MDWDS design standards for look, feel, and accessibility
+
+**Pros:**
+- Reduces bundle size by eliminating redundant USWDS styles
+- Prevents style conflicts between app-wide USWDS usage and Shadow DOM encapsulation
+- Maintains flexibility for applying MDWDS styles to both design system components and consuming applications
+- Decouples MDWDS from USWDS Sass architecture for improved maintainability
+
+**Cons:**
+- Core components will not automatically receive USWDS updates
+- Developers must manually maintain consistency with USWDS design patterns
+
+### Implementation
+
+No rendered component implementation is present on this documentation page. This is an Architectural Decision Record (ADR) containing prose documentation, not a component with HTML structure or code examples.
+
+### Context
+
+This ADR establishes architectural guidance for how MDWDS Web Components relate to and integrate (or do not integrate) with the U.S. Web Design System. It clarifies the design philosophy for the core component library and provides developers with understanding of dependency boundaries between MDWDS and USWDS.
 
 ---

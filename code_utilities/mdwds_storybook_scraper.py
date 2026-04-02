@@ -52,7 +52,9 @@ EXTRACTION_CONCURRENCY = 5   # parallel Bedrock calls during extraction
 PAGE_TIMEOUT = 25_000        # ms — navigation timeout
 PAGE_SETTLE_MS = 1_500       # ms — extra settle time after navigation
 CRAWL_DELAY_S = 0.5          # seconds — polite delay between pages
-MAX_CHARS_PER_PAGE = 6_000   # cap raw scraped content per page
+MAX_DOCS_IFRAME_CHARS  = 8_000   # cap on docs iframe HTML (prose + code examples)
+MAX_STORY_IFRAME_CHARS = 5_000   # cap on rendered story HTML (real component markup)
+MAX_TEXT_CHARS         = 2_000   # cap on visible text content
 
 # Category display order in the final document
 CATEGORY_ORDER = [
@@ -187,6 +189,8 @@ def select_pages_to_scrape(stories: list[dict]) -> list[dict]:
     """
     Group stories by component ID and select the best page per component.
     Priority: docs page > first story page.
+    Also stores the first story variant path so the scraper can access rendered
+    component HTML even for docs-only components.
     """
     components: dict[str, dict] = {}
     for s in stories:
@@ -203,8 +207,14 @@ def select_pages_to_scrape(stories: list[dict]) -> list[dict]:
     selected = []
     for comp in components.values():
         chosen = comp["docs"] or (comp["stories"][0] if comp["stories"] else None)
-        if chosen:
-            selected.append(chosen)
+        if not chosen:
+            continue
+        first_story = comp["stories"][0] if comp["stories"] else None
+        selected.append({
+            **chosen,
+            # For docs pages this gives us the story variant to render for real HTML
+            "first_story_path": first_story["path"] if first_story else None,
+        })
 
     n_docs = sum(1 for c in components.values() if c["docs"])
     n_fallback = sum(1 for c in components.values() if not c["docs"] and c["stories"])
@@ -214,76 +224,151 @@ def select_pages_to_scrape(stories: list[dict]) -> list[dict]:
 
 # ── Phase 2: Scrape pages ─────────────────────────────────────────────────────
 
-async def scrape_page_content(page, story: dict) -> dict:
-    """Navigate to a Storybook page and extract structured text and code blocks."""
-    url = story["href"]
+def _story_id(path: str) -> str:
+    """Extract the Storybook story ID from a ?path= value."""
+    return re.sub(r"^/(docs|story)/", "", path)
+
+
+def _iframe_url(story_id: str, view_mode: str) -> str:
+    """Build the direct Storybook iframe URL.
+    This bypasses the Storybook shell — navigating here gives us the raw rendered
+    content (docs text + code blocks, or the component HTML) without chrome noise.
+    """
+    return f"{STORYBOOK_URL.rstrip('/')}/iframe.html?id={story_id}&viewMode={view_mode}"
+
+
+async def _navigate(page, url: str, is_iframe: bool = False) -> bool:
+    """
+    Navigate to a URL and wait for it to be usable.
+    For iframe.html pages we use domcontentloaded + a fixed settle time rather than
+    networkidle — Storybook iframes keep a WebSocket open for hot-reload, which means
+    networkidle never fires and the script hangs indefinitely.
+    """
+    wait_until = "domcontentloaded" if is_iframe else "networkidle"
     try:
-        await page.goto(url, wait_until="networkidle", timeout=PAGE_TIMEOUT)
+        await page.goto(url, wait_until=wait_until, timeout=PAGE_TIMEOUT)
+        if is_iframe:
+            await page.wait_for_timeout(PAGE_SETTLE_MS)
+        return True
     except PlaywrightTimeout:
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
-        except Exception as e:
-            return {**story, "content": "", "error": str(e)}
+            await page.wait_for_timeout(PAGE_SETTLE_MS)
+            return True
+        except Exception:
+            return False
 
-    await page.wait_for_timeout(PAGE_SETTLE_MS)
 
-    # Reveal any hidden code blocks
-    try:
-        btns = await page.query_selector_all(
-            'button[title*="ode" i], button[aria-label*="code" i], '
-            'button:has-text("Show code"), button:has-text("show code")'
-        )
-        for btn in btns:
+async def scrape_page_content(page, story: dict) -> dict:
+    """
+    Scrape a Storybook component by navigating directly to its iframe.html URL.
+
+    The main Storybook shell (/?path=...) renders all content inside nested iframes,
+    so inner_text() on the shell returns nothing useful. Navigating to iframe.html
+    directly gives us the real content without any of the Storybook chrome.
+
+    For docs pages we fetch two iframes:
+      1. viewMode=docs  — the MDX documentation page: prose, usage notes, code blocks
+      2. viewMode=story — the first story variant: actual rendered component HTML
+
+    For story-only pages we fetch just viewMode=story.
+    """
+    parts = []
+    sid = _story_id(story["path"])
+
+    # ── Pass 1: docs iframe (prose + embedded code examples) ─────────────────
+    if story["is_docs"]:
+        url = _iframe_url(sid, "docs")
+        if await _navigate(page, url, is_iframe=True):
+            # Storybook renders docs asynchronously — wait for the loading skeleton
+            # to detach before reading content, or bail after 15s
             try:
-                await btn.click(timeout=2_000)
-                await page.wait_for_timeout(400)
+                await page.wait_for_selector(
+                    ".sb-preparing-docs, .sb-preparing-story",
+                    state="detached",
+                    timeout=15_000,
+                )
+            except Exception:
+                pass  # either already gone or never appeared
+            await page.wait_for_timeout(500)
+            try:
+                html = await page.evaluate("() => document.body.innerHTML")
+                if html and len(html.strip()) > 100:
+                    parts.append(
+                        f"[DOCS PAGE HTML — prose, usage notes, code examples]\n"
+                        f"{html[:MAX_DOCS_IFRAME_CHARS]}"
+                    )
             except Exception:
                 pass
+            try:
+                text = await page.locator("body").inner_text(timeout=5_000)
+                if text and len(text.strip()) > 30:
+                    parts.append(f"[DOCS VISIBLE TEXT]\n{text[:MAX_TEXT_CHARS]}")
+            except Exception:
+                pass
+
+    # ── Pass 2: story iframe (rendered component — real class names) ──────────
+    # For docs pages, use the stored first story variant.
+    # For story pages, use the page itself.
+    story_path = story.get("first_story_path") or (
+        story["path"] if not story["is_docs"] else None
+    )
+    if story_path:
+        story_sid = _story_id(story_path)
+        url = _iframe_url(story_sid, "story")
+        if await _navigate(page, url, is_iframe=True):
+            await page.wait_for_timeout(PAGE_SETTLE_MS)
+            try:
+                html = await page.evaluate("() => document.body.innerHTML")
+                if html and len(html.strip()) > 100:
+                    parts.append(
+                        f"[RENDERED STORY HTML — exact component markup with real class names]\n"
+                        f"{html[:MAX_STORY_IFRAME_CHARS]}"
+                    )
+            except Exception:
+                pass
+
+    content = "\n\n".join(parts)
+    return {
+        **story,
+        "content": content.strip(),
+        "error": None if parts else "no content retrieved",
+    }
+
+
+async def detect_cdn_version(page) -> str:
+    """
+    Detect the current MDWDS CDN version by checking:
+    1. The deployed ai.maryland.gov site CSS link (most authoritative)
+    2. Any cdn.maryland.gov reference in the Storybook Getting Started iframe
+    Falls back to the last known stable version.
+    """
+    # Check the deployed Maryland site — its CSS link contains the live CDN version
+    try:
+        await page.goto("https://ai.maryland.gov/", wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+        links = await page.evaluate(
+            "() => Array.from(document.querySelectorAll('link[rel=\"stylesheet\"]')).map(l => l.href)"
+        )
+        for href in links:
+            m = re.search(r"cdn\.maryland\.gov/mdwds/([^/]+)/", href)
+            if m:
+                return m.group(1)
     except Exception:
         pass
 
-    # Use Playwright's locator API (no JS eval string) to extract content.
-    # Try the docs wrapper first, then the generic root, then the whole body.
-    main_locator = (
-        page.locator(".sbdocs-wrapper").first
-        if await page.locator(".sbdocs-wrapper").count() > 0
-        else page.locator("#storybook-root").first
-        if await page.locator("#storybook-root").count() > 0
-        else page.locator("main").first
-        if await page.locator("main").count() > 0
-        else page.locator("body").first
-    )
-
-    # Grab all pre/code blocks first so we can reinsert them with fences
-    code_parts = []
-    for pre in await page.locator("pre").all():
-        try:
-            code_text = (await pre.inner_text(timeout=3_000)).strip()
-            if code_text:
-                code_parts.append("```\n" + code_text + "\n```")
-        except Exception:
-            pass
-
-    # Get the full visible text of the main content area
+    # Fallback: scan Getting Started Storybook iframe for any CDN reference in text
     try:
-        raw_text = await main_locator.inner_text(timeout=5_000)
+        url = _iframe_url("getting-started-for-engineers--docs", "docs")
+        await page.goto(url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+        await page.wait_for_timeout(PAGE_SETTLE_MS)
+        text = await page.locator("body").inner_text(timeout=5_000)
+        m = re.search(r"cdn\.maryland\.gov/mdwds/([0-9]+\.[0-9]+\.[0-9]+)/", text)
+        if m:
+            return m.group(1)
     except Exception:
-        raw_text = ""
+        pass
 
-    # Combine: prose text + code blocks appended at the end.
-    # (Code blocks from <pre> are already embedded in inner_text, but separating
-    # them here lets the LLM see clean fenced blocks regardless of rendering quirks.)
-    content_parts = [raw_text.strip()]
-    if code_parts:
-        content_parts.append("\n\n--- Code Examples ---\n")
-        content_parts.extend(code_parts)
-    content = "\n\n".join(content_parts)
-
-    return {
-        **story,
-        "content": (content or "").strip()[:MAX_CHARS_PER_PAGE],
-        "error": None,
-    }
+    return "0.44.0"  # last known stable version
 
 
 async def scrape_all_pages(selected: list[dict]) -> list[dict]:
@@ -316,31 +401,44 @@ _extraction_tool = {
 }
 
 _extraction_prompt_template = """\
-You are reading a single page from the Maryland Web Design System (MDWDS) Storybook.
-Extract structured documentation that an LLM can use to build Maryland state web pages.
+You are extracting documentation from a single Maryland Web Design System (MDWDS) \
+Storybook page. The content below includes real rendered HTML from the Storybook \
+component iframes — these contain the ACTUAL class names used by MDWDS.
 
 Page title: {title}
 Page URL: {url}
+MDWDS CDN version: {version}
 
-Raw page content:
+Page content:
 {content}
 
-Extract:
-- component_name: The clean display name (e.g. "Accordion", "Color Palette")
+Extract the following fields:
+
+- component_name: Clean display name (e.g. "Header", "Accordion", "Statewide Banner")
 - category: One of: Getting Started, Foundation, Components, Templates, Utilities, Other
 - summary: 2-3 sentences — what it is, what problem it solves, when to use it
-- key_information: Markdown covering variants, CSS class names, modifier patterns, options,
-  required attributes, and important facts. Be specific and complete.
-- implementation: Markdown with fenced HTML code blocks. Correct structure, all required
-  class names, ARIA attributes, and JS initialization if any. Cover structural variants.
-- context: 1-2 sentences on how this fits into MDWDS, how it composes with other parts.
+- key_information: Markdown covering all variants, CSS class modifier patterns, required
+  HTML attributes, and important facts. List the actual class names you see in the HTML.
+- implementation: Markdown with fenced HTML code blocks showing the EXACT structure from
+  the rendered HTML above — real class names, required ARIA attributes, correct nesting.
+  For complex components show the full structure. Include ALL variants you see.
+- context: 1-2 sentences on how this fits into the MDWDS system or composes with others.
 
-If the page has little content or is a redirect/index, still do your best with what's there.\
+CRITICAL RULES:
+1. Use ONLY class names that appear verbatim in the HTML provided above.
+   DO NOT invent, guess, or generalize class names. If you see "maryland-header" in the
+   HTML, write "maryland-header". Do not write "header" or "md-header" or anything else.
+2. If the HTML is empty or minimal, say so in the summary and leave implementation empty
+   rather than fabricating markup.
+3. For the CDN URLs in Getting Started content, use version {version} (no "v" prefix).\
 """
 
 
 async def extract_page(
-    scraped: dict, client: anthropic.AsyncAnthropicBedrock, sem: asyncio.Semaphore
+    scraped: dict,
+    client: anthropic.AsyncAnthropicBedrock,
+    sem: asyncio.Semaphore,
+    cdn_version: str = "unknown",
 ) -> PageExtraction | None:
     content = (scraped.get("content") or "").strip()
     if not content:
@@ -349,6 +447,7 @@ async def extract_page(
     prompt = _extraction_prompt_template.format(
         title=scraped.get("text") or scraped.get("path", ""),
         url=scraped.get("href", ""),
+        version=cdn_version,
         content=content,
     )
 
@@ -377,11 +476,17 @@ async def extract_page(
 
 
 async def run_extraction(
-    scraped_pages: list[dict], client: anthropic.AsyncAnthropicBedrock
+    scraped_pages: list[dict],
+    client: anthropic.AsyncAnthropicBedrock,
+    cdn_version: str = "unknown",
 ) -> list[PageExtraction]:
     """Extract structured info from every scraped page, in parallel."""
     sem = asyncio.Semaphore(EXTRACTION_CONCURRENCY)
-    tasks = [extract_page(p, client, sem) for p in scraped_pages if p.get("content")]
+    tasks = [
+        extract_page(p, client, sem, cdn_version)
+        for p in scraped_pages
+        if p.get("content")
+    ]
 
     extractions = []
     results = await asyncio.gather(*tasks)
@@ -399,9 +504,10 @@ async def run_extraction(
 
 # ── Phase 4: Holistic synthesis ───────────────────────────────────────────────
 
-def _build_synthesis_prompt(extractions: list[PageExtraction]) -> str:
-    # Pass only compact summaries and context to the synthesis call —
-    # not the full implementation details. The synthesis is about the big picture.
+def _build_synthesis_prompt(
+    extractions: list[PageExtraction], cdn_version: str
+) -> str:
+    # Pass only compact summaries and context — not full implementation details.
     lines = []
     for e in extractions:
         lines.append(
@@ -412,7 +518,7 @@ def _build_synthesis_prompt(extractions: list[PageExtraction]) -> str:
         )
     compact_view = "\n\n---\n\n".join(lines)
 
-    return f"""You are writing the introduction and overview section of an LLM skill document for the Maryland Web Design System (MDWDS).
+    return f"""You are writing the introduction and overview section of an LLM skill document for the Maryland Web Design System (MDWDS). The current MDWDS CDN version is {cdn_version}.
 
 The full document will consist of this introduction followed by detailed per-component reference entries. Your job is to write the intro — the section that gives another LLM the mental model it needs to use MDWDS correctly.
 
@@ -430,23 +536,25 @@ Write 600–900 words of Markdown covering:
 
 1. **What MDWDS is** — its relationship to USWDS, what it's for, the Maryland state government context.
 
-2. **CDN setup** — the exact HTML to include in `<head>`. Critical: version numbers in CDN URLs do NOT use a `v` prefix (write `0.36.0` not `v0.36.0`). Show the correct link and script tags. Mention FOUC prevention.
+2. **CDN setup** — the exact HTML to include in `<head>`. The CDN version is {cdn_version} — do NOT add a "v" prefix (write `{cdn_version}`, not `v{cdn_version}`). Show the correct link and script tags. Emphasize that ALL component styling comes from the CDN — the LLM must never write custom CSS to replicate MDWDS styles. Mention FOUC prevention with `usa-js-loading`.
 
-3. **The class naming system** — explain the patterns (`.usa-` prefix inheritance, modifier classes, BEM-like structure) so the LLM can reason about unfamiliar class names rather than just looking them up.
+3. **The class naming system** — `maryland-*` web components and CSS custom properties, `usa-*` USWDS-inherited classes with BEM modifiers (`usa-button--secondary`), and plain BEM for layout. Explain that `maryland-header`, `maryland-nav`, `maryland-search-form` etc. are the real header classes — not generic `header` or `header__container`.
 
-4. **How components compose** — how pages are built from blocks, the role of layout wrappers, and how foundation tokens underpin components.
+4. **How components compose** — page shell order: `usa-banner` (statewide banner) → `maryland-header` → `maryland-nav` → main content → statewide footer. Templates show the authoritative nesting.
 
-5. **Key things to get right** — 3-5 common pitfalls or non-obvious requirements that an LLM should know before generating any MDWDS HTML.
+5. **Key things to get right** — at minimum: (a) always load the CDN, never write custom CSS; (b) the Statewide Banner is required on every Maryland state page; (c) use real MDWDS class names from the component reference, not invented ones; (d) `<maryland-*>` web components need the JS bundle to function.
 
-Be direct, concrete, and instructional. This intro is read before the component reference entries, so don't repeat what's in them — focus on the system-level understanding. Generated: {datetime.now().strftime('%Y-%m-%d')}
+Be direct and concrete. Generated: {datetime.now().strftime('%Y-%m-%d')}
 """
 
 
 async def synthesize_intro(
-    extractions: list[PageExtraction], client: anthropic.AsyncAnthropicBedrock
+    extractions: list[PageExtraction],
+    client: anthropic.AsyncAnthropicBedrock,
+    cdn_version: str = "unknown",
 ) -> str:
     print("\nPhase 4: Writing synthesis intro with Claude on Bedrock...")
-    prompt = _build_synthesis_prompt(extractions)
+    prompt = _build_synthesis_prompt(extractions, cdn_version)
     print(f"  Prompt size: {len(prompt):,} characters")
 
     response = await client.messages.create(
@@ -538,6 +646,15 @@ async def run():
         with open(SCRAPE_CACHE, "r", encoding="utf-8") as f:
             scraped_pages = json.load(f)
         print(f"  Loaded {len(scraped_pages)} cached pages.")
+        # Detect version even when using cache (fast, single page load)
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            context = await browser.new_context(viewport={"width": 1280, "height": 900})
+            await context.route("**/*", _route_handler)
+            page = await context.new_page()
+            cdn_version = await detect_cdn_version(page)
+            await browser.close()
+        print(f"  CDN version detected: {cdn_version}")
     else:
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
@@ -545,8 +662,10 @@ async def run():
             await context.route("**/*", _route_handler)
             page = await context.new_page()
             stories = await discover_story_urls(page)
+            cdn_version = await detect_cdn_version(page)
             await browser.close()
 
+        print(f"  CDN version detected: {cdn_version}")
         selected = select_pages_to_scrape(stories)
         print(f"\nPhase 2: Scraping {len(selected)} pages...")
         scraped_pages = await scrape_all_pages(selected)
@@ -568,7 +687,7 @@ async def run():
         print(f"  Loaded {len(extractions)} cached extractions.")
     else:
         print(f"\nPhase 3: Extracting {len(successful)} pages with {EXTRACTION_MODEL}...")
-        extractions = await run_extraction(successful, client)
+        extractions = await run_extraction(successful, client, cdn_version)
 
         with open(EXTRACTION_CACHE, "w", encoding="utf-8") as f:
             json.dump([e.model_dump() for e in extractions], f, indent=2, ensure_ascii=False)
@@ -577,7 +696,7 @@ async def run():
     print(f"  {len(extractions)} extractions ready.")
 
     # ── Synthesis ────────────────────────────────────────────────────────────
-    intro = await synthesize_intro(extractions, client)
+    intro = await synthesize_intro(extractions, client, cdn_version)
 
     # ── Assemble ─────────────────────────────────────────────────────────────
     print("\nPhase 5: Assembling final document...")
