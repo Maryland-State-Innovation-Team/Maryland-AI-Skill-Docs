@@ -1,18 +1,37 @@
 # Maryland AI Skill Docs
 
-Skill documents for the Maryland State Innovation Team. Each file is a Markdown document written for LLMs — attach it to a conversation to give the model the knowledge and patterns needed to complete a specific task correctly on the first try.
+Skill documents for the Maryland State Innovation Team. Each one gives an LLM the knowledge and patterns needed to complete a specific Maryland-government task correctly on the first try.
 
-## Skill Documents
+## Skills
 
-### `mdwds_skill_document.md` — Maryland Web Design System (MDWDS)
+### `mdwds-skill/` — Maryland Web Design System (MDWDS)
 
-Enables LLMs to build Maryland state government web pages using the [Maryland Web Design System](https://designsystem.maryland.gov/) via CDN. Covers all 107 documented components including the full page shell structure, `maryland-*` web components, `usa-*` USWDS-inherited classes, layout grid, templates, and accessibility requirements.
+An installable [Anthropic Agent Skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) for building Maryland state government web pages with the [Maryland Web Design System](https://designsystem.maryland.gov/). Covers CDN setup, the full page shell, every documented `maryland-*` and `usa-*` component, and page-template recipes (agency homepage, landing, listing, basic, news, location, action, search).
 
-Generated automatically by the scraper in `code_utilities/mdwds_storybook_scraper.py`, which crawls the live MDWDS Storybook, extracts real rendered HTML from component iframes, and synthesizes the document using Claude on AWS Bedrock.
+Structure:
+
+```
+mdwds-skill/
+├── SKILL.md                    # Index + auto-trigger frontmatter
+└── cdn/
+    ├── setup.md                # CDN tags, init script, FOUC
+    ├── page-shell.md           # Required top-to-bottom shell
+    ├── composition.md          # Headings, spacing, grid, prose
+    ├── foundation.md           # Colors, typography, tokens
+    ├── component-index.md      # Lookup table with maryland-/usa- disambiguation
+    ├── components/*.md         # 78 component reference files
+    └── recipes/*.md            # 9 full assembled page templates
+```
+
+Each component file documents what the component looks like (real pixel values, colors, breakpoint behavior), every variant's markup, what each class visually does, the prop schema, heading-level guidance, and common mistakes — so the LLM can picture the component before writing markup, instead of reaching for inline `<style>` blocks.
+
+Pinned to MDWDS v0.47.4. CDN consumers should pin to the current stable version (see `mdwds-skill/cdn/setup.md`).
+
+**Install locally:** copy or symlink `mdwds-skill/` into `.claude/skills/` (project-scoped) or `~/.claude/skills/` (user-scoped). Once installed, Claude auto-loads it when a prompt mentions building a Maryland.gov page, MDWDS, or any of the `maryland-*` components.
 
 **Example prompt:**
 ```
-Use the attached skill document to build a Maryland state agency homepage with a hero section, three feature cards, and a news listing.
+Build me a Maryland state agency homepage with a hero section, three feature cards, and a news listing. The agency is the Department of Natural Resources.
 ```
 
 ---
@@ -47,33 +66,6 @@ Enables LLMs to query and visualize data from Socrata-powered open data portals 
 ```
 Build me a dashboard using this context and this data URL: https://opendata.maryland.gov/resource/9qyj-bhez.json
 ```
-
----
-
-## `code_utilities/`
-
-Scripts that generate or maintain the skill documents above.
-
-- **`mdwds_storybook_scraper.py`** — Three-phase Playwright + Bedrock pipeline for regenerating `mdwds_skill_document.md`. Discovers all Storybook component pages, scrapes real rendered HTML from component iframes, runs per-page extraction with Claude Haiku, then synthesizes a holistic intro with Claude Sonnet. Results are cached so phases can be re-run independently.
-
-- **`mdwds_storybook_browser_use.py`** — Earlier browser-use/Gemini approach, superseded by `mdwds_storybook_scraper.py`.
-
-### Regenerating the MDWDS skill document
-
-```bash
-# First-time setup
-python -m venv .venv && source .venv/bin/activate
-pip install "anthropic[bedrock]" playwright pydantic python-dotenv
-playwright install chromium
-
-# Run (AWS credentials with Bedrock access required)
-python code_utilities/mdwds_storybook_scraper.py
-```
-
-Cache files are written to `code_utilities/`:
-- Delete `mdwds_scraped_pages.json` to re-crawl the Storybook
-- Delete `mdwds_extracted_pages.json` to re-run per-page extraction
-- Delete neither to re-run synthesis only
 
 ---
 
